@@ -1,0 +1,14 @@
+The Pastel SVG icon set Created by Michael Buckley is licensed under the:
+
+Creative Commons Attribution NonCommercial Share Alike 4.0
+http://creativecommons.org/licenses/by-nc-sa/4.0/ 
+
+
+The following icons were modified or are based on icons from the Pastel SVG set:
+
+- axes-lock
+- dock-bottom
+- dock-left
+- dock-right
+- dock-top
+

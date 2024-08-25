@@ -1,0 +1,19 @@
+Gid Plot Changelog
+==================
+
+[0.0.1] - 2024-08-25
+--------------------
+
+First public release
+
+- Import CSV file
+- Show parsed CSV content in a table
+- Mark import errors
+- Select columns for x and y axes and plot on graph
+- Quick x and y zooming with right mouse button drag on plot
+- Plots are tabs in the main window and can be popped out
+- Plot windows can be docked to screen edges
+- Plot crosshairs, one for mouse position and one that snaps to curves
+- Link multiple plots to sync crosshairs, position and zoom
+- Specify and plot sub-ranges
+

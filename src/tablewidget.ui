@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TableWidget</class>
+ <widget class="QWidget" name="TableWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>754</width>
+    <height>564</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QHBoxLayout" name="horizontalLayout_2">
+   <item>
+    <widget class="QTableWidget" name="tableWidget"/>
+   </item>
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Expanding">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab_plot">
+      <attribute name="title">
+       <string>Plot</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QTreeWidget" name="treeWidget_cols_x">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <column>
+          <property name="text">
+           <string>X-axis</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_3">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Range:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_range"/>
+         </item>
+         <item>
+          <widget class="QToolButton" name="toolButton_range">
+           <property name="text">
+            <string>...</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout">
+         <item>
+          <widget class="QPushButton" name="pushButton_addToPlot">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="text">
+            <string>Add to plot...</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images/images.qrc">
+             <normaloff>:/plotexample</normaloff>:/plotexample</iconset>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <widget class="QTreeWidget" name="treeWidget_cols_y">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::ExtendedSelection</enum>
+         </property>
+         <column>
+          <property name="text">
+           <string notr="true">Y-axis</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_info">
+      <attribute name="title">
+       <string>Info</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>CSV file:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_filename">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_filesize">
+         <property name="text">
+          <string>File size: 0 MB</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_colsrows">
+         <property name="text">
+          <string>0 columns, 0 rows</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_loadtime">
+         <property name="text">
+          <string>Loaded in 0 s</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Errors</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout">
+          <item row="0" column="0">
+           <widget class="QToolButton" name="toolButton_errors_total_prev">
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/back</normaloff>:/back</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QToolButton" name="toolButton_errors_total_next">
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/forward</normaloff>:/forward</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="label_errors_total">
+            <property name="text">
+             <string>0 total</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0" colspan="3">
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Specific errors:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QToolButton" name="toolButton_errors_value_prev">
+            <property name="toolTip">
+             <string>Previous error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/back</normaloff>:/back</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QToolButton" name="toolButton_errors_value_next">
+            <property name="toolTip">
+             <string>Next error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/forward</normaloff>:/forward</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLabel" name="label_errors_value">
+            <property name="text">
+             <string>0 value</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QToolButton" name="toolButton_errors_insufCols_prev">
+            <property name="toolTip">
+             <string>Previous error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/back</normaloff>:/back</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QToolButton" name="toolButton_errors_insufCols_next">
+            <property name="toolTip">
+             <string>Next error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/forward</normaloff>:/forward</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="2">
+           <widget class="QLabel" name="label_errors_insufCols">
+            <property name="text">
+             <string>0 insufficient column</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QToolButton" name="toolButton_errors_excessCols_prev">
+            <property name="toolTip">
+             <string>Previous error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/back</normaloff>:/back</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QToolButton" name="toolButton_errors_excessCols_next">
+            <property name="toolTip">
+             <string>Next error</string>
+            </property>
+            <property name="text">
+             <string>...</string>
+            </property>
+            <property name="icon">
+             <iconset resource="../images/images.qrc">
+              <normaloff>:/forward</normaloff>:/forward</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="2">
+           <widget class="QLabel" name="label_errors_excessCols">
+            <property name="text">
+             <string>0 excess column</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources>
+  <include location="../images/images.qrc"/>
+ </resources>
+ <connections/>
+</ui>

@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/">
+        <file>mouse.png</file>
+        <file>mouse_leftclick.png</file>
+        <file>mouse_middleclick.png</file>
+        <file>mouse_rightclick.png</file>
+        <file>mouse_scroll.png</file>
+        <file alias="plot">PastelSVG-1.2/chart-curve.png</file>
+        <file alias="plotexample">PastelSVG-1.2/chart-curve-add.png</file>
+        <file alias="loadcsv">PastelSVG-1.2/table-add.png</file>
+        <file alias="table">PastelSVG-1.2/table.png</file>
+        <file alias="back">PastelSVG-1.2/arrow-back.png</file>
+        <file alias="forward">PastelSVG-1.2/arrow-forward.png</file>
+        <file alias="undock">PastelSVG-1.2/application-double.png</file>
+        <file alias="dock-bottom">PastelSVG-1.2/dock-bottom.png</file>
+        <file alias="dock-left">PastelSVG-1.2/dock-left.png</file>
+        <file alias="dock-right">PastelSVG-1.2/dock-right.png</file>
+        <file alias="dock-top">PastelSVG-1.2/dock-top.png</file>
+        <file alias="tab">PastelSVG-1.2/tab.png</file>
+        <file alias="equalaxes">PastelSVG-1.2/axes-lock.png</file>
+        <file alias="showall">PastelSVG-1.2/world.png</file>
+        <file alias="abouticon">gidplot_64.png</file>
+    </qresource>
+</RCC>
