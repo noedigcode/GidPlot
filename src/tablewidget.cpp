@@ -32,7 +32,7 @@ TableWidget::TableWidget(QWidget *parent) :
     ui->setupUi(this);
 
     ui->tabWidget->setCurrentWidget(ui->tab_plot);
-    updateWidgetsOnColumnSelectionChange();
+    updateButtonsEnabled();
 }
 
 TableWidget::~TableWidget()
@@ -89,6 +89,12 @@ void TableWidget::setData(CsvPtr csv)
                                          .arg(mat->excessColsErrorCount));
     ui->label_errors_insufCols->setText(QString("%1 insufficient column errors")
                                         .arg(mat->insufficientColsErrorCount));
+}
+
+void TableWidget::setAddToPlotButtonEnabled(bool enabled)
+{
+    mAddToPlotButtonEnabled = enabled;
+    updateButtonsEnabled();
 }
 
 void TableWidget::setRangeToAll()
@@ -276,14 +282,34 @@ QList<int> TableWidget::getTreeWidgetTopLevelItemSelection(QTreeWidget* treeWidg
 
 void TableWidget::updateWidgetsOnColumnSelectionChange()
 {
+    updateButtonsEnabled();
+}
+
+void TableWidget::updateButtonsEnabled()
+{
     bool xsel = ui->treeWidget_cols_x->selectedItems().count() > 0;
     bool ysel = ui->treeWidget_cols_y->selectedItems().count() > 0;
-    ui->pushButton_addToPlot->setEnabled(xsel && ysel);
+
+    ui->pushButton_newPlot->setEnabled(xsel && ysel);
+    ui->pushButton_addToPlot->setEnabled(xsel && ysel && mAddToPlotButtonEnabled);
 }
 
 void TableWidget::setRange(RangePtr range)
 {
     ui->lineEdit_range->setText(range->toString());
+}
+
+void TableWidget::emitPlot(bool newPlot)
+{
+    ColSelection selection = getColumnsSelection();
+
+    if (selection.xcols.isEmpty()) { return; }
+    if (selection.ycols.isEmpty()) { return; }
+
+    Range range;
+    if (!range.fromString(ui->lineEdit_range->text())) { return; }
+
+    emit plot(newPlot, selection.xcols.value(0), selection.ycols, range);
 }
 
 void TableWidget::resizeEvent(QResizeEvent* event)
@@ -335,15 +361,7 @@ void TableWidget::on_toolButton_errors_total_next_clicked()
 
 void TableWidget::on_pushButton_addToPlot_clicked()
 {
-    ColSelection selection = getColumnsSelection();
-
-    if (selection.xcols.isEmpty()) { return; }
-    if (selection.ycols.isEmpty()) { return; }
-
-    Range range;
-    if (!range.fromString(ui->lineEdit_range->text())) { return; }
-
-    emit addToPlot(selection.xcols.value(0), selection.ycols, range);
+    emitPlot(false);
 }
 
 void TableWidget::on_treeWidget_cols_x_itemSelectionChanged()
@@ -376,4 +394,8 @@ void TableWidget::on_toolButton_range_clicked()
     menu->popup(QCursor::pos());
 }
 
+void TableWidget::on_pushButton_newPlot_clicked()
+{
+    emitPlot(true);
+}
 

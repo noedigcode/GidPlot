@@ -42,9 +42,10 @@ public:
     ~TableWidget();
 
     void setData(CsvPtr csv);
+    void setAddToPlotButtonEnabled(bool enabled);
 
 signals:
-    void addToPlot(int ixcol, QList<int> iycols, Range range);
+    void plot(bool newPlot, int ixcol, QList<int> iycols, Range range);
 
 private slots:
     void setRangeToAll();
@@ -61,6 +62,7 @@ private slots:
     void on_treeWidget_cols_x_itemSelectionChanged();
     void on_treeWidget_cols_y_itemSelectionChanged();
     void on_toolButton_range_clicked();
+    void on_pushButton_newPlot_clicked();
 
 private:
     Ui::TableWidget *ui;
@@ -83,7 +85,12 @@ private:
     QList<int> getTreeWidgetTopLevelItemSelection(QTreeWidget* treeWidget);
     void updateWidgetsOnColumnSelectionChange();
 
+    bool mAddToPlotButtonEnabled = true;
+    void updateButtonsEnabled();
+
     void setRange(RangePtr range);
+
+    void emitPlot(bool newPlot);
 
     void resizeEvent(QResizeEvent* event);
 };

@@ -56,7 +56,11 @@ private slots:
     void importCsv(Csv::FileInfo info);
 
     PlotWidget* addPlot(QString title);
+    void onPlotAdded(PlotWidget* plot);
+    void onPlotRemoved(PlotWidget* plot);
     void addTable(CsvPtr csv);
+    void onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
+                     QList<int> iycols, Range range);
 
     void plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range);
 
@@ -79,6 +83,8 @@ private:
     QList<PlotWidget*> mPlots;
     int mPlotCounter = 0;
     QMap<PlotWidget*, int> mPlotLinkGroups;
+
+    QList<TableWidget*> mTables;
 
     QMenu tabMenu;
 

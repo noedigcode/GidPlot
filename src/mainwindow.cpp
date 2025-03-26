@@ -87,6 +87,7 @@ PlotWidget *MainWindow::addPlot(QString title)
     {
         mPlots.removeAll(p);
         mPlotLinkGroups.remove(p);
+        QMetaObject::invokeMethod(this, [=](){ onPlotRemoved(p); });
     });
     connect(p, &PlotWidget::linkGroupChanged, this, [=](int group)
     {
@@ -177,54 +178,40 @@ PlotWidget *MainWindow::addPlot(QString title)
     ui->stackedWidget->setCurrentWidget(ui->page_main);
 
     mPlots.append(p);
+    QMetaObject::invokeMethod(this, [=](){ onPlotAdded(p); });
     return p;
+}
+
+void MainWindow::onPlotAdded(PlotWidget* /*plot*/)
+{
+    foreach (TableWidget* t, mTables) {
+        t->setAddToPlotButtonEnabled( !mPlots.isEmpty() );
+    }
+}
+
+void MainWindow::onPlotRemoved(PlotWidget* /*plot*/)
+{
+    foreach (TableWidget* t, mTables) {
+        t->setAddToPlotButtonEnabled( !mPlots.isEmpty() );
+    }
 }
 
 void MainWindow::addTable(CsvPtr csv)
 {
     TableWidget* t = new TableWidget();
+    connect(t, &TableWidget::destroyed, this, [=]()
+    {
+        mTables.removeAll(t);
+    });
+    mTables.append(t);
+    t->setAddToPlotButtonEnabled( !mPlots.isEmpty() );
 
     CsvWeakPtr csvWkPtr(csv);
-    connect(t, &TableWidget::addToPlot,
+    connect(t, &TableWidget::plot,
             this, [this, csvWkPtr]
-            (int ixcol, QList<int> iycols, Range range)
+            (bool newPlot, int ixcol, QList<int> iycols, Range range)
     {
-        if (mPlots.isEmpty()) {
-            // No existing plots. Immediately create new plot
-            CsvPtr csv2(csvWkPtr);
-            if (!csv2) { return; }
-
-            plot(csv2, ixcol, iycols, range);
-
-        } else {
-            // There are existing plots. Show a menu to select one or new.
-            QMenu* menu = new QMenu();
-            connect(menu, &QMenu::triggered, this, [=]()
-            {
-                menu->deleteLater();
-            });
-            menu->addAction("New Plot", this,
-                            [this, csvWkPtr, ixcol, iycols, range]()
-            {
-                CsvPtr csv3(csvWkPtr);
-                if (!csv3) { return; }
-
-                plot(csv3, ixcol, iycols, range);
-            });
-            foreach (PlotWidget* p, mPlots) {
-                menu->addAction(p->windowTitle(), this,
-                                [this, csvWkPtr, ixcol, iycols, range, p]()
-                {
-                    CsvPtr csv3(csvWkPtr);
-                    if (!csv3) { return; }
-
-                    foreach (int iycol, iycols) {
-                        p->plotData(csv3, ixcol, iycol, range);
-                    }
-                });
-            }
-            menu->popup(QCursor::pos());
-        }
+        onTablePlot(csvWkPtr, newPlot, ixcol, iycols, range);
     });
 
     int tab = ui->tabWidget->addTab(t, QIcon(":/table"),
@@ -234,6 +221,43 @@ void MainWindow::addTable(CsvPtr csv)
     ui->stackedWidget->setCurrentWidget(ui->page_main);
 
     t->setData(csv);
+}
+
+void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
+                             QList<int> iycols, Range range)
+{
+    if (newPlot) {
+
+        CsvPtr csv2(csvWkPtr);
+        if (!csv2) { return; }
+
+        plot(csv2, ixcol, iycols, range);
+
+    } else {
+        // Show a menu to select an existing plot.
+        QMenu* menu = new QMenu();
+        connect(menu, &QMenu::triggered, this, [=]()
+        {
+            menu->deleteLater();
+        });
+
+        foreach (PlotWidget* p, mPlots) {
+            menu->addAction(p->windowTitle(), this,
+                            [this, csvWkPtr, ixcol, iycols, range, p]()
+            {
+                CsvPtr csv3(csvWkPtr);
+                if (!csv3) { return; }
+
+                foreach (int iycol, iycols) {
+                    p->plotData(csv3, ixcol, iycol, range);
+                }
+            });
+        }
+        if (menu->isEmpty()) {
+            menu->addAction("No existing plots");
+        }
+        menu->popup(QCursor::pos());
+    }
 }
 
 void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
