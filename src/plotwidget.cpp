@@ -480,7 +480,12 @@ bool PlotWidget::plotMouseMove(QMouseEvent* event)
                         }
                     }
 
-                    if (timer.elapsed() > 100) {
+                    // Update the plot crosshair
+                    // If it takes too long to update, disable the plot crosshair
+                    // automatically. However, if the user has enabled it, leave
+                    // it alone.
+                    if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
+
                         mPlotCrosshair.setVisible(false);
                         updateGuiForCrosshairOptions();
                     } else {
@@ -846,6 +851,7 @@ void PlotWidget::on_action_Link_to_Group_3_triggered()
 
 void PlotWidget::on_action_Show_Plot_Crosshair_triggered()
 {
+    mPlotCrosshairVisibilityChangedByUser = true;
     mPlotCrosshair.setVisible(ui->action_Show_Plot_Crosshair->isChecked());
     updateGuiForCrosshairOptions();
 }

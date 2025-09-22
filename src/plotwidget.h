@@ -187,6 +187,7 @@ private:
     enum CrosshairSnap { SnapXOnly, SnapToClosest } mPlotCrosshairSnap = SnapXOnly;
     Crosshair mPlotCrosshair;
     int mPlotCrosshairIndex = 0;
+    bool mPlotCrosshairVisibilityChangedByUser = false;
     Crosshair mMouseCrosshair;
     void updateGuiForCrosshairOptions();
 
