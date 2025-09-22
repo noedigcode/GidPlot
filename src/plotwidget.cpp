@@ -788,6 +788,11 @@ void PlotWidget::setupMenus()
         ui->action_Undocked,
         ui->action_Tab_in_Main_Window
     });
+
+    // Image menu
+    imageMenu.addActions({
+        ui->action_Copy_Image
+    });
 }
 
 void PlotWidget::onAxisRangesChanged()
@@ -913,6 +918,11 @@ void PlotWidget::on_pushButton_window_clicked()
     windowMenu.popup(QCursor::pos());
 }
 
+void PlotWidget::on_pushButton_image_clicked()
+{
+    imageMenu.popup(QCursor::pos());
+}
+
 void PlotWidget::on_action_Dock_to_Screen_Top_triggered()
 {
     emit dockWindow(DockTop);
@@ -1008,3 +1018,12 @@ QColor Graph::color()
         return QColor();
     }
 }
+
+void PlotWidget::on_action_Copy_Image_triggered()
+{
+    QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setImage(image);
+}
+

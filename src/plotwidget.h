@@ -121,6 +121,7 @@ private slots:
     void on_pushButton_view_clicked();
     void on_pushButton_link_clicked();
     void on_pushButton_window_clicked();
+    void on_pushButton_image_clicked();
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -128,6 +129,8 @@ private slots:
     void on_action_Dock_to_Screen_Right_triggered();
     void on_action_Undocked_triggered();
     void on_action_Tab_in_Main_Window_triggered();
+
+    void on_action_Copy_Image_triggered();
 
 private:
     Ui::PlotWidget *ui;
@@ -155,6 +158,7 @@ private:
     QMenu linkMenu;
     QMenu windowMenu;
     QMenu dataTipMenu;
+    QMenu imageMenu;
     void setupMenus();
 
     // -------------------------------------------------------------------------
