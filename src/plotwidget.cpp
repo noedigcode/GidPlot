@@ -584,7 +584,37 @@ void PlotWidget::updateGuiForLinkGroup()
 
 void PlotWidget::plotRightClicked(const QPoint &pos)
 {
-    plotContextMenu.popup(ui->plot->mapToGlobal(pos));
+    bool used = false;
+
+    QCPLegend* legend = ui->plot->legend;
+    if (legend) {
+
+        // Check if plottable item in legend has been right clicked
+        for (int i = 0; i < legend->itemCount(); i++) {
+            QCPAbstractLegendItem* legendItem = legend->item(i);
+            if (legendItem->selectTest(pos, false) >= 0) {
+                QCPPlottableLegendItem* plItem = qobject_cast<QCPPlottableLegendItem*>(legendItem);
+                if (plItem) {
+                    QCPAbstractPlottable* plottable = plItem->plottable();
+                    qDebug() << "Right clicked legend item for" << plottable->name();
+                    used = true;
+                }
+            }
+        }
+
+        if (!used) {
+            // Check if legend has been right clicked
+            if (legend->selectTest(pos, false) >= 0) {
+                qDebug() << "Legend right-clicked";
+                used = true;
+            }
+        }
+    }
+
+    if (!used) {
+        // Plot area
+        plotContextMenu.popup(ui->plot->mapToGlobal(pos));
+    }
 }
 
 void PlotWidget::queueReplot()
