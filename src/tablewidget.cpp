@@ -21,6 +21,8 @@
 #include "tablewidget.h"
 #include "ui_tablewidget.h"
 
+#include "utils.h"
+
 #include <QFileInfo>
 #include <QScrollBar>
 #include <QDebug>
@@ -153,25 +155,16 @@ void TableWidget::selectDefaultColumns()
 
     // Try to select time for x-axis, otherwise index column
 
-    // Prefer a column heading with one of these exact names
-    QStringList exact {"time", "t"};
-    // Otherwise opt for one that contains one of these
-    QStringList contain {"time"};
-
     int iExact = -1;
     int iContain = -1;
     for (int i = 0; i < mat->headingCount(); i++) {
-        QString h = mat->heading(i).trimmed().toLower();
-        foreach (QString x, exact) {
-            if (h == x) {
-                iExact = i;
-                break;
-            }
+        Utils::Match match = Utils::looksLikeTimeTitle(mat->heading(i));
+        if (match == Utils::ExactMatch) {
+            iExact = i;
+            break;
         }
-        foreach (QString c, contain) {
-            if ( (iContain < 0) && (h.contains(c)) ) {
-                iContain = i;
-            }
+        if ((match == Utils::ContainsMatch) && (iContain < 0)) {
+            iContain = i;
         }
     }
     int iSelect = 0;
