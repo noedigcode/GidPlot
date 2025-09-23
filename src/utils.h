@@ -35,6 +35,28 @@ public:
         // loop.
         QTimer::singleShot(0, context, func);
     }
+
+    enum Match {NoMatch, ExactMatch, ContainsMatch};
+    static Match looksLikeTimeTitle(QString text)
+    {
+        // Prefer a title with one of these exact names
+        QStringList exact {"time", "t"};
+        // Otherwise opt for one that contains one of these
+        QStringList contain {"time"};
+
+        text = text.trimmed().toLower();
+        foreach (QString x, exact) {
+            if (text == x) {
+                return ExactMatch;
+            }
+        }
+        foreach (QString c, contain) {
+            if (text.contains(c)) {
+                return ContainsMatch;
+            }
+        }
+        return NoMatch;
+    }
 };
 
 #endif // UTILS_H

@@ -75,6 +75,9 @@ public:
 
     QCustomPlot* plotWidget();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
+    void setTitle(QString title);
+    void setXLabel(QString xlabel);
+    void setYLabel(QString ylabel);
     void showAll();
 
     void setEqualAxesButDontReplot(bool fixed);
@@ -88,11 +91,15 @@ signals:
     void axisRangesChanged(QRectF xyrange);
     void dataTipChanged(int index);
     void dockWindow(Dock location);
+    void resizeWindow(int width, int height);
 
 private slots:
     void plottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *event);
     void onPlotMouseMove(QMouseEvent* event);
     void onPlotMousePress(QMouseEvent* event);
+    void onPlotDoubleClick(QMouseEvent* event);
+    void onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part, QMouseEvent *event);
+    void onTitleDoubleClick(QMouseEvent* event);
     bool plotMouseRightDrag(QMouseEvent* event);
     bool plotMouseMove(QMouseEvent* event);
     void onPlotMouseRelease(QMouseEvent* event);
@@ -132,8 +139,11 @@ private slots:
 
     void on_action_Copy_Image_triggered();
 
+    void on_action_Resize_Plot_triggered();
+
 private:
     Ui::PlotWidget *ui;
+    QCPTextElement* mPlotTitle = nullptr;
 
     void queueReplot();
 

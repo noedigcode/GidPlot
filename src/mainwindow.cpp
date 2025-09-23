@@ -22,6 +22,7 @@
 #include "ui_mainwindow.h"
 
 #include "defer.h"
+#include "utils.h"
 #include "version.h"
 
 MainWindow::MainWindow(Args args, QWidget *parent) :
@@ -169,6 +170,17 @@ PlotWidget *MainWindow::addPlot(QString title)
         }
     });
 
+    connect(p, &PlotWidget::resizeWindow, this, [=](int width, int height)
+    {
+        ui->tabWidget->popoutTabWidget(p);
+        QMainWindow* w = ui->tabWidget->tabWindow(p);
+
+        width += w->width() - p->plotWidget()->width();
+        height += w->height() - p->plotWidget()->height();
+
+        w->resize(width, height);
+    });
+
     title = QString("%1. %2").arg(++mPlotCounter).arg(title);
     p->setWindowTitle(title);
     int tab = ui->tabWidget->insertTab(ui->tabWidget->currentIndex() + 1,
@@ -276,11 +288,23 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
     if (xtext.length() > 13) {
         xtext = xtext.left(10) + "...";
     }
-    PlotWidget* p = addPlot(QString("%1 vs %2").arg(ytext).arg(xtext));
+
+    QString title;
+    if (Utils::looksLikeTimeTitle(xtext) == Utils::NoMatch) {
+        title = QString("%1 vs %2").arg(ytext).arg(xtext);
+    } else {
+        title = ytext;
+    }
+
+    PlotWidget* p = addPlot(ytext);
 
     foreach (int iycol, iycols) {
         p->plotData(csv, ixcol, iycol, range);
     }
+
+    p->setTitle(title);
+    p->setXLabel(xtext);
+    p->setYLabel(ytext);
 
     p->showAll();
 }

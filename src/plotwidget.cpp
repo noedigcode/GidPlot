@@ -37,6 +37,9 @@ PlotWidget::PlotWidget(QWidget *parent) :
     connect(ui->plot, &QCustomPlot::mouseMove, this, &PlotWidget::onPlotMouseMove);
     connect(ui->plot, &QCustomPlot::mousePress, this, &PlotWidget::onPlotMousePress);
     connect(ui->plot, &QCustomPlot::mouseRelease, this, &PlotWidget::onPlotMouseRelease);
+    connect(ui->plot, &QCustomPlot::mouseDoubleClick, this, &PlotWidget::onPlotDoubleClick);
+    connect(ui->plot, &QCustomPlot::axisDoubleClick, this, &PlotWidget::onAxisDoubleClick);
+
 
     ui->plot->setInteraction(QCP::iRangeDrag, true);
     ui->plot->setInteraction(QCP::iRangeZoom, true);
@@ -147,6 +150,30 @@ void PlotWidget::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     } else {
         queueReplot();
     }
+}
+
+void PlotWidget::setTitle(QString title)
+{
+    if (!mPlotTitle) {
+        mPlotTitle = new QCPTextElement(ui->plot);
+        connect(mPlotTitle, &QCPTextElement::doubleClicked,
+                this, &PlotWidget::onTitleDoubleClick);
+
+        ui->plot->plotLayout()->insertRow(0);
+        ui->plot->plotLayout()->addElement(0, 0, mPlotTitle);
+    }
+
+    mPlotTitle->setText(title);
+}
+
+void PlotWidget::setXLabel(QString xlabel)
+{
+    ui->plot->xAxis->setLabel(xlabel);
+}
+
+void PlotWidget::setYLabel(QString ylabel)
+{
+    ui->plot->yAxis->setLabel(ylabel);
 }
 
 void PlotWidget::showAll()
@@ -336,6 +363,39 @@ void PlotWidget::onPlotMousePress(QMouseEvent* event)
         rMouseZoom.mouseDown = true;
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = true;
+    }
+}
+
+void PlotWidget::onPlotDoubleClick(QMouseEvent* /*event*/)
+{
+
+}
+
+void PlotWidget::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part, QMouseEvent* /*event*/)
+{
+    if (part == QCPAxis::spAxisLabel) {
+        bool ok;
+        QString text = QInputDialog::getText(this, "Axis Label", "Label",
+                                              QLineEdit::Normal,
+                                              axis->label(),
+                                              &ok);
+        if (ok) {
+            axis->setLabel(text);
+            ui->plot->replot();
+        }
+    }
+}
+
+void PlotWidget::onTitleDoubleClick(QMouseEvent* /*event*/)
+{
+    bool ok;
+    QString title = QInputDialog::getText(this, "Title", "Title",
+                                          QLineEdit::Normal,
+                                          mPlotTitle->text(),
+                                          &ok);
+    if (ok) {
+        mPlotTitle->setText(title);
+        ui->plot->replot();
     }
 }
 
@@ -821,6 +881,7 @@ void PlotWidget::setupMenus()
 
     // Image menu
     imageMenu.addActions({
+        ui->action_Resize_Plot,
         ui->action_Copy_Image
     });
 }
@@ -1055,5 +1116,23 @@ void PlotWidget::on_action_Copy_Image_triggered()
 
     QClipboard* clipboard = QGuiApplication::clipboard();
     clipboard->setImage(image);
+}
+
+void PlotWidget::on_action_Resize_Plot_triggered()
+{
+    bool ok = false;
+    QString res = QInputDialog::getItem(this, "Resize Plot", "Size in pixels",
+                                        {"700x450", "800x600", "1024x768"},
+                                        0,
+                                        true,
+                                        &ok);
+    if (!ok) { return; }
+    QStringList terms = res.split("x");
+    int x = terms.value(0).toInt(&ok);
+    if (!ok || (x < 10)) { return; }
+    int y = terms.value(1).toInt(&ok);
+    if (!ok || (y < 10)) { return; }
+
+    emit resizeWindow(x, y);
 }
 
