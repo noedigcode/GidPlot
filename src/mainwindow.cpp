@@ -195,7 +195,7 @@ void MainWindow::onPlotWindowDestroyed(PlotWindow* p)
 {
     mPlots.removeAll(p);
     mPlotLinkGroups.remove(p);
-    QMetaObject::invokeMethod(this, [=](){ onPlotRemoved(p); });
+    onPlotRemoved(p);
 }
 
 void MainWindow::onPlotLinkGroupChanged(PlotWindow* p, int group)
