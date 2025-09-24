@@ -375,12 +375,13 @@ void PlotWindow::onPlotMousePress(QMouseEvent* event)
 
 void PlotWindow::onPlotDoubleClick(QMouseEvent* /*event*/)
 {
-
+    qDebug() << "plot double click";
 }
 
 void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part,
                                    QMouseEvent* /*event*/)
 {
+    qDebug() << "onAxisDoubleClick";
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
         QString text = QInputDialog::getText(this, "Axis Label", "Label",
@@ -499,15 +500,21 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
 
     if (xaxis && yaxis) {
 
-        double mouseX = xaxis->pixelToCoord(event->x());
-        double mouseY = yaxis->pixelToCoord(event->y());
+        QRect r = ui->plot->axisRect()->rect();
+        bool mouseInAxisRect = r.contains(event->x(), event->y());
+
         posValid = true;
 
-        // Only update tracers and coordinates if not dragging as it could
-        // slow down dragging
-        if (!dragging) {
+        // - Only update tracers and coordinates if not dragging as it could
+        //   slow down dragging
+        // - Don't draw crosshairs when mouse is outside of axis rect. This
+        //   could lead to the crosshair being directly behind the axis labels,
+        //   preventing click events to the labels.
+        if (!dragging && mouseInAxisRect) {
 
             QString text;
+            double mouseX = xaxis->pixelToCoord(event->x());
+            double mouseY = yaxis->pixelToCoord(event->y());
 
             if (mPlotCrosshair.isVisible() && dataTipGraph) {
 
