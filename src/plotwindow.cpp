@@ -6,9 +6,10 @@
 #include <QWeakPointer>
 
 
-PlotWindow::PlotWindow(QWidget *parent) :
+PlotWindow::PlotWindow(int tag, QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::PlotWindow)
+    ui(new Ui::PlotWindow),
+    mTag(tag)
 {
     ui->setupUi(this);
 
@@ -39,6 +40,11 @@ PlotWindow::PlotWindow(QWidget *parent) :
 PlotWindow::~PlotWindow()
 {
     delete ui;
+}
+
+int PlotWindow::tag()
+{
+    return mTag;
 }
 
 QCustomPlot *PlotWindow::plotWidget()
@@ -145,16 +151,21 @@ void PlotWindow::setTitle(QString title)
     }
 
     mPlotTitle->setText(title);
+    ui->plot->replot();
+
+    emit titleSet(title);
 }
 
 void PlotWindow::setXLabel(QString xlabel)
 {
     ui->plot->xAxis->setLabel(xlabel);
+    ui->plot->replot();
 }
 
 void PlotWindow::setYLabel(QString ylabel)
 {
     ui->plot->yAxis->setLabel(ylabel);
+    ui->plot->replot();
 }
 
 void PlotWindow::showAll()
@@ -352,7 +363,8 @@ void PlotWindow::onPlotDoubleClick(QMouseEvent* /*event*/)
 
 }
 
-void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part, QMouseEvent* /*event*/)
+void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part,
+                                   QMouseEvent* /*event*/)
 {
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
@@ -375,8 +387,7 @@ void PlotWindow::onTitleDoubleClick(QMouseEvent* /*event*/)
                                           mPlotTitle->text(),
                                           &ok);
     if (ok) {
-        mPlotTitle->setText(title);
-        ui->plot->replot();
+        setTitle(title);
     }
 }
 
@@ -936,32 +947,32 @@ void PlotWindow::on_action_MouseCrosshair_Dot_triggered()
 
 void PlotWindow::on_action_Dock_to_Screen_Top_triggered()
 {
-    emit dockWindow(DockTop);
+    emit requestWindowDock(DockTop);
 }
 
 void PlotWindow::on_action_Dock_to_Screen_Bottom_triggered()
 {
-    emit dockWindow(DockBottom);
+    emit requestWindowDock(DockBottom);
 }
 
 void PlotWindow::on_action_Dock_to_Screen_Left_triggered()
 {
-    emit dockWindow(DockLeft);
+    emit requestWindowDock(DockLeft);
 }
 
 void PlotWindow::on_action_Dock_to_Screen_Right_triggered()
 {
-    emit dockWindow(DockRight);
+    emit requestWindowDock(DockRight);
 }
 
 void PlotWindow::on_action_Undocked_triggered()
 {
-    emit dockWindow(DockFloating);
+    emit requestWindowDock(DockFloating);
 }
 
 void PlotWindow::on_action_Tab_in_Main_Window_triggered()
 {
-    emit dockWindow(DockTab);
+    emit requestWindowDock(DockTab);
 }
 
 
@@ -1053,6 +1064,6 @@ void PlotWindow::on_action_Resize_Plot_triggered()
     int y = terms.value(1).toInt(&ok);
     if (!ok || (y < 10)) { return; }
 
-    emit resizeWindow(x, y);
+    emit requestWindowResize(x, y);
 }
 

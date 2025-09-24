@@ -41,6 +41,7 @@ public:
     int tabAndWindowCount();
     bool isPoppedOut(QWidget* widget);
     QMainWindow* tabWindow(QWidget* widget);
+    void setTabTitle(QWidget* widget, QString title);
 
 public slots:
     void popoutCurrentTab();

@@ -57,6 +57,15 @@ public:
         }
         return NoMatch;
     }
+
+    static QString elidedText(QString text, int maxLength)
+    {
+        if (text.length() > maxLength) {
+            return text.left(maxLength) + "…";
+        } else {
+            return text;
+        }
+    }
 };
 
 #endif // UTILS_H

@@ -83,108 +83,27 @@ void MainWindow::importCsv(Csv::FileInfo info)
 
 PlotWindow *MainWindow::addPlot(QString title)
 {
-    PlotWindow* p = new PlotWindow();
-    connect(p, &PlotWindow::destroyed, this, [=]()
-    {
-        mPlots.removeAll(p);
-        mPlotLinkGroups.remove(p);
-        QMetaObject::invokeMethod(this, [=](){ onPlotRemoved(p); });
-    });
-    connect(p, &PlotWindow::linkGroupChanged, this, [=](int group)
-    {
-        mPlotLinkGroups.insert(p, group);
-    });
-    connect(p, &PlotWindow::axisRangesChanged, this, [=](QRectF xyrange)
-    {
-        int group = mPlotLinkGroups.value(p, 0);
-        if (group == 0) { return; }
-        foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-            if (pp == p) { continue; }
-            if (mPlotLinkGroups.value(pp) == group) {
-                pp->syncAxisRanges(xyrange);
-            }
-        }
-    });
-    connect(p, &PlotWindow::dataTipChanged, this, [=](int index)
-    {
-        int group = mPlotLinkGroups.value(p, 0);
-        if (group == 0) { return; }
-        foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-            if (pp == p) { continue; }
-            if (mPlotLinkGroups.value(pp) == group) {
-                pp->syncDataTip(index);
-            }
-        }
-    });
-    connect(p, &PlotWindow::dockWindow, this, [=](PlotWindow::Dock location)
-    {
-        if (!ui->tabWidget->isPoppedOut(p)) {
-            if (location == PlotWindow::DockTab) { return; }
-            ui->tabWidget->popoutTabWidget(p);
-        }
-        QMainWindow* window = ui->tabWidget->tabWindow(p);
-        if (!window) { return; }
+    PlotWindow* p = new PlotWindow(++mPlotCounter);
 
-        QScreen* screen = window->screen();
-        if (!screen) { return; }
-        QRect rs = screen->availableGeometry();
+    connect(p, &PlotWindow::destroyed, this, [=]() { onPlotWindowDestroyed(p); });
+    connect(p, &PlotWindow::linkGroupChanged,
+            this, [=](int group) { onPlotLinkGroupChanged(p, group); });
+    connect(p, &PlotWindow::axisRangesChanged,
+            this, [=](QRectF xyrange) { onPlotAxisRangesChanged(p, xyrange); });
+    connect(p, &PlotWindow::dataTipChanged,
+            this, [=](int index) { onPlotDataTipChanged(p, index); });
+    connect(p, &PlotWindow::requestWindowDock,
+            this, [=](PlotWindow::Dock location) {
+                onPlotRequestWindowDock(p, location); });
+    connect(p, &PlotWindow::titleSet,
+            this, [=](QString title) { onPlotTitleSet(p, title); });
 
-        QRect rf = window->frameGeometry();
-        QRect rw = window->geometry();
+    connect(p, &PlotWindow::requestWindowResize,
+            this, [=](int w, int h) { onPlotRequestWindowResize(p, w, h); });
 
-        switch (location) {
-        case PlotWindow::DockTop:
-            window->setGeometry(rs.left() + rw.left() - rf.left(),
-                                rs.top() + rw.top() - rf.top(),
-                                rs.width() - (rf.width() - rw.width()),
-                                rs.height() / 2 - (rf.height() - rw.height()));
-            break;
-        case PlotWindow::DockBottom:
-            window->setGeometry(rs.left() + rw.left() - rf.left(),
-                                rs.bottom() - rs.height()/2 + (rw.top() - rf.top()),
-                                rs.width() - (rf.width() - rw.width()),
-                                rs.height() / 2 - (rf.height() - rw.height()));
-            break;
-        case PlotWindow::DockLeft:
-            window->setGeometry(rs.left() + rw.left() - rf.left(),
-                                rs.top() + rw.top() - rf.top(),
-                                rs.width() / 2 - (rf.width() - rw.width()),
-                                rs.height() - (rf.height() - rw.height()));
-            break;
-        case PlotWindow::DockRight:
-            window->setGeometry(rs.right() - rs.width()/2 + rw.left() - rf.left(),
-                                rs.top() + rw.top() - rf.top(),
-                                rs.width() / 2 - (rf.width() - rw.width()),
-                                rs.height() - (rf.height() - rw.height()));
-            break;
-        case PlotWindow::DockFloating:
-            window->setGeometry(rs.left() + rs.width() * 0.1,
-                                rs.top() + rs.height() * 0.1,
-                                rs.width() * 0.8,
-                                rs.height() * 0.8);
-            break;
-        case PlotWindow::DockTab:
-            // Closing window will pop it back into the tab bar
-            window->close();
-            break;
-        }
-    });
-
-    connect(p, &PlotWindow::resizeWindow, this, [=](int width, int height)
-    {
-        ui->tabWidget->popoutTabWidget(p);
-        QMainWindow* w = ui->tabWidget->tabWindow(p);
-
-        width += w->width() - p->plotWidget()->width();
-        height += w->height() - p->plotWidget()->height();
-
-        w->resize(width, height);
-    });
-
-    title = QString("%1. %2").arg(++mPlotCounter).arg(title);
-    p->setWindowTitle(title);
     int tab = ui->tabWidget->insertTab(ui->tabWidget->currentIndex() + 1,
-                                       p, QIcon(":/plot"), title);
+                                       p, QIcon(":/plot"), "New");
+    updatePlotWindowTitle(p, title);
 
     ui->tabWidget->setCurrentIndex(tab);
     ui->stackedWidget->setCurrentWidget(ui->page_main);
@@ -272,6 +191,112 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
     }
 }
 
+void MainWindow::onPlotWindowDestroyed(PlotWindow* p)
+{
+    mPlots.removeAll(p);
+    mPlotLinkGroups.remove(p);
+    QMetaObject::invokeMethod(this, [=](){ onPlotRemoved(p); });
+}
+
+void MainWindow::onPlotLinkGroupChanged(PlotWindow* p, int group)
+{
+    mPlotLinkGroups.insert(p, group);
+}
+
+void MainWindow::onPlotAxisRangesChanged(PlotWindow* p, QRectF xyrange)
+{
+    int group = mPlotLinkGroups.value(p, 0);
+    if (group == 0) { return; }
+    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
+        if (pp == p) { continue; }
+        if (mPlotLinkGroups.value(pp) == group) {
+            pp->syncAxisRanges(xyrange);
+        }
+    }
+}
+
+void MainWindow::onPlotDataTipChanged(PlotWindow* p, int index)
+{
+    int group = mPlotLinkGroups.value(p, 0);
+    if (group == 0) { return; }
+    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
+        if (pp == p) { continue; }
+        if (mPlotLinkGroups.value(pp) == group) {
+            pp->syncDataTip(index);
+        }
+    }
+}
+
+void MainWindow::onPlotRequestWindowDock(PlotWindow* p, PlotWindow::Dock location)
+{
+    if (!ui->tabWidget->isPoppedOut(p)) {
+        if (location == PlotWindow::DockTab) { return; }
+        ui->tabWidget->popoutTabWidget(p);
+    }
+    QMainWindow* window = ui->tabWidget->tabWindow(p);
+    if (!window) { return; }
+
+    QScreen* screen = window->screen();
+    if (!screen) { return; }
+    QRect rs = screen->availableGeometry();
+
+    QRect rf = window->frameGeometry();
+    QRect rw = window->geometry();
+
+    switch (location) {
+    case PlotWindow::DockTop:
+        window->setGeometry(rs.left() + rw.left() - rf.left(),
+                            rs.top() + rw.top() - rf.top(),
+                            rs.width() - (rf.width() - rw.width()),
+                            rs.height() / 2 - (rf.height() - rw.height()));
+        break;
+    case PlotWindow::DockBottom:
+        window->setGeometry(rs.left() + rw.left() - rf.left(),
+                            rs.bottom() - rs.height()/2 + (rw.top() - rf.top()),
+                            rs.width() - (rf.width() - rw.width()),
+                            rs.height() / 2 - (rf.height() - rw.height()));
+        break;
+    case PlotWindow::DockLeft:
+        window->setGeometry(rs.left() + rw.left() - rf.left(),
+                            rs.top() + rw.top() - rf.top(),
+                            rs.width() / 2 - (rf.width() - rw.width()),
+                            rs.height() - (rf.height() - rw.height()));
+        break;
+    case PlotWindow::DockRight:
+        window->setGeometry(rs.right() - rs.width()/2 + rw.left() - rf.left(),
+                            rs.top() + rw.top() - rf.top(),
+                            rs.width() / 2 - (rf.width() - rw.width()),
+                            rs.height() - (rf.height() - rw.height()));
+        break;
+    case PlotWindow::DockFloating:
+        window->setGeometry(rs.left() + rs.width() * 0.1,
+                            rs.top() + rs.height() * 0.1,
+                            rs.width() * 0.8,
+                            rs.height() * 0.8);
+        break;
+    case PlotWindow::DockTab:
+        // Closing window will pop it back into the tab bar
+        window->close();
+        break;
+    }
+}
+
+void MainWindow::onPlotRequestWindowResize(PlotWindow* p, int width, int height)
+{
+    ui->tabWidget->popoutTabWidget(p);
+    QMainWindow* w = ui->tabWidget->tabWindow(p);
+
+    width += w->width() - p->plotWidget()->width();
+    height += w->height() - p->plotWidget()->height();
+
+    w->resize(width, height);
+}
+
+void MainWindow::onPlotTitleSet(PlotWindow* p, QString title)
+{
+    updatePlotWindowTitle(p, title);
+}
+
 void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
 {
     MatrixPtr mat = csv->matrix;
@@ -280,14 +305,8 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
     foreach (int iycol, iycols) {
         ylabels.append(mat->heading(iycol));
     }
-    QString ytext = ylabels.join(",");
-    if (ytext.length() > 13) {
-        ytext = ytext.left(10) + "...";
-    }
-    QString xtext = mat->heading(ixcol);
-    if (xtext.length() > 13) {
-        xtext = xtext.left(10) + "...";
-    }
+    QString ytext = Utils::elidedText(ylabels.join(","), 20);
+    QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
 
     QString title;
     if (Utils::looksLikeTimeTitle(xtext) == Utils::NoMatch) {
@@ -296,7 +315,7 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
         title = ytext;
     }
 
-    PlotWindow* p = addPlot(ytext);
+    PlotWindow* p = addPlot(title);
 
     foreach (int iycol, iycols) {
         p->plotData(csv, ixcol, iycol, range);
@@ -413,5 +432,18 @@ void MainWindow::onTabCustomContextMenuRequested(const QPoint &pos)
 void MainWindow::on_action_About_triggered()
 {
     aboutDialog.show();
+}
+
+void MainWindow::updatePlotWindowTitle(PlotWindow* p, QString title)
+{
+    title = QString("%1. %2").arg(p->tag()).arg(title);
+    // Limit the title length so tabs don't become too wide
+    title = Utils::elidedText(title, 20);
+
+    // Set in tab widget, which sets tab text, or window title if popped out
+    ui->tabWidget->setTabTitle(p, title);
+    // Also set PlotWindow window title, as this is used in the menu when
+    // selecting plots
+    p->setWindowTitle(title);
 }
 

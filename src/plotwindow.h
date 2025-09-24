@@ -18,7 +18,7 @@ class PlotWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit PlotWindow(QWidget *parent = nullptr);
+    explicit PlotWindow(int tag = 0, QWidget *parent = nullptr);
     ~PlotWindow();
 
     // =========================================================================
@@ -53,6 +53,7 @@ public:
         DockTop, DockBottom, DockLeft, DockRight, DockFloating, DockTab
     };
 
+    int tag();
     QCustomPlot* plotWidget();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
     void setTitle(QString title);
@@ -70,8 +71,9 @@ signals:
     void linkGroupChanged(int group);
     void axisRangesChanged(QRectF xyrange);
     void dataTipChanged(int index);
-    void dockWindow(Dock location);
-    void resizeWindow(int width, int height);
+    void requestWindowDock(Dock location);
+    void requestWindowResize(int width, int height);
+    void titleSet(QString title);
 
 private slots:
     void plottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *event);
@@ -117,7 +119,7 @@ private slots:
 
 private:
     Ui::PlotWindow *ui;
-
+    int mTag = 0;
     QCPTextElement* mPlotTitle = nullptr;
 
     void queueReplot();

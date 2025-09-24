@@ -61,6 +61,13 @@ private slots:
     void addTable(CsvPtr csv);
     void onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                      QList<int> iycols, Range range);
+    void onPlotWindowDestroyed(PlotWindow* p);
+    void onPlotLinkGroupChanged(PlotWindow* p, int group);
+    void onPlotAxisRangesChanged(PlotWindow* p, QRectF xyrange);
+    void onPlotDataTipChanged(PlotWindow* p, int index);
+    void onPlotRequestWindowDock(PlotWindow* p, PlotWindow::Dock location);
+    void onPlotRequestWindowResize(PlotWindow* p, int width, int height);
+    void onPlotTitleSet(PlotWindow* p, QString title);
 
     void plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range);
 
@@ -83,6 +90,7 @@ private:
     QList<PlotWindow*> mPlots;
     int mPlotCounter = 0;
     QMap<PlotWindow*, int> mPlotLinkGroups;
+    void updatePlotWindowTitle(PlotWindow* p, QString title);
 
     QList<TableWidget*> mTables;
 

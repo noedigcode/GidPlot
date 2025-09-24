@@ -89,6 +89,19 @@ QMainWindow* PopoutTabWidget::tabWindow(QWidget* widget)
     return tabWindows.value(widget, nullptr);
 }
 
+void PopoutTabWidget::setTabTitle(QWidget* widget, QString title)
+{
+    QMainWindow* window = tabWindows.value(widget);
+    if (window) {
+        window->setWindowTitle(title);
+    } else {
+        int index = this->indexOf(widget);
+        if (index >= 0) {
+            this->setTabText(index, title);
+        }
+    }
+}
+
 void PopoutTabWidget::popoutCurrentTab()
 {
     popoutTabWidget(currentWidget());
