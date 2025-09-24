@@ -22,7 +22,6 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     connect(ui->plot, &QCustomPlot::mouseDoubleClick, this, &PlotWindow::onPlotDoubleClick);
     connect(ui->plot, &QCustomPlot::axisDoubleClick, this, &PlotWindow::onAxisDoubleClick);
 
-
     ui->plot->setInteraction(QCP::iRangeDrag, true);
     ui->plot->setInteraction(QCP::iRangeZoom, true);
     ui->plot->axisRect()->setRangeZoom(Qt::Horizontal);
@@ -114,6 +113,7 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 
     if (ui->plot->plottableCount() > 1) {
         ui->plot->legend->setVisible(true);
+        updateLegendPlacement();
     }
 
     if (firstPlot) {
@@ -338,7 +338,13 @@ void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
 
 void PlotWindow::onPlotMouseMove(QMouseEvent *event)
 {
-    bool replot = plotMouseMove(event);
+    bool replot = false;
+    if (lMouseDownOnLegend) {
+        replot |= legendMouseMove(event);
+    } else {
+        replot |= plotMouseMove(event);
+    }
+
     replot |= plotMouseRightDrag(event);
 
     if (replot) {
@@ -355,6 +361,14 @@ void PlotWindow::onPlotMousePress(QMouseEvent* event)
         rMouseZoom.mouseDown = true;
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = true;
+        lMouseStart = event->pos();
+        if (ui->plot->legend->selectTest(event->pos(), false) >= 0) {
+            lMouseDownOnLegend = true;
+            ui->plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            mLegendStartRect = ui->plot->axisRect()->insetLayout()->insetRect(0);
+        } else {
+            lMouseDownOnLegend = false;
+        }
     }
 }
 
@@ -481,94 +495,125 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
 
     QCPAxis* xaxis = ui->plot->xAxis;
     QCPAxis* yaxis = ui->plot->yAxis;
+
     if (xaxis && yaxis) {
 
-        if ( (xaxis != nullptr) && (yaxis != nullptr) ) {
-            double mouseX = xaxis->pixelToCoord(event->x());
-            double mouseY = yaxis->pixelToCoord(event->y());
-            posValid = true;
+        double mouseX = xaxis->pixelToCoord(event->x());
+        double mouseY = yaxis->pixelToCoord(event->y());
+        posValid = true;
 
-            // Only update tracers and coordinates if not dragging as it could
-            // slow down dragging
-            if (!dragging) {
+        // Only update tracers and coordinates if not dragging as it could
+        // slow down dragging
+        if (!dragging) {
 
-                QString text;
+            QString text;
 
-                if (mPlotCrosshair.isVisible() && dataTipGraph) {
+            if (mPlotCrosshair.isVisible() && dataTipGraph) {
 
-                    int closestDist = 0;
-                    double closestX = 0;
-                    double closestY = 0;
-                    int closestIndex = 0;
+                int closestDist = 0;
+                double closestX = 0;
+                double closestY = 0;
+                int closestIndex = 0;
 
-                    QElapsedTimer timer;
-                    timer.start();
+                QElapsedTimer timer;
+                timer.start();
 
-                    for (int i = 0; i < dataTipGraph->dataCount(); ++i) {
+                for (int i = 0; i < dataTipGraph->dataCount(); ++i) {
 
-                        double xCrd = dataTipGraph->datax(i);
-                        int xPixel = xaxis->coordToPixel(xCrd);
-                        double yCrd = dataTipGraph->datay(i);
+                    double xCrd = dataTipGraph->datax(i);
+                    int xPixel = xaxis->coordToPixel(xCrd);
+                    double yCrd = dataTipGraph->datay(i);
 
-                        int dist = 0;
+                    int dist = 0;
 
-                        if (mPlotCrosshairSnap == SnapXOnly) {
-                            dist = qAbs(event->x() - xPixel);
-                        } else if (mPlotCrosshairSnap == SnapToClosest) {
-                            int yPixel = yaxis->coordToPixel(yCrd);
-                            // Calculate distance in pixels to account for zooms
-                            dist = qSqrt( qPow(event->x() - xPixel, 2)
-                                          + qPow(event->y() - yPixel, 2) );
-                        }
-
-                        if ((i == 0) || (dist < closestDist)) {
-                            closestDist = dist;
-                            closestX = xCrd;
-                            closestY = yCrd;
-                            closestIndex = i;
-                            if (dist == 0) {
-                                break;
-                            }
-                        }
+                    if (mPlotCrosshairSnap == SnapXOnly) {
+                        dist = qAbs(event->x() - xPixel);
+                    } else if (mPlotCrosshairSnap == SnapToClosest) {
+                        int yPixel = yaxis->coordToPixel(yCrd);
+                        // Calculate distance in pixels to account for zooms
+                        dist = qSqrt( qPow(event->x() - xPixel, 2)
+                                      + qPow(event->y() - yPixel, 2) );
                     }
 
-                    // Update the plot crosshair
-                    // If it takes too long to update, disable the plot crosshair
-                    // automatically. However, if the user has enabled it, leave
-                    // it alone.
-                    if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
-
-                        mPlotCrosshair.setVisible(false);
-                        updateGuiForCrosshairOptions();
-                    } else {
-                        mPlotCrosshair.setCoords(closestX, closestY);
-                        text = QString("Plot: [%1] (%2, %3)")
-                                   .arg(closestIndex).arg(closestX).arg(closestY);
-                        emit dataTipChanged(closestIndex + dataTipGraph->range.start);
-                        replot = true;
-
-                        mPlotCrosshairIndex = closestIndex;
+                    if ((i == 0) || (dist < closestDist)) {
+                        closestDist = dist;
+                        closestX = xCrd;
+                        closestY = yCrd;
+                        closestIndex = i;
+                        if (dist == 0) {
+                            break;
+                        }
                     }
                 }
 
-                // Update mouse crosshair
-                if (mMouseCrosshair.isVisible()) {
-                    mMouseCrosshair.setCoords(mouseX, mouseY);
+                // Update the plot crosshair
+                // If it takes too long to update, disable the plot crosshair
+                // automatically. However, if the user has enabled it, leave
+                // it alone.
+                if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
+
+                    mPlotCrosshair.setVisible(false);
+                    updateGuiForCrosshairOptions();
+                } else {
+                    mPlotCrosshair.setCoords(closestX, closestY);
+                    text = QString("Plot: [%1] (%2, %3)")
+                               .arg(closestIndex).arg(closestX).arg(closestY);
+                    emit dataTipChanged(closestIndex + dataTipGraph->range.start);
                     replot = true;
+
+                    mPlotCrosshairIndex = closestIndex;
                 }
-
-                // Update coordinates label
-                if (!text.isEmpty()) { text += ", "; }
-                text += QString("Mouse: (%4, %5)").arg(mouseX).arg(mouseY);
-
-                ui->label_coordinates->setText(text);
             }
+
+            // Update mouse crosshair
+            if (mMouseCrosshair.isVisible()) {
+                mMouseCrosshair.setCoords(mouseX, mouseY);
+                replot = true;
+            }
+
+            // Update coordinates label
+            if (!text.isEmpty()) { text += ", "; }
+            text += QString("Mouse: (%4, %5)").arg(mouseX).arg(mouseY);
+
+            ui->label_coordinates->setText(text);
         }
     }
 
     if (!posValid) {
         // Clear coordinates label
         ui->label_coordinates->clear();
+    }
+
+    return replot;
+}
+
+bool PlotWindow::legendMouseMove(QMouseEvent* event)
+{
+    bool replot = false;
+    bool dragging = lMouseDownOnLegend;
+
+    if (dragging) {
+
+        QPoint delta = event->pos() - lMouseStart;
+
+        QSize legendSize = ui->plot->legend->minimumOuterSizeHint();
+        QRect axisRectPixels = ui->plot->axisRect()->rect();
+
+        double wNorm = double(legendSize.width())  / axisRectPixels.width();
+        double hNorm = double(legendSize.height()) / axisRectPixels.height();
+
+        double deltaXNorm = double(delta.x()) / ui->plot->axisRect()->width();
+        double deltaYNorm = double(delta.y()) / ui->plot->axisRect()->height();
+
+        QRectF newRect = mLegendStartRect;
+        newRect.setWidth(wNorm);
+        newRect.setHeight(hNorm);
+        newRect.translate(deltaXNorm, deltaYNorm);
+
+        ui->plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
+        ui->plot->axisRect()->insetLayout()->setInsetRect(0, newRect);
+
+        replot = true;
     }
 
     return replot;
@@ -585,6 +630,8 @@ void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
         rMouseZoom.isDragging = false;
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = false;
+        lMouseDownOnLegend = false;
+        ui->plot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
     }
 }
 
@@ -835,6 +882,47 @@ void PlotWindow::onDataTipMenuAboutToShow()
             action->setChecked(true);
         }
     }
+}
+
+void PlotWindow::updateLegendPlacement()
+{
+    QCPAxisRect* axisRect = ui->plot->axisRect();
+    QSize legendSize = ui->plot->legend->minimumOuterSizeHint();
+
+    QRectF rect = axisRect->insetLayout()->insetRect(0);
+    double x = rect.x() * axisRect->width();
+    double y = rect.y() * axisRect->height();
+    double w = double(legendSize.width());
+    double h = double(legendSize.height());
+
+    if (mFirstLegendPlacement) {
+        mFirstLegendPlacement = false;
+        ui->plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
+        x = axisRect->width() - legendSize.width() - 10;
+        y = legendSize.height() + 10;
+    } else {
+        // Ensure the legend is within view
+        if ((x + w) > axisRect->width()) {
+            x = axisRect->width() - w;
+        }
+        if (x < 0) { x = 0; }
+        if ((y + h) > axisRect->height()) {
+            y = axisRect->height() - h;
+        }
+        if (y < 0) { y = 0; }
+    }
+
+    double xNorm = x / axisRect->width();
+    double yNorm = y / axisRect->height();
+    double wNorm = w / axisRect->width();
+    double hNorm = h / axisRect->height();
+
+    rect.setX(xNorm);
+    rect.setY(yNorm);
+    rect.setWidth(wNorm);
+    rect.setHeight(hNorm);
+    axisRect->insetLayout()->setInsetRect(0, rect);
+    ui->plot->replot();
 }
 
 void PlotWindow::onAxisRangesChanged()

@@ -84,6 +84,7 @@ private slots:
     void onTitleDoubleClick(QMouseEvent* event);
     bool plotMouseRightDrag(QMouseEvent* event);
     bool plotMouseMove(QMouseEvent* event);
+    bool legendMouseMove(QMouseEvent* event);
     void onPlotMouseRelease(QMouseEvent* event);
     void plotRightClicked(const QPoint &pos);
 
@@ -163,6 +164,12 @@ private:
     } rMouseZoom;
 
     bool lMouseDown = false;
+    QPoint lMouseStart;
+    bool lMouseDownOnLegend = false;
+    QRectF mLegendStartRect;
+
+    bool mFirstLegendPlacement = true;
+    void updateLegendPlacement();
 
     GraphPtr dataTipGraph;
     QList<GraphPtr> graphs;
