@@ -33,6 +33,7 @@ public:
 
         QCPCurve* curve = nullptr;
         QCPGraph* graph = nullptr;
+        QCPAbstractPlottable* plottable();
 
         CsvPtr csv;
         Range range;
@@ -85,6 +86,8 @@ private slots:
     bool plotMouseRightDrag(QMouseEvent* event);
     bool plotMouseMove(QMouseEvent* event);
     bool legendMouseMove(QMouseEvent* event);
+    void onLegendItemRightClicked(QCPPlottableLegendItem* legendItem, const QPoint& pos);
+    void onLegendRightClicked(QCPLegend* legend, const QPoint& pos);
     void onPlotMouseRelease(QMouseEvent* event);
     void plotRightClicked(const QPoint &pos);
 
@@ -142,11 +145,7 @@ private:
 private:
     QMenu rangeMenu;
     QMenu plotContextMenu;
-    QMenu viewMenu;
-    QMenu linkMenu;
-    QMenu windowMenu;
     QMenu dataTipMenu;
-    QMenu imageMenu;
     void setupMenus();
 private slots:
     void onRangeMenuAboutToShow();
@@ -173,6 +172,8 @@ private:
 
     GraphPtr dataTipGraph;
     QList<GraphPtr> graphs;
+    QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
+    void removeGraph(GraphPtr graph);
 
     // -------------------------------------------------------------------------
 

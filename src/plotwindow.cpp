@@ -106,6 +106,7 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     graph->csv = csv;
     graph->range = range;
     graphs.append(graph);
+    plottableGraphMap.insert(graph->plottable(), graph);
 
     if (graphs.count() == 1) {
         dataTipGraph = graphs.value(0);
@@ -375,13 +376,12 @@ void PlotWindow::onPlotMousePress(QMouseEvent* event)
 
 void PlotWindow::onPlotDoubleClick(QMouseEvent* /*event*/)
 {
-    qDebug() << "plot double click";
+
 }
 
 void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part,
                                    QMouseEvent* /*event*/)
 {
-    qDebug() << "onAxisDoubleClick";
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
         QString text = QInputDialog::getText(this, "Axis Label", "Label",
@@ -651,6 +651,58 @@ bool PlotWindow::legendMouseMove(QMouseEvent* event)
     return replot;
 }
 
+void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
+                                          const QPoint &pos)
+{
+    QCPAbstractPlottable* plottable = legendItem->plottable();
+    qDebug() << "Right clicked legend item for" << plottable->name();
+
+    QMenu* menu = new QMenu();
+    connect(menu, &QMenu::triggered, this, [=]() {
+        menu->deleteLater();
+    });
+
+    QPixmap pixmap(16, 16);
+    pixmap.fill(plottable->pen().color());
+    QIcon icon(pixmap);
+    menu->addAction(icon, plottable->name());
+
+    menu->addAction("Rename", this, [=]()
+    {
+        bool ok;
+        QString name = QInputDialog::getText(this, "Curve Name", "Name",
+                                             QLineEdit::Normal,
+                                             plottable->name(), &ok);
+        if (!ok) { return; }
+        plottable->setName(name);
+        ui->plot->replot();
+        updateLegendPlacement();
+    });
+    menu->addAction("Set Color", this, [=]()
+    {
+        QPen pen = plottable->pen();
+        QColor color = QColorDialog::getColor(pen.color(),
+                                              this);
+        if (!color.isValid()) { return; }
+        pen.setColor(color);
+        plottable->setPen(pen);
+        ui->plot->replot();
+        updateLegendPlacement();
+    });
+    menu->addAction("Delete", this, [=]()
+    {
+        removeGraph(plottableGraphMap.value(plottable));
+        ui->plot->replot();
+        updateLegendPlacement();
+    });
+    menu->popup(ui->plot->mapToGlobal(pos));
+}
+
+void PlotWindow::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
+{
+    qDebug() << "Legend right-clicked";
+}
+
 void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton) {
@@ -726,8 +778,7 @@ void PlotWindow::plotRightClicked(const QPoint &pos)
             if (legendItem->selectTest(pos, false) >= 0) {
                 QCPPlottableLegendItem* plItem = qobject_cast<QCPPlottableLegendItem*>(legendItem);
                 if (plItem) {
-                    QCPAbstractPlottable* plottable = plItem->plottable();
-                    qDebug() << "Right clicked legend item for" << plottable->name();
+                    onLegendItemRightClicked(plItem, pos);
                     used = true;
                 }
             }
@@ -736,7 +787,7 @@ void PlotWindow::plotRightClicked(const QPoint &pos)
         if (!used) {
             // Check if legend has been right clicked
             if (legend->selectTest(pos, false) >= 0) {
-                qDebug() << "Legend right-clicked";
+                onLegendRightClicked(legend, pos);
                 used = true;
             }
         }
@@ -962,6 +1013,19 @@ void PlotWindow::updateLegendPlacement()
     ui->plot->replot();
 }
 
+void PlotWindow::removeGraph(GraphPtr graph)
+{
+    if (!graph) { return; }
+
+    ui->plot->removePlottable(graph->plottable());
+    graphs.removeAll(graph);
+    plottableGraphMap.remove(graph->plottable());
+
+    if (dataTipGraph == graph) {
+        dataTipGraph = graphs.value(0);
+    }
+}
+
 void PlotWindow::onAxisRangesChanged()
 {
     // If range change is due to a sync from another linked plot, ignore it as
@@ -1100,6 +1164,17 @@ void PlotWindow::on_action_Tab_in_Main_Window_triggered()
     emit requestWindowDock(DockTab);
 }
 
+
+QCPAbstractPlottable* PlotWindow::Graph::plottable()
+{
+    QCPAbstractPlottable* ret = nullptr;
+    if (curve) {
+        ret = static_cast<QCPAbstractPlottable*>(curve);
+    } else if (graph) {
+        ret = static_cast<QCPAbstractPlottable*>(graph);
+    }
+    return ret;
+}
 
 bool PlotWindow::Graph::isCurve()
 {
