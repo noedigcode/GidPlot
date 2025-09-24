@@ -38,7 +38,6 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
-    src/plotwidget.cpp \
     src/plotwindow.cpp \
     src/tablewidget.cpp \
     src/matrix.cpp \
@@ -55,7 +54,6 @@ HEADERS += \
     src/defer.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
-    src/plotwidget.h \
     src/plotwindow.h \
     src/tablewidget.h \
     src/matrix.h \
@@ -68,7 +66,6 @@ FORMS += \
     src/ProgressDialog.ui \
     src/aboutdialog.ui \
     src/mainwindow.ui \
-    src/plotwidget.ui \
     src/plotwindow.ui \
     src/tablewidget.ui
 
