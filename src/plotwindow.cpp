@@ -1,44 +1,25 @@
-/******************************************************************************
- *
- * This file is part of GidPlot.
- * Copyright (C) 2024 Gideon van der Kolf
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *****************************************************************************/
-
-#include "plotwidget.h"
-#include "ui_plotwidget.h"
+#include "plotwindow.h"
+#include "ui_plotwindow.h"
 
 #include "matrix.h"
 
 #include <QWeakPointer>
 
-PlotWidget::PlotWidget(QWidget *parent) :
-    QWidget(parent),
-    ui(new Ui::PlotWidget)
+
+PlotWindow::PlotWindow(QWidget *parent) :
+    QMainWindow(parent),
+    ui(new Ui::PlotWindow)
 {
     ui->setupUi(this);
 
     setupMenus();
 
-    connect(ui->plot, &QCustomPlot::plottableClick, this, &PlotWidget::plottableClick);
-    connect(ui->plot, &QCustomPlot::mouseMove, this, &PlotWidget::onPlotMouseMove);
-    connect(ui->plot, &QCustomPlot::mousePress, this, &PlotWidget::onPlotMousePress);
-    connect(ui->plot, &QCustomPlot::mouseRelease, this, &PlotWidget::onPlotMouseRelease);
-    connect(ui->plot, &QCustomPlot::mouseDoubleClick, this, &PlotWidget::onPlotDoubleClick);
-    connect(ui->plot, &QCustomPlot::axisDoubleClick, this, &PlotWidget::onAxisDoubleClick);
+    connect(ui->plot, &QCustomPlot::plottableClick, this, &PlotWindow::plottableClick);
+    connect(ui->plot, &QCustomPlot::mouseMove, this, &PlotWindow::onPlotMouseMove);
+    connect(ui->plot, &QCustomPlot::mousePress, this, &PlotWindow::onPlotMousePress);
+    connect(ui->plot, &QCustomPlot::mouseRelease, this, &PlotWindow::onPlotMouseRelease);
+    connect(ui->plot, &QCustomPlot::mouseDoubleClick, this, &PlotWindow::onPlotDoubleClick);
+    connect(ui->plot, &QCustomPlot::axisDoubleClick, this, &PlotWindow::onAxisDoubleClick);
 
 
     ui->plot->setInteraction(QCP::iRangeDrag, true);
@@ -55,17 +36,17 @@ PlotWidget::PlotWidget(QWidget *parent) :
     updateGuiForLinkGroup();
 }
 
-PlotWidget::~PlotWidget()
+PlotWindow::~PlotWindow()
 {
     delete ui;
 }
 
-QCustomPlot *PlotWidget::plotWidget()
+QCustomPlot *PlotWindow::plotWidget()
 {
     return ui->plot;
 }
 
-void PlotWidget::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
+void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 {
     bool firstPlot = (ui->plot->plottableCount() == 0);
 
@@ -138,13 +119,13 @@ void PlotWidget::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         if (xaxis) {
             connect(xaxis,
                     QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
-                    this, &PlotWidget::onAxisRangesChanged);
+                    this, &PlotWindow::onAxisRangesChanged);
         }
         QCPAxis* yaxis = ui->plot->yAxis;
         if (yaxis) {
             connect(yaxis,
                     QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
-                    this, &PlotWidget::onAxisRangesChanged);
+                    this, &PlotWindow::onAxisRangesChanged);
         }
 
     } else {
@@ -152,12 +133,12 @@ void PlotWidget::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     }
 }
 
-void PlotWidget::setTitle(QString title)
+void PlotWindow::setTitle(QString title)
 {
     if (!mPlotTitle) {
         mPlotTitle = new QCPTextElement(ui->plot);
         connect(mPlotTitle, &QCPTextElement::doubleClicked,
-                this, &PlotWidget::onTitleDoubleClick);
+                this, &PlotWindow::onTitleDoubleClick);
 
         ui->plot->plotLayout()->insertRow(0);
         ui->plot->plotLayout()->addElement(0, 0, mPlotTitle);
@@ -166,17 +147,17 @@ void PlotWidget::setTitle(QString title)
     mPlotTitle->setText(title);
 }
 
-void PlotWidget::setXLabel(QString xlabel)
+void PlotWindow::setXLabel(QString xlabel)
 {
     ui->plot->xAxis->setLabel(xlabel);
 }
 
-void PlotWidget::setYLabel(QString ylabel)
+void PlotWindow::setYLabel(QString ylabel)
 {
     ui->plot->yAxis->setLabel(ylabel);
 }
 
-void PlotWidget::showAll()
+void PlotWindow::showAll()
 {
     QCPAxisRect* ar = ui->plot->axisRect(0);
     if (!ar) { return; }
@@ -222,7 +203,7 @@ void PlotWidget::showAll()
     }
 }
 
-void PlotWidget::setEqualAxesButDontReplot(bool fixed)
+void PlotWindow::setEqualAxesButDontReplot(bool fixed)
 {
     mEqualAxes = fixed;
     ui->action_Equal_Axes->setChecked(mEqualAxes);
@@ -234,7 +215,7 @@ void PlotWidget::setEqualAxesButDontReplot(bool fixed)
     }
 }
 
-void PlotWidget::setEqualAxesAndReplot(bool fixed)
+void PlotWindow::setEqualAxesAndReplot(bool fixed)
 {
     setEqualAxesButDontReplot(fixed);
 
@@ -250,7 +231,7 @@ void PlotWidget::setEqualAxesAndReplot(bool fixed)
     }
 }
 
-void PlotWidget::syncAxisRanges(QRectF xyrange)
+void PlotWindow::syncAxisRanges(QRectF xyrange)
 {
     QCPAxis* xaxis = ui->plot->xAxis;
     if (!xaxis) { return; }
@@ -281,7 +262,7 @@ void PlotWidget::syncAxisRanges(QRectF xyrange)
     queueReplot();
 }
 
-void PlotWidget::syncDataTip(int index)
+void PlotWindow::syncDataTip(int index)
 {
     if (mPlotCrosshair.isVisible()) {
         if (dataTipGraph) {
@@ -294,7 +275,7 @@ void PlotWidget::syncDataTip(int index)
     }
 }
 
-bool PlotWidget::eventFilter(QObject* /*watched*/, QEvent *event)
+bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 {
     if (event->type() == QEvent::KeyPress) {
 
@@ -331,20 +312,20 @@ bool PlotWidget::eventFilter(QObject* /*watched*/, QEvent *event)
     return false;
 }
 
-void PlotWidget::resizeEvent(QResizeEvent* /*event*/)
+void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 {
     if (mEqualAxes) {
         setEqualAxesAndReplot(true);
     }
 }
 
-void PlotWidget::plottableClick(QCPAbstractPlottable* /*plottable*/,
+void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
                                 int /*dataIndex*/, QMouseEvent* /*event*/)
 {
 
 }
 
-void PlotWidget::onPlotMouseMove(QMouseEvent *event)
+void PlotWindow::onPlotMouseMove(QMouseEvent *event)
 {
     bool replot = plotMouseMove(event);
     replot |= plotMouseRightDrag(event);
@@ -354,7 +335,7 @@ void PlotWidget::onPlotMouseMove(QMouseEvent *event)
     }
 }
 
-void PlotWidget::onPlotMousePress(QMouseEvent* event)
+void PlotWindow::onPlotMousePress(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton) {
         rMouseZoom.start = event->pos() - ui->plot->axisRect()->topLeft();
@@ -366,12 +347,12 @@ void PlotWidget::onPlotMousePress(QMouseEvent* event)
     }
 }
 
-void PlotWidget::onPlotDoubleClick(QMouseEvent* /*event*/)
+void PlotWindow::onPlotDoubleClick(QMouseEvent* /*event*/)
 {
 
 }
 
-void PlotWidget::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part, QMouseEvent* /*event*/)
+void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part, QMouseEvent* /*event*/)
 {
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
@@ -386,7 +367,7 @@ void PlotWidget::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part, 
     }
 }
 
-void PlotWidget::onTitleDoubleClick(QMouseEvent* /*event*/)
+void PlotWindow::onTitleDoubleClick(QMouseEvent* /*event*/)
 {
     bool ok;
     QString title = QInputDialog::getText(this, "Title", "Title",
@@ -401,7 +382,7 @@ void PlotWidget::onTitleDoubleClick(QMouseEvent* /*event*/)
 
 /* Handles right mouse button drag on plot. Returns true if plot should be
  * updated (replot). */
-bool PlotWidget::plotMouseRightDrag(QMouseEvent* event)
+bool PlotWindow::plotMouseRightDrag(QMouseEvent* event)
 {
     if (!rMouseZoom.mouseDown) { return false; }
 
@@ -480,7 +461,7 @@ bool PlotWidget::plotMouseRightDrag(QMouseEvent* event)
 }
 
 /* Handles plot mouse moving. Returns true if plot should be updated (replot). */
-bool PlotWidget::plotMouseMove(QMouseEvent* event)
+bool PlotWindow::plotMouseMove(QMouseEvent* event)
 {
     bool posValid = false;
     bool replot = false;
@@ -582,7 +563,7 @@ bool PlotWidget::plotMouseMove(QMouseEvent* event)
     return replot;
 }
 
-void PlotWidget::onPlotMouseRelease(QMouseEvent* event)
+void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
 {
     if (event->button() == Qt::RightButton) {
         rMouseZoom.mouseDown = false;
@@ -596,7 +577,7 @@ void PlotWidget::onPlotMouseRelease(QMouseEvent* event)
     }
 }
 
-void PlotWidget::setupCrosshairs()
+void PlotWindow::setupCrosshairs()
 {
     mPlotCrosshair.init(ui->plot);
 
@@ -606,7 +587,7 @@ void PlotWidget::setupCrosshairs()
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::updateGuiForCrosshairOptions()
+void PlotWindow::updateGuiForCrosshairOptions()
 {
     ui->action_Show_Plot_Crosshair->setChecked(mPlotCrosshair.isVisible());
     ui->action_PlotCrosshair_Vertical_Line->setChecked(mPlotCrosshair.isVlineEnabled());
@@ -621,14 +602,14 @@ void PlotWidget::updateGuiForCrosshairOptions()
     queueReplot();
 }
 
-void PlotWidget::setLinkGroup(int group)
+void PlotWindow::setLinkGroup(int group)
 {
     mLinkGroup = group;
     emit linkGroupChanged(group);
     updateGuiForLinkGroup();
 }
 
-void PlotWidget::updateGuiForLinkGroup()
+void PlotWindow::updateGuiForLinkGroup()
 {
     ui->action_No_Link->setChecked(mLinkGroup == 0);
     ui->action_Link_to_Group_1->setChecked(mLinkGroup == 1);
@@ -636,13 +617,13 @@ void PlotWidget::updateGuiForLinkGroup()
     ui->action_Link_to_Group_3->setChecked(mLinkGroup == 3);
 
     if (mLinkGroup == 0) {
-        ui->pushButton_link->setText("Link");
+        ui->menuLink->setTitle("Link");
     } else {
-        ui->pushButton_link->setText(QString("Link (%1)").arg(mLinkGroup));
+        ui->menuLink->setTitle(QString("Link (%1)").arg(mLinkGroup));
     }
 }
 
-void PlotWidget::plotRightClicked(const QPoint &pos)
+void PlotWindow::plotRightClicked(const QPoint &pos)
 {
     bool used = false;
 
@@ -677,12 +658,12 @@ void PlotWidget::plotRightClicked(const QPoint &pos)
     }
 }
 
-void PlotWidget::queueReplot()
+void PlotWindow::queueReplot()
 {
     ui->plot->replot(QCustomPlot::rpQueuedReplot);
 }
 
-void PlotWidget::updatePlotForEqualAxes(QRectF xyrange)
+void PlotWindow::updatePlotForEqualAxes(QRectF xyrange)
 {
     QCPAxisRect* ar = ui->plot->axisRect(0);
     if (!ar) { return; }
@@ -737,86 +718,17 @@ void PlotWidget::updatePlotForEqualAxes(QRectF xyrange)
     queueReplot();
 }
 
-void PlotWidget::setupMenus()
+void PlotWindow::setupMenus()
 {
     // Range menu
 
     rangeMenu.setTitle("Range");
-    connect(&rangeMenu, &QMenu::aboutToShow, this, [=]()
-    {
-        rangeMenu.clear();
-
-        if (!dataTipGraph) {
-            rangeMenu.addAction("No datatip");
-        } else {
-
-            rangeMenu.addAction("Set start of new range", this, [=]()
-            {
-                QString name = QInputDialog::getText(this, "New Range", "Name",
-                                    QLineEdit::Normal,
-                                    QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-                if (name.isEmpty()) { return; }
-                RangePtr range(new Range());
-                range->name = name;
-                // Take start of graph range into account
-                range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-                range->end = dataTipGraph->range.end + dataTipGraph->range.start;
-                dataTipGraph->csv->ranges.append(range);
-            });
-            rangeMenu.addAction("Set end of new range", this, [=]()
-            {
-                QString name = QInputDialog::getText(this, "New Range", "Name",
-                                    QLineEdit::Normal,
-                                    QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-                if (name.isEmpty()) { return; }
-                RangePtr range(new Range());
-                range->name = name;
-                // Take start of graph range into account
-                range->start = 0 + dataTipGraph->range.start;
-                range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-                dataTipGraph->csv->ranges.append(range);
-            });
-            foreach (RangePtr range, dataTipGraph->csv->ranges) {
-                RangeWeakPtr rangeWkPtr(range);
-                rangeMenu.addAction(QString("Set start of %1").arg(range->name),
-                                    this, [this, rangeWkPtr]()
-                {
-                    RangePtr range(rangeWkPtr);
-                    if (!range) { return; }
-                    // Take start of graph range into account
-                    range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-                });
-                rangeMenu.addAction(QString("Set end of %1").arg(range->name),
-                                    this, [this, rangeWkPtr]()
-                {
-                    RangePtr range(rangeWkPtr);
-                    if (!range) { return; }
-                    // Take start of graph range into account
-                    range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-                });
-            }
-        }
-    });
+    connect(&rangeMenu, &QMenu::aboutToShow, this, &PlotWindow::onRangeMenuAboutToShow);
 
     // View menu
 
-    viewMenu.addActions({
-        ui->action_Show_All,
-        ui->action_Equal_Axes,
-        ui->action_Show_Mouse_Crosshair,
-        ui->action_Show_Plot_Crosshair
-    });
-    viewMenu.addMenu("Mouse Crosshair Options")->addActions({
-        ui->action_MouseCrosshair_Horizontal_Line,
-        ui->action_MouseCrosshair_Vertical_Line,
-        ui->action_MouseCrosshair_Dot
-    });
-    viewMenu.addMenu("Plot Crosshair Options")->addActions({
-        ui->action_PlotCrosshair_Horizontal_Line,
-        ui->action_PlotCrosshair_Vertical_Line,
-        ui->action_PlotCrosshair_Dot
-    });
-    viewMenu.addMenu(&dataTipMenu);
+    ui->menuView->insertMenu(ui->action_datatipPlotMenuPlaceholder, &dataTipMenu);
+    ui->menuView->removeAction(ui->action_datatipPlotMenuPlaceholder);
 
     // Plot context menu
 
@@ -829,64 +741,92 @@ void PlotWidget::setupMenus()
 
     // Data tip menu
     dataTipMenu.setTitle("Datatip Plot");
-    connect(&dataTipMenu, &QMenu::aboutToShow, this, [=]()
-    {
-        dataTipMenu.clear();
-        foreach (GraphPtr g, graphs) {
-            QAction* action = dataTipMenu.addAction(g->name(), this,
-                                  [this, gwk = g.toWeakRef()]()
-            {
-                GraphPtr g2(gwk);
-                if (!g2) { return; }
-                dataTipGraph = g2;
-            });
-
-            QPixmap pixmap(16, 16);
-            pixmap.fill(g->color());
-            QIcon icon(pixmap);
-            action->setIcon(icon);
-
-            action->setCheckable(true);
-            if (dataTipGraph == g) {
-                action->setChecked(true);
-            }
-        }
-    });
-
-    // Link menu
-
-    linkMenu.addActions({
-        ui->action_No_Link,
-        ui->action_Link_to_Group_1,
-        ui->action_Link_to_Group_2,
-        ui->action_Link_to_Group_3
-    });
-    linkMenu.addSeparator();
-    linkMenu.addActions({
-        ui->action_Link_X_Zoom,
-        ui->action_Link_Y_Zoom,
-        ui->action_Link_X_Position,
-        ui->action_Link_Y_Position
-    });
-
-    // Window menu
-    windowMenu.addActions({
-        ui->action_Dock_to_Screen_Top,
-        ui->action_Dock_to_Screen_Bottom,
-        ui->action_Dock_to_Screen_Left,
-        ui->action_Dock_to_Screen_Right,
-        ui->action_Undocked,
-        ui->action_Tab_in_Main_Window
-    });
-
-    // Image menu
-    imageMenu.addActions({
-        ui->action_Resize_Plot,
-        ui->action_Copy_Image
-    });
+    connect(&dataTipMenu, &QMenu::aboutToShow, this, &PlotWindow::onDataTipMenuAboutToShow);
 }
 
-void PlotWidget::onAxisRangesChanged()
+void PlotWindow::onRangeMenuAboutToShow()
+{
+    rangeMenu.clear();
+
+    if (!dataTipGraph) {
+        rangeMenu.addAction("No datatip");
+    } else {
+
+        QMenu* newRangeMenu = rangeMenu.addMenu("New Range");
+
+        newRangeMenu->addAction("Set start of new range", this, [=]()
+        {
+            QString name = QInputDialog::getText(this, "New Range", "Name",
+                                QLineEdit::Normal,
+                                QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
+            if (name.isEmpty()) { return; }
+            RangePtr range(new Range());
+            range->name = name;
+            // Take start of graph range into account
+            range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
+            range->end = dataTipGraph->range.end + dataTipGraph->range.start;
+            dataTipGraph->csv->ranges.append(range);
+        });
+        newRangeMenu->addAction("Set end of new range", this, [=]()
+        {
+            QString name = QInputDialog::getText(this, "New Range", "Name",
+                                QLineEdit::Normal,
+                                QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
+            if (name.isEmpty()) { return; }
+            RangePtr range(new Range());
+            range->name = name;
+            // Take start of graph range into account
+            range->start = 0 + dataTipGraph->range.start;
+            range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
+            dataTipGraph->csv->ranges.append(range);
+        });
+
+        foreach (RangePtr range, dataTipGraph->csv->ranges) {
+            QMenu* rangeXMenu = rangeMenu.addMenu(range->name);
+            RangeWeakPtr rangeWkPtr(range);
+            rangeXMenu->addAction("Set start", this, [this, rangeWkPtr]()
+            {
+                RangePtr range(rangeWkPtr);
+                if (!range) { return; }
+                // Take start of graph range into account
+                range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
+            });
+            rangeXMenu->addAction("Set end", this, [this, rangeWkPtr]()
+            {
+                RangePtr range(rangeWkPtr);
+                if (!range) { return; }
+                // Take start of graph range into account
+                range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
+            });
+        }
+    }
+}
+
+void PlotWindow::onDataTipMenuAboutToShow()
+{
+    dataTipMenu.clear();
+    foreach (GraphPtr g, graphs) {
+        QAction* action = dataTipMenu.addAction(g->name(), this,
+                              [this, gwk = g.toWeakRef()]()
+        {
+            GraphPtr g2(gwk);
+            if (!g2) { return; }
+            dataTipGraph = g2;
+        });
+
+        QPixmap pixmap(16, 16);
+        pixmap.fill(g->color());
+        QIcon icon(pixmap);
+        action->setIcon(icon);
+
+        action->setCheckable(true);
+        if (dataTipGraph == g) {
+            action->setChecked(true);
+        }
+    }
+}
+
+void PlotWindow::onAxisRangesChanged()
 {
     // If range change is due to a sync from another linked plot, ignore it as
     // to not create a possible infinite loop.
@@ -915,147 +855,127 @@ void PlotWidget::onAxisRangesChanged()
     });
 }
 
-void PlotWidget::on_action_Equal_Axes_triggered()
+void PlotWindow::on_action_Equal_Axes_triggered()
 {
     setEqualAxesAndReplot(ui->action_Equal_Axes->isChecked());
 }
 
-void PlotWidget::on_action_Show_All_triggered()
+void PlotWindow::on_action_Show_All_triggered()
 {
     showAll();
 }
 
-void PlotWidget::on_action_No_Link_triggered()
+void PlotWindow::on_action_No_Link_triggered()
 {
     setLinkGroup(0);
 }
 
-void PlotWidget::on_action_Link_to_Group_1_triggered()
+void PlotWindow::on_action_Link_to_Group_1_triggered()
 {
     setLinkGroup(1);
 }
 
-void PlotWidget::on_action_Link_to_Group_2_triggered()
+void PlotWindow::on_action_Link_to_Group_2_triggered()
 {
     setLinkGroup(2);
 }
 
-void PlotWidget::on_action_Link_to_Group_3_triggered()
+void PlotWindow::on_action_Link_to_Group_3_triggered()
 {
     setLinkGroup(3);
 }
 
-void PlotWidget::on_action_Show_Plot_Crosshair_triggered()
+void PlotWindow::on_action_Show_Plot_Crosshair_triggered()
 {
     mPlotCrosshairVisibilityChangedByUser = true;
     mPlotCrosshair.setVisible(ui->action_Show_Plot_Crosshair->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_Show_Mouse_Crosshair_triggered()
+void PlotWindow::on_action_Show_Mouse_Crosshair_triggered()
 {
     mMouseCrosshair.setVisible(ui->action_Show_Mouse_Crosshair->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_PlotCrosshair_Horizontal_Line_triggered()
+void PlotWindow::on_action_PlotCrosshair_Horizontal_Line_triggered()
 {
     mPlotCrosshair.enableHline(ui->action_PlotCrosshair_Horizontal_Line->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_PlotCrosshair_Vertical_Line_triggered()
+void PlotWindow::on_action_PlotCrosshair_Vertical_Line_triggered()
 {
     mPlotCrosshair.enableVline(ui->action_PlotCrosshair_Vertical_Line->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_PlotCrosshair_Dot_triggered()
+void PlotWindow::on_action_PlotCrosshair_Dot_triggered()
 {
     mPlotCrosshair.enableDot(ui->action_PlotCrosshair_Dot->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_MouseCrosshair_Horizontal_Line_triggered()
+void PlotWindow::on_action_MouseCrosshair_Horizontal_Line_triggered()
 {
     mMouseCrosshair.enableHline(ui->action_MouseCrosshair_Horizontal_Line->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_MouseCrosshair_Vertical_Line_triggered()
+void PlotWindow::on_action_MouseCrosshair_Vertical_Line_triggered()
 {
     mMouseCrosshair.enableVline(ui->action_MouseCrosshair_Vertical_Line->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_action_MouseCrosshair_Dot_triggered()
+void PlotWindow::on_action_MouseCrosshair_Dot_triggered()
 {
     mMouseCrosshair.enableDot(ui->action_MouseCrosshair_Dot->isChecked());
     updateGuiForCrosshairOptions();
 }
 
-void PlotWidget::on_pushButton_view_clicked()
-{
-    viewMenu.popup(QCursor::pos());
-}
-
-void PlotWidget::on_pushButton_link_clicked()
-{
-    linkMenu.popup(QCursor::pos());
-}
-
-void PlotWidget::on_pushButton_window_clicked()
-{
-    windowMenu.popup(QCursor::pos());
-}
-
-void PlotWidget::on_pushButton_image_clicked()
-{
-    imageMenu.popup(QCursor::pos());
-}
-
-void PlotWidget::on_action_Dock_to_Screen_Top_triggered()
+void PlotWindow::on_action_Dock_to_Screen_Top_triggered()
 {
     emit dockWindow(DockTop);
 }
 
-void PlotWidget::on_action_Dock_to_Screen_Bottom_triggered()
+void PlotWindow::on_action_Dock_to_Screen_Bottom_triggered()
 {
     emit dockWindow(DockBottom);
 }
 
-void PlotWidget::on_action_Dock_to_Screen_Left_triggered()
+void PlotWindow::on_action_Dock_to_Screen_Left_triggered()
 {
     emit dockWindow(DockLeft);
 }
 
-void PlotWidget::on_action_Dock_to_Screen_Right_triggered()
+void PlotWindow::on_action_Dock_to_Screen_Right_triggered()
 {
     emit dockWindow(DockRight);
 }
 
-void PlotWidget::on_action_Undocked_triggered()
+void PlotWindow::on_action_Undocked_triggered()
 {
     emit dockWindow(DockFloating);
 }
 
-void PlotWidget::on_action_Tab_in_Main_Window_triggered()
+void PlotWindow::on_action_Tab_in_Main_Window_triggered()
 {
     emit dockWindow(DockTab);
 }
 
 
-bool PlotWidget::Graph::isCurve()
+bool PlotWindow::Graph::isCurve()
 {
     return (curve != nullptr);
 }
 
-bool PlotWidget::Graph::isGraph()
+bool PlotWindow::Graph::isGraph()
 {
     return (graph != nullptr);
 }
 
-QString PlotWidget::Graph::name()
+QString PlotWindow::Graph::name()
 {
     if (curve) {
         return curve->name();
@@ -1066,7 +986,7 @@ QString PlotWidget::Graph::name()
     }
 }
 
-int PlotWidget::Graph::dataCount()
+int PlotWindow::Graph::dataCount()
 {
     if (curve) {
         return curve->dataCount();
@@ -1077,7 +997,7 @@ int PlotWidget::Graph::dataCount()
     }
 }
 
-double PlotWidget::Graph::datax(int index)
+double PlotWindow::Graph::datax(int index)
 {
     if (curve) {
         return curve->data()->at(index)->key;
@@ -1088,7 +1008,7 @@ double PlotWidget::Graph::datax(int index)
     }
 }
 
-double PlotWidget::Graph::datay(int index)
+double PlotWindow::Graph::datay(int index)
 {
     if (curve) {
         return curve->data()->at(index)->value;
@@ -1099,7 +1019,7 @@ double PlotWidget::Graph::datay(int index)
     }
 }
 
-QColor PlotWidget::Graph::color()
+QColor PlotWindow::Graph::color()
 {
     if (curve) {
         return curve->pen().color();
@@ -1110,7 +1030,7 @@ QColor PlotWidget::Graph::color()
     }
 }
 
-void PlotWidget::on_action_Copy_Image_triggered()
+void PlotWindow::on_action_Copy_Image_triggered()
 {
     QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
 
@@ -1118,7 +1038,7 @@ void PlotWidget::on_action_Copy_Image_triggered()
     clipboard->setImage(image);
 }
 
-void PlotWidget::on_action_Resize_Plot_triggered()
+void PlotWindow::on_action_Resize_Plot_triggered()
 {
     bool ok = false;
     QString res = QInputDialog::getItem(this, "Resize Plot", "Size in pixels",

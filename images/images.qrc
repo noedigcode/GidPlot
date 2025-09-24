@@ -20,5 +20,9 @@
         <file alias="equalaxes">PastelSVG-1.2/axes-lock.png</file>
         <file alias="showall">PastelSVG-1.2/world.png</file>
         <file alias="abouticon">gidplot_64.png</file>
+        <file alias="resize">PastelSVG-1.2/application-expand.png</file>
+        <file alias="about">PastelSVG-1.2/information.png</file>
+        <file alias="copy">PastelSVG-1.2/page-copy.png</file>
+        <file alias="save-image">PastelSVG-1.2/picture-save.png</file>
     </qresource>
 </RCC>

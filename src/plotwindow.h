@@ -1,25 +1,5 @@
-/******************************************************************************
- *
- * This file is part of GidPlot.
- * Copyright (C) 2024 Gideon van der Kolf
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- *
- *****************************************************************************/
-
-#ifndef PLOTWIDGET_H
-#define PLOTWIDGET_H
+#ifndef PLOTWINDOW_H
+#define PLOTWINDOW_H
 
 #include "csv.h"
 #include "crosshair.h"
@@ -27,19 +7,19 @@
 
 #include "QCustomPlot/qcustomplot.h"
 
-#include <QWidget>
+#include <QMainWindow>
 
 namespace Ui {
-class PlotWidget;
+class PlotWindow;
 }
 
-class PlotWidget : public QWidget
+class PlotWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit PlotWidget(QWidget *parent = 0);
-    ~PlotWidget();
+    explicit PlotWindow(QWidget *parent = nullptr);
+    ~PlotWindow();
 
     // =========================================================================
 
@@ -125,11 +105,6 @@ private slots:
     void on_action_MouseCrosshair_Vertical_Line_triggered();
     void on_action_MouseCrosshair_Dot_triggered();
 
-    void on_pushButton_view_clicked();
-    void on_pushButton_link_clicked();
-    void on_pushButton_window_clicked();
-    void on_pushButton_image_clicked();
-
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
     void on_action_Dock_to_Screen_Left_triggered();
@@ -138,11 +113,11 @@ private slots:
     void on_action_Tab_in_Main_Window_triggered();
 
     void on_action_Copy_Image_triggered();
-
     void on_action_Resize_Plot_triggered();
 
 private:
-    Ui::PlotWidget *ui;
+    Ui::PlotWindow *ui;
+
     QCPTextElement* mPlotTitle = nullptr;
 
     void queueReplot();
@@ -161,7 +136,7 @@ private:
 
     // -------------------------------------------------------------------------
     // Menus
-
+private:
     QMenu rangeMenu;
     QMenu plotContextMenu;
     QMenu viewMenu;
@@ -170,10 +145,13 @@ private:
     QMenu dataTipMenu;
     QMenu imageMenu;
     void setupMenus();
+private slots:
+    void onRangeMenuAboutToShow();
+    void onDataTipMenuAboutToShow();
 
     // -------------------------------------------------------------------------
-
     // Mouse drag zoom
+private:
     struct {
         QPoint start;
         QCPRange origXrange;
@@ -218,4 +196,4 @@ private:
     bool mRangesSyncedFromOutside = false;
 };
 
-#endif // PLOTWIDGET_H
+#endif // PLOTWINDOW_H

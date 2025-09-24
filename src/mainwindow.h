@@ -26,7 +26,7 @@
 #include "CsvImportDialog.h"
 #include "ProgressDialog.h"
 #include "QCustomPlot/qcustomplot.h"
-#include "plotwidget.h"
+#include "plotwindow.h"
 #include "tablewidget.h"
 #include "utils.h"
 
@@ -55,9 +55,9 @@ public:
 private slots:
     void importCsv(Csv::FileInfo info);
 
-    PlotWidget* addPlot(QString title);
-    void onPlotAdded(PlotWidget* plot);
-    void onPlotRemoved(PlotWidget* plot);
+    PlotWindow* addPlot(QString title);
+    void onPlotAdded(PlotWindow* plot);
+    void onPlotRemoved(PlotWindow* plot);
     void addTable(CsvPtr csv);
     void onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                      QList<int> iycols, Range range);
@@ -80,9 +80,9 @@ private:
     ProgressDialog progressDialog {this};
     AboutDialog aboutDialog {"", this};
 
-    QList<PlotWidget*> mPlots;
+    QList<PlotWindow*> mPlots;
     int mPlotCounter = 0;
-    QMap<PlotWidget*, int> mPlotLinkGroups;
+    QMap<PlotWindow*, int> mPlotLinkGroups;
 
     QList<TableWidget*> mTables;
 

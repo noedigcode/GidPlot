@@ -188,6 +188,10 @@
    </property>
   </action>
   <action name="action_About">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/about</normaloff>:/about</iconset>
+   </property>
    <property name="text">
     <string>About</string>
    </property>
