@@ -1,5 +1,30 @@
-Gid Plot Changelog
+Gid~Plot Changelog
 ==================
+
+[0.0.2] - 2025-09-24
+--------------------
+
+Added
+
+- Add New Plot button next to Add To Plot button for convenience
+- Copy image
+- Resize plot to specific size
+- Show title, x-axis label and y-axis label
+- Double-click on title or axes labels to edit them
+- Legend draggable by mouse
+- Right-click on legend items to rename, color and delete the curves.
+
+Fixed
+
+- About dialog text read-only (oops)
+
+Changed
+
+- When crosshair takes too long to render, hide it only if its visibility
+  wasn't enabled by the user.
+- Move menu buttons above plot to proper menus at top of window.
+- Range start/end actions in submenu in plot context menu.
+
 
 [0.0.1] - 2024-08-25
 --------------------
