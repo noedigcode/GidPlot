@@ -328,6 +328,7 @@ void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
     if (mEqualAxes) {
         setEqualAxesAndReplot(true);
     }
+    updateLegendPlacement();
 }
 
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
@@ -598,20 +599,44 @@ bool PlotWindow::legendMouseMove(QMouseEvent* event)
 
         QSize legendSize = ui->plot->legend->minimumOuterSizeHint();
         QRect axisRectPixels = ui->plot->axisRect()->rect();
+        QRect legendRectPixels(
+                    mLegendStartRect.x() * axisRectPixels.width(),
+                    mLegendStartRect.y() * axisRectPixels.height(),
+                    legendSize.width(),
+                    legendSize.height());
+        legendRectPixels.translate(delta);
 
-        double wNorm = double(legendSize.width())  / axisRectPixels.width();
-        double hNorm = double(legendSize.height()) / axisRectPixels.height();
+        int movex = 0;
+        // Keep right edge inside plot
+        if (legendRectPixels.right() > axisRectPixels.width()) {
+            movex = -(legendRectPixels.right() - axisRectPixels.width());
+        }
+        // Keep left edge inside plot (overrides right)
+        if (legendRectPixels.left() < 0) {
+            movex = -legendRectPixels.left();
+        }
+        int movey = 0;
+        // Keep bottom edge inside plot
+        if (legendRectPixels.bottom() > axisRectPixels.height()) {
+            movey = -(legendRectPixels.bottom() - axisRectPixels.height());
+        }
+        // Keep top edge inside plot (overrides bottom)
+        if (legendRectPixels.top() < 0) {
+            movey = -legendRectPixels.top();
+        }
+        legendRectPixels.translate(movex, movey);
 
-        double deltaXNorm = double(delta.x()) / ui->plot->axisRect()->width();
-        double deltaYNorm = double(delta.y()) / ui->plot->axisRect()->height();
+        // Normalise
+        QRectF legendRectNorm(
+            (double)(legendRectPixels.left()) / axisRectPixels.width(),
+            (double)(legendRectPixels.top()) / axisRectPixels.height(),
+            (double)(legendRectPixels.width()) / axisRectPixels.width(),
+            (double)(legendRectPixels.height()) / axisRectPixels.height());
 
-        QRectF newRect = mLegendStartRect;
-        newRect.setWidth(wNorm);
-        newRect.setHeight(hNorm);
-        newRect.translate(deltaXNorm, deltaYNorm);
-
-        ui->plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
-        ui->plot->axisRect()->insetLayout()->setInsetRect(0, newRect);
+        // Note that QCustomPlot::axisRect()->insetLayout() insetPlacement must
+        // be QCPLayoutInset::ipFree for below to take effect.
+        // This is set elsewhere.
+        ui->plot->axisRect()->insetLayout()->setInsetRect(0, legendRectNorm);
 
         replot = true;
     }
@@ -886,42 +911,47 @@ void PlotWindow::onDataTipMenuAboutToShow()
 
 void PlotWindow::updateLegendPlacement()
 {
-    QCPAxisRect* axisRect = ui->plot->axisRect();
+    if (!this->isVisible()) { return; }
+
+    QRect axisRectPixels = ui->plot->axisRect()->rect();
     QSize legendSize = ui->plot->legend->minimumOuterSizeHint();
 
-    QRectF rect = axisRect->insetLayout()->insetRect(0);
-    double x = rect.x() * axisRect->width();
-    double y = rect.y() * axisRect->height();
+    QRectF rect = ui->plot->axisRect()->insetLayout()->insetRect(0);
+    double x = rect.x() * axisRectPixels.width();
+    double y = rect.y() * axisRectPixels.height();
     double w = double(legendSize.width());
     double h = double(legendSize.height());
 
     if (mFirstLegendPlacement) {
         mFirstLegendPlacement = false;
+        // Set free layout so legend can be moved freely
         ui->plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
-        x = axisRect->width() - legendSize.width() - 10;
-        y = legendSize.height() + 10;
+        // Zero margins so legend can be moved to the edges
+        ui->plot->axisRect()->insetLayout()->setMargins(QMargins(0, 0, 0, 0));
+        x = axisRectPixels.width() - legendSize.width() - 10;
+        y = 10;
     } else {
         // Ensure the legend is within view
-        if ((x + w) > axisRect->width()) {
-            x = axisRect->width() - w;
+        if ((x + w) > axisRectPixels.width()) {
+            x = axisRectPixels.width() - w;
         }
         if (x < 0) { x = 0; }
-        if ((y + h) > axisRect->height()) {
-            y = axisRect->height() - h;
+        if ((y + h) > axisRectPixels.height()) {
+            y = axisRectPixels.height() - h;
         }
         if (y < 0) { y = 0; }
     }
 
-    double xNorm = x / axisRect->width();
-    double yNorm = y / axisRect->height();
-    double wNorm = w / axisRect->width();
-    double hNorm = h / axisRect->height();
+    double xNorm = x / axisRectPixels.width();
+    double yNorm = y / axisRectPixels.height();
+    double wNorm = w / axisRectPixels.width();
+    double hNorm = h / axisRectPixels.height();
 
     rect.setX(xNorm);
     rect.setY(yNorm);
     rect.setWidth(wNorm);
     rect.setHeight(hNorm);
-    axisRect->insetLayout()->setInsetRect(0, rect);
+    ui->plot->axisRect()->insetLayout()->setInsetRect(0, rect);
     ui->plot->replot();
 }
 
