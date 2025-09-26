@@ -1268,7 +1268,17 @@ QColor PlotWindow::Graph::color()
 
 void PlotWindow::on_action_Copy_Image_triggered()
 {
+    // Temporarily disable crosshairs
+    bool lastPlotCrosshairVis = mPlotCrosshair.isVisible();
+    mPlotCrosshair.setVisible(false);
+    bool lastMouseCrosshairVis = mMouseCrosshair.isVisible();
+    mMouseCrosshair.setVisible(false);
+
     QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+
+    // Restore crosshairs
+    mPlotCrosshair.setVisible(lastPlotCrosshairVis);
+    mMouseCrosshair.setVisible(lastMouseCrosshairVis);
 
     QClipboard* clipboard = QGuiApplication::clipboard();
     clipboard->setImage(image);
