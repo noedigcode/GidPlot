@@ -352,6 +352,11 @@ void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
     updateLegendPlacement();
 }
 
+void PlotWindow::showEvent(QShowEvent* /*event*/)
+{
+    updateLegendPlacement();
+}
+
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
                                 int /*dataIndex*/, QMouseEvent* /*event*/)
 {

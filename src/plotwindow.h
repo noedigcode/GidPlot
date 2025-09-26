@@ -221,6 +221,7 @@ private:
 
     bool eventFilter(QObject *watched, QEvent *event);
     void resizeEvent(QResizeEvent* event) override;
+    void showEvent(QShowEvent* event) override;
 
     bool mRangesChanged = false;
     bool mRangesSyncedFromOutside = false;
