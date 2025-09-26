@@ -778,6 +778,11 @@
     <string>Datatip Plot Menu Placeholder</string>
    </property>
   </action>
+  <action name="action_Place_Marker">
+   <property name="text">
+    <string>Place Marker</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>

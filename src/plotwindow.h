@@ -174,6 +174,8 @@ private slots:
     // -------------------------------------------------------------------------
     // Mouse drag zoom
 private:
+    QPoint mLastMouseMovePos;
+
     struct {
         QPoint start;
         QCPRange origXrange;
@@ -213,6 +215,15 @@ private:
     Crosshair mMouseCrosshair;
     void updateGuiForCrosshairOptions();
 
+    struct ClosestCoord {
+        bool valid = false;
+        int distancePixels = 0;
+        double xCoord = 0;
+        double yCoord = 0;
+        int dataIndex = 0;
+    };
+    ClosestCoord findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap);
+
     // -------------------------------------------------------------------------
 
     int mLinkGroup = 0;
@@ -225,6 +236,9 @@ private:
 
     bool mRangesChanged = false;
     bool mRangesSyncedFromOutside = false;
+
+private slots:
+    void on_action_Place_Marker_triggered();
 };
 
 #endif // PLOTWINDOW_H

@@ -365,6 +365,8 @@ void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
 
 void PlotWindow::onPlotMouseMove(QMouseEvent *event)
 {
+    mLastMouseMovePos = event->pos();
+
     bool replot = false;
     if (lMouseDownOnLegend) {
         replot |= legendMouseMove(event);
@@ -543,58 +545,31 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
 
             if (mPlotCrosshair.isVisible() && dataTipGraph) {
 
-                int closestDist = 0;
-                double closestX = 0;
-                double closestY = 0;
-                int closestIndex = 0;
-
                 QElapsedTimer timer;
                 timer.start();
 
-                for (int i = 0; i < dataTipGraph->dataCount(); ++i) {
-
-                    double xCrd = dataTipGraph->datax(i);
-                    int xPixel = xaxis->coordToPixel(xCrd);
-                    double yCrd = dataTipGraph->datay(i);
-
-                    int dist = 0;
-
-                    if (mPlotCrosshairSnap == SnapXOnly) {
-                        dist = qAbs(event->x() - xPixel);
-                    } else if (mPlotCrosshairSnap == SnapToClosest) {
-                        int yPixel = yaxis->coordToPixel(yCrd);
-                        // Calculate distance in pixels to account for zooms
-                        dist = qSqrt( qPow(event->x() - xPixel, 2)
-                                      + qPow(event->y() - yPixel, 2) );
-                    }
-
-                    if ((i == 0) || (dist < closestDist)) {
-                        closestDist = dist;
-                        closestX = xCrd;
-                        closestY = yCrd;
-                        closestIndex = i;
-                        if (dist == 0) {
-                            break;
-                        }
-                    }
-                }
+                ClosestCoord closest = findClosestCoord(event->pos(),
+                                                        dataTipGraph,
+                                                        mPlotCrosshairSnap);
 
                 // Update the plot crosshair
                 // If it takes too long to update, disable the plot crosshair
                 // automatically. However, if the user has enabled it, leave
                 // it alone.
                 if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
-
                     mPlotCrosshair.setVisible(false);
                     updateGuiForCrosshairOptions();
-                } else {
-                    mPlotCrosshair.setCoords(closestX, closestY);
+                } else if (closest.valid) {
+                    mPlotCrosshair.setCoords(closest.xCoord, closest.yCoord);
                     text = QString("Plot: [%1] (%2, %3)")
-                               .arg(closestIndex).arg(closestX).arg(closestY);
-                    emit dataTipChanged(closestIndex + dataTipGraph->range.start);
+                            .arg(closest.dataIndex)
+                            .arg(closest.xCoord)
+                            .arg(closest.yCoord);
+                    emit dataTipChanged(closest.dataIndex
+                                        + dataTipGraph->range.start);
                     replot = true;
 
-                    mPlotCrosshairIndex = closestIndex;
+                    mPlotCrosshairIndex = closest.dataIndex;
                 }
             }
 
@@ -769,6 +744,52 @@ void PlotWindow::updateGuiForCrosshairOptions()
     queueReplot();
 }
 
+PlotWindow::ClosestCoord PlotWindow::findClosestCoord(QPoint pos, GraphPtr graph,
+                                                      CrosshairSnap snap)
+{
+    ClosestCoord closest;
+
+    QCPAxis* xaxis = ui->plot->xAxis;
+    QCPAxis* yaxis = ui->plot->yAxis;
+
+    if (!graph || !xaxis || !yaxis) {
+        closest.valid = false;
+        return closest;
+    }
+
+    for (int i = 0; i < graph->dataCount(); ++i) {
+
+        double xCrd = graph->datax(i);
+        int xPixel = xaxis->coordToPixel(xCrd);
+        double yCrd = graph->datay(i);
+
+        int dist = 0;
+
+        if (snap == SnapXOnly) {
+            dist = qAbs(pos.x() - xPixel);
+        } else if (snap == SnapToClosest) {
+            int yPixel = yaxis->coordToPixel(yCrd);
+            // Calculate distance in pixels to account for zooms
+            dist = qSqrt( qPow(pos.x() - xPixel, 2)
+                          + qPow(pos.y() - yPixel, 2) );
+        }
+
+        if ((i == 0) || (dist < closest.distancePixels)) {
+            closest.valid = true;
+            closest.distancePixels = dist;
+            closest.xCoord = xCrd;
+            closest.yCoord = yCrd;
+            closest.dataIndex = i;
+            if (dist == 0) {
+                // We're not gonna find anything closer
+                break;
+            }
+        }
+    }
+
+    return closest;
+}
+
 void PlotWindow::setLinkGroup(int group)
 {
     mLinkGroup = group;
@@ -899,6 +920,7 @@ void PlotWindow::setupMenus()
     // Plot context menu
 
     plotContextMenu.addActions({
+        ui->action_Place_Marker,
         ui->action_Show_All,
         ui->action_Equal_Axes
     });
@@ -1300,5 +1322,28 @@ void PlotWindow::on_action_Resize_Plot_triggered()
     if (!ok || (y < 10)) { return; }
 
     emit requestWindowResize(x, y);
+}
+
+void PlotWindow::on_action_Place_Marker_triggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = graphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint pos = mLastMouseMovePos;
+    ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
+    if (!closest.valid) { return; }
+
+    QCPItemTracer* tracer = new QCPItemTracer(ui->plot);
+    tracer->setStyle(QCPItemTracer::tsCircle);
+    tracer->setSize(10);
+    tracer->setBrush(QColor(255, 0, 0, 100));
+    tracer->setGraph(graph->graph);
+    tracer->setGraphKey(closest.xCoord);
+    tracer->setVisible(true);
+    tracer->setSelectable(true);
+
+
+    ui->plot->replot();
 }
 
