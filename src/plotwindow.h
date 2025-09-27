@@ -21,8 +21,9 @@
 #ifndef PLOTWINDOW_H
 #define PLOTWINDOW_H
 
-#include "csv.h"
+#include "PlotMarkerItem.h"
 #include "crosshair.h"
+#include "csv.h"
 #include "utils.h"
 
 #include "QCustomPlot/qcustomplot.h"
@@ -102,6 +103,7 @@ private slots:
     void onPlotMousePress(QMouseEvent* event);
     void onPlotDoubleClick(QMouseEvent* event);
     void onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part, QMouseEvent *event);
+    void onPlotItemDoubleClick(QCPAbstractItem *item, QMouseEvent *event);
     void onTitleDoubleClick(QMouseEvent* event);
     bool plotMouseRightDrag(QMouseEvent* event);
     bool plotMouseMove(QMouseEvent* event);
@@ -245,10 +247,11 @@ private:
 
     struct Marker
     {
+        QString datasetName;
         int dataIndex = 0;
         double xCoord = 0;
         double yCoord = 0;
-        QCPItemTracer* tracer = nullptr;
+        PlotMarkerItem* dot = nullptr;
         QCPItemText* textItem = nullptr;
         QCPItemLine* arrow = nullptr;
         QString text;
@@ -260,12 +263,16 @@ private:
     MarkerPtr findMarkerUnderPos(QPoint pos);
     MarkerPtr mouseDownMarker;
     QPointF markerTextPixelPosAtMouseDown;
+
     bool markerMouseDown(QMouseEvent* mouseEvent);
     bool markerMouseMove(QMouseEvent* mouseEvent);
     void markerMouseUp();
     bool markerRightClick(QPoint pos);
     void updateMarkerArrow(MarkerPtr marker);
     void updateMarkerText(MarkerPtr marker);
+
+    void editMarkerText(MarkerPtr marker);
+    void deleteMarker(MarkerPtr marker);
 
 private slots:
     void on_action_Place_Marker_triggered();

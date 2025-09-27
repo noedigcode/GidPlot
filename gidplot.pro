@@ -30,6 +30,7 @@ include(appicon/appicon.pri)
 
 SOURCES += \
     src/CsvImportDialog.cpp \
+    src/PlotMarkerItem.cpp \
     src/PopoutTabWidget.cpp \
     src/ProgressDialog.cpp \
     src/Range.cpp \
@@ -45,6 +46,7 @@ SOURCES += \
 
 HEADERS += \
     src/CsvImportDialog.h \
+    src/PlotMarkerItem.h \
     src/PopoutTabWidget.h \
     src/ProgressDialog.h \
     src/Range.h \

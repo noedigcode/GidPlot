@@ -139,7 +139,7 @@ void Crosshair::redraw()
     if (!yaxis) { return; }
 
     double x = mXcoord;
-    double y =mYcoord;
+    double y = mYcoord;
 
     mVline->start->setCoords(x, yaxis->range().upper);
     mVline->end->setCoords(x, yaxis->range().lower);

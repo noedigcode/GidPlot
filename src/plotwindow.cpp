@@ -41,6 +41,7 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     connect(ui->plot, &QCustomPlot::mouseRelease, this, &PlotWindow::onPlotMouseRelease);
     connect(ui->plot, &QCustomPlot::mouseDoubleClick, this, &PlotWindow::onPlotDoubleClick);
     connect(ui->plot, &QCustomPlot::axisDoubleClick, this, &PlotWindow::onAxisDoubleClick);
+    connect(ui->plot, &QCustomPlot::itemDoubleClick, this, &PlotWindow::onPlotItemDoubleClick);
 
     ui->plot->setInteraction(QCP::iRangeDrag, true);
     ui->plot->setInteraction(QCP::iRangeZoom, true);
@@ -414,29 +415,22 @@ bool PlotWindow::markerRightClick(QPoint pos)
     QMenu* menu = new QMenu();
     connect(menu, &QMenu::triggered, this, [=]() { menu->deleteLater(); });
 
+    // Use weak pointer to not capture shared pointer in lambdas that might
+    // hold on to it.
     QWeakPointer<Marker> mWptr(marker);
+
     menu->addAction(ui->action_marker_edit_text->icon(), "Edit Text", [=]()
     {
         MarkerPtr m2(mWptr);
         if (!m2) { return; }
-
-        bool ok;
-        QString text = QInputDialog::getMultiLineText(this, "Marker Text",
-            "Text ($i = index, $x, $y, $name = plot name)",
-            m2->text, &ok);
-        if (!ok) { return; }
-        m2->text = text;
-        updateMarkerText(m2);
+        editMarkerText(m2);
     });
+
     menu->addAction(ui->action_marker_delete->icon(), "Delete Marker", [=]()
     {
         MarkerPtr m2(mWptr);
         if (!m2) { return; }
-
-        ui->plot->removeItem(m2->arrow);
-        ui->plot->removeItem(m2->textItem);
-        ui->plot->removeItem(m2->tracer);
-        mMarkers.removeAll(m2);
+        deleteMarker(m2);
     });
 
     menu->popup(ui->plot->mapToGlobal(pos));
@@ -484,9 +478,33 @@ void PlotWindow::updateMarkerText(MarkerPtr marker)
     text.replace("$i", QString::number(marker->dataIndex));
     text.replace("$x", QString::number(marker->xCoord));
     text.replace("$y", QString::number(marker->yCoord));
-    text.replace("$name", marker->tracer->graph()->name());
+    text.replace("$name", marker->datasetName);
     text.replace("$$", "$");
     marker->textItem->setText(text);
+}
+
+void PlotWindow::editMarkerText(MarkerPtr marker)
+{
+    if (!marker) { return; }
+
+    bool ok;
+    QString text = QInputDialog::getMultiLineText(this, "Marker Text",
+        "Text ($i = index, $x, $y, $name = plot name)",
+        marker->text, &ok);
+    if (!ok) { return; }
+    marker->text = text;
+    updateMarkerText(marker);
+    ui->plot->replot();
+}
+
+void PlotWindow::deleteMarker(MarkerPtr marker)
+{
+    if (!marker) { return; }
+
+    ui->plot->removeItem(marker->arrow);
+    ui->plot->removeItem(marker->textItem);
+    ui->plot->removeItem(marker->dot);
+    mMarkers.removeAll(marker);
 }
 
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
@@ -566,6 +584,15 @@ void PlotWindow::onAxisDoubleClick(QCPAxis* axis, QCPAxis::SelectablePart part,
         if (ok) {
             axis->setLabel(text);
             ui->plot->replot();
+        }
+    }
+}
+
+void PlotWindow::onPlotItemDoubleClick(QCPAbstractItem* item, QMouseEvent* /*event*/)
+{
+    foreach (MarkerPtr marker, mMarkers) {
+        if (marker->textItem == item) {
+            editMarkerText(marker);
         }
     }
 }
@@ -1487,23 +1514,19 @@ void PlotWindow::on_action_Place_Marker_triggered()
     ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
     if (!closest.valid) { return; }
 
-    QCPItemTracer* tracer = new QCPItemTracer(ui->plot);
-    tracer->setStyle(QCPItemTracer::tsCircle);
-    tracer->setSize(10);
-    tracer->setBrush(QColor(255, 0, 0, 100));
-    tracer->setGraph(graph->graph);
-    tracer->setGraphKey(closest.xCoord);
-    tracer->setVisible(true);
-    tracer->setSelectable(true);
+    PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
+    dot->position->setCoords(closest.xCoord, closest.yCoord);
+    dot->size = 10;
+    dot->brush = QBrush(QColor(255, 0, 0, 100));
 
     QCPItemText* label = new QCPItemText(ui->plot);
-    label->position->setType(QCPItemPosition::ptPlotCoords);
-    label->position->setCoords(closest.xCoord, closest.yCoord);
+    label->position->setParentAnchor(dot->anchor);
+    // Pixel position is set relative to the anchor assigned above
+    label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
     label->setPadding(QMargins(2, 2, 2, 2));
     label->setPen(QPen(Qt::black));
     label->setBrush(QBrush(QColor("#f8fabe")));
     label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
-    label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
     label->setSelectable(true);
 
     QCPItemLine* arrow = new QCPItemLine(ui->plot);
@@ -1511,10 +1534,11 @@ void PlotWindow::on_action_Place_Marker_triggered()
     arrow->setHead(QCPLineEnding::esSpikeArrow);
 
     MarkerPtr marker(new Marker());
+    marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
     marker->xCoord = closest.xCoord;
     marker->yCoord = closest.yCoord;
-    marker->tracer = tracer;
+    marker->dot = dot;
     marker->textItem = label;
     marker->arrow = arrow;
     marker->text = "Index: $i\n$x, $y";
