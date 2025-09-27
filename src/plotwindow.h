@@ -258,7 +258,7 @@ private:
     };
     typedef QSharedPointer<Marker> MarkerPtr;
 
-    QList<MarkerPtr> mMarkers;
+    QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
 
     MarkerPtr findMarkerUnderPos(QPoint pos);
     MarkerPtr mouseDownMarker;

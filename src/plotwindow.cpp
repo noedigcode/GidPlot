@@ -365,6 +365,8 @@ PlotWindow::MarkerPtr PlotWindow::findMarkerUnderPos(QPoint pos)
 {
     MarkerPtr ret;
 
+    // Markers are kept top to bottom in the list, so iterating will catch the
+    // top-most one first
     foreach (MarkerPtr marker, mMarkers) {
         if (marker->textItem) {
             double dist = marker->textItem->selectTest(pos, false);
@@ -382,6 +384,15 @@ bool PlotWindow::markerMouseDown(QMouseEvent* mouseEvent)
 {
     mouseDownMarker = findMarkerUnderPos(mouseEvent->pos());
     if (mouseDownMarker) {
+        // Bring marker to the front (setting layer again puts it a the top)
+        mouseDownMarker->dot->setLayer("markers");
+        mouseDownMarker->textItem->setLayer("markers");
+        mouseDownMarker->arrow->setLayer("markers");
+        // Move to start of markers list (top to bottom)
+        mMarkers.removeAll(mouseDownMarker);
+        mMarkers.prepend(mouseDownMarker);
+        ui->plot->replot();
+
         markerTextPixelPosAtMouseDown = mouseDownMarker->textItem->position->pixelPosition();
     }
     return !mouseDownMarker.isNull();
@@ -538,6 +549,8 @@ void PlotWindow::onPlotMouseMove(QMouseEvent *event)
 
 void PlotWindow::onPlotMousePress(QMouseEvent* event)
 {
+    bool markerPressed = markerMouseDown(event);
+
     if (event->button() == Qt::RightButton) {
         rMouseZoom.start = event->pos() - ui->plot->axisRect()->topLeft();
         rMouseZoom.origXrange = ui->plot->xAxis->range();
@@ -557,7 +570,7 @@ void PlotWindow::onPlotMousePress(QMouseEvent* event)
         }
 
         if (!used) {
-            if (markerMouseDown(event)) {
+            if (markerPressed) {
                 used = true;
                 lMouseDownOnMarker = true;
                 ui->plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
@@ -596,6 +609,7 @@ void PlotWindow::onPlotItemDoubleClick(QCPAbstractItem* item, QMouseEvent* /*eve
     foreach (MarkerPtr marker, mMarkers) {
         if (marker->textItem == item) {
             editMarkerText(marker);
+            break;
         }
     }
 }
@@ -1539,7 +1553,6 @@ void PlotWindow::on_action_Place_Marker_triggered()
     label->setPen(QPen(Qt::black));
     label->setBrush(QBrush(QColor("#f8fabe")));
     label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
-    label->setSelectable(true);
 
     QCPItemLine* arrow = new QCPItemLine(ui->plot);
     arrow->setLayer("markers");
@@ -1556,7 +1569,7 @@ void PlotWindow::on_action_Place_Marker_triggered()
     marker->arrow = arrow;
     marker->text = "Index: $i\n$x, $y";
 
-    mMarkers.append(marker);
+    mMarkers.prepend(marker);
     updateMarkerArrow(marker);
     updateMarkerText(marker);
 
