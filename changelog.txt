@@ -1,6 +1,28 @@
 Gid~Plot Changelog
 ==================
 
+[0.0.3] - 2025-09-27
+--------------------
+
+Added
+
+- Markers can now be placed from the plot context menu. A marker includes a dot
+  on the plot, a text box that can be moved and edited, and an arrow connecting
+  the text box to the dot.
+- Add icons to legend context menu.
+
+Changed
+
+- Hide crosshairs when copying image.
+- Replace crosshairs with new custom mechanism. Crosshairs should now never
+  interfere with mouse actions again.
+
+Fixed
+
+- Update legend placement when plot window becomes visible. Fixes legend not
+  updating after docking window.
+
+
 [0.0.2] - 2025-09-24
 --------------------
 
