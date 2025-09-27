@@ -357,6 +357,138 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
     updateLegendPlacement();
 }
 
+PlotWindow::MarkerPtr PlotWindow::findMarkerUnderPos(QPoint pos)
+{
+    MarkerPtr ret;
+
+    foreach (MarkerPtr marker, mMarkers) {
+        if (marker->textItem) {
+            double dist = marker->textItem->selectTest(pos, false);
+            if ((dist >= 0) && (dist < ui->plot->selectionTolerance())) {
+                ret = marker;
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+bool PlotWindow::markerMouseDown(QMouseEvent* mouseEvent)
+{
+    mouseDownMarker = findMarkerUnderPos(mouseEvent->pos());
+    if (mouseDownMarker) {
+        markerTextPixelPosAtMouseDown = mouseDownMarker->textItem->position->pixelPosition();
+    }
+    return !mouseDownMarker.isNull();
+}
+
+bool PlotWindow::markerMouseMove(QMouseEvent* mouseEvent)
+{
+    if (!mouseDownMarker) { return false; }
+
+    bool replot = false;
+    bool dragging = lMouseDownOnMarker;
+
+    if (dragging) {
+        QPoint delta = mouseEvent->pos() - lMouseStart;
+        mouseDownMarker->textItem->position->setPixelPosition(
+                    markerTextPixelPosAtMouseDown + QPointF(delta));
+        updateMarkerArrow(mouseDownMarker);
+        replot = true;
+    }
+
+    return replot;
+}
+
+void PlotWindow::markerMouseUp()
+{
+    mouseDownMarker.reset();
+}
+
+bool PlotWindow::markerRightClick(QPoint pos)
+{
+    MarkerPtr marker = findMarkerUnderPos(pos);
+    if (!marker) { return false; }
+
+    QMenu* menu = new QMenu();
+    connect(menu, &QMenu::triggered, this, [=]() { menu->deleteLater(); });
+
+    QWeakPointer<Marker> mWptr(marker);
+    menu->addAction(ui->action_marker_edit_text->icon(), "Edit Text", [=]()
+    {
+        MarkerPtr m2(mWptr);
+        if (!m2) { return; }
+
+        bool ok;
+        QString text = QInputDialog::getMultiLineText(this, "Marker Text",
+            "Text ($i = index, $x, $y, $name = plot name)",
+            m2->text, &ok);
+        if (!ok) { return; }
+        m2->text = text;
+        updateMarkerText(m2);
+    });
+    menu->addAction(ui->action_marker_delete->icon(), "Delete Marker", [=]()
+    {
+        MarkerPtr m2(mWptr);
+        if (!m2) { return; }
+
+        ui->plot->removeItem(m2->arrow);
+        ui->plot->removeItem(m2->textItem);
+        ui->plot->removeItem(m2->tracer);
+        mMarkers.removeAll(m2);
+    });
+
+    menu->popup(ui->plot->mapToGlobal(pos));
+
+    return true;
+}
+
+void PlotWindow::updateMarkerArrow(MarkerPtr m)
+{
+    QPointF p = m->arrow->end->pixelPosition();
+    QRectF r(m->textItem->topLeft->pixelPosition(),
+             m->textItem->bottomRight->pixelPosition());
+
+    QCPItemText* text = m->textItem;
+
+    QCPItemAnchor* anchor = nullptr;
+    if (p.x() < r.left()) {
+        if (p.y() > r.bottom()) {
+            anchor = text->bottomLeft;
+        } else if (p.y() < r.top()) {
+            anchor = text->topLeft;
+        } else {
+            anchor = text->left;
+        }
+    } else if (p.x() > r.right()) {
+        if (p.y() > r.bottom()) {
+            anchor = text->bottomRight;
+        } else if (p.y() < r.top()) {
+            anchor = text->topRight;
+        } else {
+            anchor = text->right;
+        }
+    } else if (p.y() < r.top()) {
+        anchor = text->top;
+    } else {
+        anchor = text->bottom;
+    }
+
+    m->arrow->start->setParentAnchor(anchor);
+}
+
+void PlotWindow::updateMarkerText(MarkerPtr marker)
+{
+    QString text = marker->text;
+    text.replace("$i", QString::number(marker->dataIndex));
+    text.replace("$x", QString::number(marker->xCoord));
+    text.replace("$y", QString::number(marker->yCoord));
+    text.replace("$name", marker->tracer->graph()->name());
+    text.replace("$$", "$");
+    marker->textItem->setText(text);
+}
+
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
                                 int /*dataIndex*/, QMouseEvent* /*event*/)
 {
@@ -370,6 +502,8 @@ void PlotWindow::onPlotMouseMove(QMouseEvent *event)
     bool replot = false;
     if (lMouseDownOnLegend) {
         replot |= legendMouseMove(event);
+    } else if (lMouseDownOnMarker) {
+        replot |= markerMouseMove(event);
     } else {
         replot |= plotMouseMove(event);
     }
@@ -391,11 +525,25 @@ void PlotWindow::onPlotMousePress(QMouseEvent* event)
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = true;
         lMouseStart = event->pos();
+
+        bool used = false;
+
         if (ui->plot->legend->selectTest(event->pos(), false) >= 0) {
             lMouseDownOnLegend = true;
             ui->plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
             mLegendStartRect = ui->plot->axisRect()->insetLayout()->insetRect(0);
-        } else {
+            used = true;
+        }
+
+        if (!used) {
+            if (markerMouseDown(event)) {
+                used = true;
+                lMouseDownOnMarker = true;
+                ui->plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            }
+        }
+
+        if (!used) {
             lMouseDownOnLegend = false;
         }
     }
@@ -655,7 +803,6 @@ void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
                                           const QPoint &pos)
 {
     QCPAbstractPlottable* plottable = legendItem->plottable();
-    qDebug() << "Right clicked legend item for" << plottable->name();
 
     QMenu* menu = new QMenu();
     connect(menu, &QMenu::triggered, this, [=]() {
@@ -667,7 +814,7 @@ void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
     QIcon icon(pixmap);
     menu->addAction(icon, plottable->name());
 
-    menu->addAction("Rename", this, [=]()
+    menu->addAction(ui->action_legend_item_rename->icon(), "Rename", this, [=]()
     {
         bool ok;
         QString name = QInputDialog::getText(this, "Curve Name", "Name",
@@ -678,7 +825,7 @@ void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
         ui->plot->replot();
         updateLegendPlacement();
     });
-    menu->addAction("Set Color", this, [=]()
+    menu->addAction(ui->action_legend_item_set_color->icon(), "Set Color", this, [=]()
     {
         QPen pen = plottable->pen();
         QColor color = QColorDialog::getColor(pen.color(),
@@ -689,7 +836,7 @@ void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
         ui->plot->replot();
         updateLegendPlacement();
     });
-    menu->addAction("Delete", this, [=]()
+    menu->addAction(ui->action_legend_item_delete->icon(), "Delete", this, [=]()
     {
         removeGraph(plottableGraphMap.value(plottable));
         ui->plot->replot();
@@ -715,6 +862,8 @@ void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = false;
         lMouseDownOnLegend = false;
+        lMouseDownOnMarker = false;
+        markerMouseUp();
         ui->plot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
     }
 }
@@ -837,6 +986,10 @@ void PlotWindow::plotRightClicked(const QPoint &pos)
                 used = true;
             }
         }
+    }
+
+    if (!used) {
+        used = markerRightClick(pos);
     }
 
     if (!used) {
@@ -1343,6 +1496,32 @@ void PlotWindow::on_action_Place_Marker_triggered()
     tracer->setVisible(true);
     tracer->setSelectable(true);
 
+    QCPItemText* label = new QCPItemText(ui->plot);
+    label->position->setType(QCPItemPosition::ptPlotCoords);
+    label->position->setCoords(closest.xCoord, closest.yCoord);
+    label->setPadding(QMargins(2, 2, 2, 2));
+    label->setPen(QPen(Qt::black));
+    label->setBrush(QBrush(QColor("#f8fabe")));
+    label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
+    label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
+    label->setSelectable(true);
+
+    QCPItemLine* arrow = new QCPItemLine(ui->plot);
+    arrow->end->setCoords(closest.xCoord, closest.yCoord);
+    arrow->setHead(QCPLineEnding::esSpikeArrow);
+
+    MarkerPtr marker(new Marker());
+    marker->dataIndex = closest.dataIndex;
+    marker->xCoord = closest.xCoord;
+    marker->yCoord = closest.yCoord;
+    marker->tracer = tracer;
+    marker->textItem = label;
+    marker->arrow = arrow;
+    marker->text = "Index: $i\n$x, $y";
+
+    mMarkers.append(marker);
+    updateMarkerArrow(marker);
+    updateMarkerText(marker);
 
     ui->plot->replot();
 }

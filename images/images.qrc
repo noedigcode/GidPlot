@@ -24,5 +24,10 @@
         <file alias="about">PastelSVG-1.2/information.png</file>
         <file alias="copy">PastelSVG-1.2/page-copy.png</file>
         <file alias="save-image">PastelSVG-1.2/picture-save.png</file>
+        <file alias="edit">PastelSVG-1.2/bullet-edit.png</file>
+        <file alias="color">PastelSVG-1.2/color-wheel.png</file>
+        <file alias="delete">PastelSVG-1.2/cross.png</file>
+        <file alias="marker">PastelSVG-1.2/tag-yellow.png</file>
+        <file alias="rename">PastelSVG-1.2/textfield-rename.png</file>
     </qresource>
 </RCC>

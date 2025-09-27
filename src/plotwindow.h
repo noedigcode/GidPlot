@@ -186,8 +186,11 @@ private:
 
     bool lMouseDown = false;
     QPoint lMouseStart;
+
     bool lMouseDownOnLegend = false;
     QRectF mLegendStartRect;
+
+    bool lMouseDownOnMarker = false;
 
     bool mFirstLegendPlacement = true;
     void updateLegendPlacement();
@@ -236,6 +239,33 @@ private:
 
     bool mRangesChanged = false;
     bool mRangesSyncedFromOutside = false;
+
+    // -------------------------------------------------------------------------
+    // Markers
+
+    struct Marker
+    {
+        int dataIndex = 0;
+        double xCoord = 0;
+        double yCoord = 0;
+        QCPItemTracer* tracer = nullptr;
+        QCPItemText* textItem = nullptr;
+        QCPItemLine* arrow = nullptr;
+        QString text;
+    };
+    typedef QSharedPointer<Marker> MarkerPtr;
+
+    QList<MarkerPtr> mMarkers;
+
+    MarkerPtr findMarkerUnderPos(QPoint pos);
+    MarkerPtr mouseDownMarker;
+    QPointF markerTextPixelPosAtMouseDown;
+    bool markerMouseDown(QMouseEvent* mouseEvent);
+    bool markerMouseMove(QMouseEvent* mouseEvent);
+    void markerMouseUp();
+    bool markerRightClick(QPoint pos);
+    void updateMarkerArrow(MarkerPtr marker);
+    void updateMarkerText(MarkerPtr marker);
 
 private slots:
     void on_action_Place_Marker_triggered();

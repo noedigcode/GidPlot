@@ -779,8 +779,57 @@
    </property>
   </action>
   <action name="action_Place_Marker">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/marker</normaloff>:/marker</iconset>
+   </property>
    <property name="text">
     <string>Place Marker</string>
+   </property>
+  </action>
+  <action name="action_legend_item_rename">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/rename</normaloff>:/rename</iconset>
+   </property>
+   <property name="text">
+    <string>Rename Legend Item</string>
+   </property>
+  </action>
+  <action name="action_legend_item_set_color">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/color</normaloff>:/color</iconset>
+   </property>
+   <property name="text">
+    <string>Set Legend Iitem Color</string>
+   </property>
+  </action>
+  <action name="action_legend_item_delete">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/delete</normaloff>:/delete</iconset>
+   </property>
+   <property name="text">
+    <string>Delete Legend Item</string>
+   </property>
+  </action>
+  <action name="action_marker_edit_text">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/edit</normaloff>:/edit</iconset>
+   </property>
+   <property name="text">
+    <string>Edit Marker Text</string>
+   </property>
+  </action>
+  <action name="action_marker_delete">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/delete</normaloff>:/delete</iconset>
+   </property>
+   <property name="text">
+    <string>Delete Marker</string>
    </property>
   </action>
  </widget>
