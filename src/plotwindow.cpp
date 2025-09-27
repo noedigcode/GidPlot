@@ -48,6 +48,9 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     ui->plot->axisRect()->setRangeZoom(Qt::Horizontal);
     ui->plot->setInteraction(QCP::iSelectPlottables, true);
 
+    ui->plot->addLayer("crosshairs", ui->plot->layer("main"), QCustomPlot::limAbove);
+    ui->plot->addLayer("markers", ui->plot->layer("crosshairs"), QCustomPlot::limAbove);
+
     ui->plot->installEventFilter(this);
 
     ui->label_coordinates->clear();
@@ -112,7 +115,7 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         qcpgraph->setPen(pen);
         qcpgraph->setName(csv->matrix->heading(iycol));
         mPlotCrosshairSnap = SnapXOnly;
-        mPlotCrosshair.enableHline(false);
+        mPlotCrosshair->horizontalLine = false;
         updateGuiForCrosshairOptions();
     } else {
         // Curve is used otherwise
@@ -297,12 +300,12 @@ void PlotWindow::syncAxisRanges(QRectF xyrange)
 
 void PlotWindow::syncDataTip(int index)
 {
-    if (mPlotCrosshair.isVisible()) {
+    if (mPlotCrosshair->visible()) {
         if (dataTipGraph) {
             index -= dataTipGraph->range.start;
             double x = dataTipGraph->datax(index);
             double y = dataTipGraph->datay(index);
-            mPlotCrosshair.setCoords(x, y);
+            mPlotCrosshair->position->setCoords(x, y);
             queueReplot();
         }
     }
@@ -718,7 +721,7 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
             double mouseX = xaxis->pixelToCoord(event->x());
             double mouseY = yaxis->pixelToCoord(event->y());
 
-            if (mPlotCrosshair.isVisible() && dataTipGraph) {
+            if (mPlotCrosshair->visible() && dataTipGraph) {
 
                 QElapsedTimer timer;
                 timer.start();
@@ -732,10 +735,10 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
                 // automatically. However, if the user has enabled it, leave
                 // it alone.
                 if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
-                    mPlotCrosshair.setVisible(false);
+                    mPlotCrosshair->setVisible(false);
                     updateGuiForCrosshairOptions();
                 } else if (closest.valid) {
-                    mPlotCrosshair.setCoords(closest.xCoord, closest.yCoord);
+                    mPlotCrosshair->position->setCoords(closest.xCoord, closest.yCoord);
                     text = QString("Plot: [%1] (%2, %3)")
                             .arg(closest.dataIndex)
                             .arg(closest.xCoord)
@@ -749,8 +752,8 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
             }
 
             // Update mouse crosshair
-            if (mMouseCrosshair.isVisible()) {
-                mMouseCrosshair.setCoords(mouseX, mouseY);
+            if (mMouseCrosshair->visible()) {
+                mMouseCrosshair->position->setCoords(mouseX, mouseY);
                 replot = true;
             }
 
@@ -897,25 +900,32 @@ void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
 
 void PlotWindow::setupCrosshairs()
 {
-    mPlotCrosshair.init(ui->plot);
+    mPlotCrosshair = new PlotMarkerItem(ui->plot);
+    mPlotCrosshair->setLayer("crosshairs");
+    mPlotCrosshair->size = 7;
+    mPlotCrosshair->verticalLine = true;
 
-    mMouseCrosshair.init(ui->plot);
-    mMouseCrosshair.setVisible(false);
+    mMouseCrosshair = new PlotMarkerItem(ui->plot);
+    mMouseCrosshair->setLayer("crosshairs");
+    mMouseCrosshair->size = 7;
+    mMouseCrosshair->verticalLine = true;
+    mMouseCrosshair->horizontalLine = true;
+    mMouseCrosshair->setVisible(false);
 
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::updateGuiForCrosshairOptions()
 {
-    ui->action_Show_Plot_Crosshair->setChecked(mPlotCrosshair.isVisible());
-    ui->action_PlotCrosshair_Vertical_Line->setChecked(mPlotCrosshair.isVlineEnabled());
-    ui->action_PlotCrosshair_Horizontal_Line->setChecked(mPlotCrosshair.isHlineEnabled());
-    ui->action_PlotCrosshair_Dot->setChecked(mPlotCrosshair.isDotEnabled());
+    ui->action_Show_Plot_Crosshair->setChecked(mPlotCrosshair->visible());
+    ui->action_PlotCrosshair_Vertical_Line->setChecked(mPlotCrosshair->verticalLine);
+    ui->action_PlotCrosshair_Horizontal_Line->setChecked(mPlotCrosshair->horizontalLine);
+    ui->action_PlotCrosshair_Dot->setChecked(mPlotCrosshair->showCircle);
 
-    ui->action_Show_Mouse_Crosshair->setChecked(mMouseCrosshair.isVisible());
-    ui->action_MouseCrosshair_Vertical_Line->setChecked(mMouseCrosshair.isVlineEnabled());
-    ui->action_MouseCrosshair_Horizontal_Line->setChecked(mMouseCrosshair.isHlineEnabled());
-    ui->action_MouseCrosshair_Dot->setChecked(mMouseCrosshair.isDotEnabled());
+    ui->action_Show_Mouse_Crosshair->setChecked(mMouseCrosshair->visible());
+    ui->action_MouseCrosshair_Vertical_Line->setChecked(mMouseCrosshair->verticalLine);
+    ui->action_MouseCrosshair_Horizontal_Line->setChecked(mMouseCrosshair->horizontalLine);
+    ui->action_MouseCrosshair_Dot->setChecked(mMouseCrosshair->showCircle);
 
     queueReplot();
 }
@@ -1315,49 +1325,49 @@ void PlotWindow::on_action_Link_to_Group_3_triggered()
 void PlotWindow::on_action_Show_Plot_Crosshair_triggered()
 {
     mPlotCrosshairVisibilityChangedByUser = true;
-    mPlotCrosshair.setVisible(ui->action_Show_Plot_Crosshair->isChecked());
+    mPlotCrosshair->setVisible(ui->action_Show_Plot_Crosshair->isChecked());
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_Show_Mouse_Crosshair_triggered()
 {
-    mMouseCrosshair.setVisible(ui->action_Show_Mouse_Crosshair->isChecked());
+    mMouseCrosshair->setVisible(ui->action_Show_Mouse_Crosshair->isChecked());
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_PlotCrosshair_Horizontal_Line_triggered()
 {
-    mPlotCrosshair.enableHline(ui->action_PlotCrosshair_Horizontal_Line->isChecked());
+    mPlotCrosshair->horizontalLine = ui->action_PlotCrosshair_Horizontal_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_PlotCrosshair_Vertical_Line_triggered()
 {
-    mPlotCrosshair.enableVline(ui->action_PlotCrosshair_Vertical_Line->isChecked());
+    mPlotCrosshair->verticalLine = ui->action_PlotCrosshair_Vertical_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_PlotCrosshair_Dot_triggered()
 {
-    mPlotCrosshair.enableDot(ui->action_PlotCrosshair_Dot->isChecked());
+    mPlotCrosshair->showCircle = ui->action_PlotCrosshair_Dot->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_MouseCrosshair_Horizontal_Line_triggered()
 {
-    mMouseCrosshair.enableHline(ui->action_MouseCrosshair_Horizontal_Line->isChecked());
+    mMouseCrosshair->horizontalLine = ui->action_MouseCrosshair_Horizontal_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_MouseCrosshair_Vertical_Line_triggered()
 {
-    mMouseCrosshair.enableVline(ui->action_MouseCrosshair_Vertical_Line->isChecked());
+    mMouseCrosshair->verticalLine = ui->action_MouseCrosshair_Vertical_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_MouseCrosshair_Dot_triggered()
 {
-    mMouseCrosshair.enableDot(ui->action_MouseCrosshair_Dot->isChecked());
+    mMouseCrosshair->showCircle = ui->action_MouseCrosshair_Dot->isChecked();
     updateGuiForCrosshairOptions();
 }
 
@@ -1471,16 +1481,16 @@ QColor PlotWindow::Graph::color()
 void PlotWindow::on_action_Copy_Image_triggered()
 {
     // Temporarily disable crosshairs
-    bool lastPlotCrosshairVis = mPlotCrosshair.isVisible();
-    mPlotCrosshair.setVisible(false);
-    bool lastMouseCrosshairVis = mMouseCrosshair.isVisible();
-    mMouseCrosshair.setVisible(false);
+    bool lastPlotCrosshairVis = mPlotCrosshair->visible();
+    mPlotCrosshair->setVisible(false);
+    bool lastMouseCrosshairVis = mMouseCrosshair->visible();
+    mMouseCrosshair->setVisible(false);
 
     QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
 
     // Restore crosshairs
-    mPlotCrosshair.setVisible(lastPlotCrosshairVis);
-    mMouseCrosshair.setVisible(lastMouseCrosshairVis);
+    mPlotCrosshair->setVisible(lastPlotCrosshairVis);
+    mMouseCrosshair->setVisible(lastMouseCrosshairVis);
 
     QClipboard* clipboard = QGuiApplication::clipboard();
     clipboard->setImage(image);
@@ -1515,11 +1525,13 @@ void PlotWindow::on_action_Place_Marker_triggered()
     if (!closest.valid) { return; }
 
     PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
+    dot->setLayer("markers");
     dot->position->setCoords(closest.xCoord, closest.yCoord);
     dot->size = 10;
     dot->brush = QBrush(QColor(255, 0, 0, 100));
 
     QCPItemText* label = new QCPItemText(ui->plot);
+    label->setLayer("markers");
     label->position->setParentAnchor(dot->anchor);
     // Pixel position is set relative to the anchor assigned above
     label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
@@ -1530,6 +1542,7 @@ void PlotWindow::on_action_Place_Marker_triggered()
     label->setSelectable(true);
 
     QCPItemLine* arrow = new QCPItemLine(ui->plot);
+    arrow->setLayer("markers");
     arrow->end->setCoords(closest.xCoord, closest.yCoord);
     arrow->setHead(QCPLineEnding::esSpikeArrow);
 

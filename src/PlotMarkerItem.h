@@ -16,6 +16,9 @@ public:
     QPen pen;
     QBrush brush;
     double size;
+    bool showCircle = true;
+    bool verticalLine = false;
+    bool horizontalLine = false;
 
     double selectTest(const QPointF& pos, bool onlySelectable,
                       QVariant* details) const override;

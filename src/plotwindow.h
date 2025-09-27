@@ -214,10 +214,10 @@ private:
 
     void setupCrosshairs();
     enum CrosshairSnap { SnapXOnly, SnapToClosest } mPlotCrosshairSnap = SnapXOnly;
-    Crosshair mPlotCrosshair;
+    PlotMarkerItem* mPlotCrosshair = nullptr;
     int mPlotCrosshairIndex = 0;
     bool mPlotCrosshairVisibilityChangedByUser = false;
-    Crosshair mMouseCrosshair;
+    PlotMarkerItem* mMouseCrosshair = nullptr;
     void updateGuiForCrosshairOptions();
 
     struct ClosestCoord {
