@@ -54,7 +54,7 @@ AboutDialog::AboutDialog(QString settingsPath, QWidget *parent) :
     if (f.open(QIODevice::ReadOnly)) {
         changelog = f.readAll();
     }
-    ui->plainTextEdit->setPlainText(changelog);
+    ui->textBrowser->setMarkdown(changelog);
 }
 
 AboutDialog::~AboutDialog()

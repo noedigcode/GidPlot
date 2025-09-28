@@ -36,7 +36,7 @@ void printVersion()
 {
     print(QString(APP_NAME));
     print(QString("Version %1").arg(APP_VERSION));
-    print(QString("Gideon van der Kolf %1").arg(APP_YEAR));
+    print(QString("Gideon van der Kolf %1-%2").arg(APP_YEAR_FROM).arg(APP_YEAR));
     print("");
     print(QString("Compiled with Qt %1").arg(QT_VERSION_STR));
     print(QString("QCustomPlot %1").arg(QCUSTOMPLOT_VERSION_STR));

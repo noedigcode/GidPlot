@@ -82,10 +82,7 @@ Using icons from the Pastel SVG 1.2 icon set created by Michael Buckley</string>
     </widget>
    </item>
    <item>
-    <widget class="QPlainTextEdit" name="plainTextEdit">
-     <property name="styleSheet">
-      <string notr="true">font-family: monospace;</string>
-     </property>
+    <widget class="QTextBrowser" name="textBrowser">
      <property name="readOnly">
       <bool>true</bool>
      </property>

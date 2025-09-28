@@ -1,11 +1,11 @@
 ![GidPlot Logo](images/gidplot_64.png)
-GidPlot
+Gid~Plot
 ========
 
 An app to just plot CSV data
 ----------------------------
 
-2024 Gideon van der Kolf, noedigcode@gmail.com
+2024-2025 Gideon van der Kolf, noedigcode@gmail.com
 
 Just import a CSV file and plot some data. Is that so hard?
 
