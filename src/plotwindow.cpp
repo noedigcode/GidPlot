@@ -639,14 +639,14 @@ bool PlotWindow::plotMouseRightDrag(QMouseEvent* event)
     // Position on axis = mouse position minus axis rect offsets
     QPointF axisPos = event->pos() - axisRect.topLeft();
     // Mouse movement relative to start
-    double dx = (axisPos.x() - rMouseZoom.start.x()) / axisRect.width();
-    double dy = (axisPos.y() - rMouseZoom.start.y()) / axisRect.height();
+    double px = axisPos.x() - rMouseZoom.start.x();
+    double dx = px / axisRect.width();
+    double py = axisPos.y() - rMouseZoom.start.y();
+    double dy = py / axisRect.height();
 
     // Start dragging if we have moved further than threshold
     if (!rMouseZoom.isDragging) {
-        int px = ui->plot->xAxis->coordToPixel(dx);
-        int py = ui->plot->yAxis->coordToPixel(dy);
-        if (QPoint(px, py).manhattanLength() > 10) {
+        if (QPointF(px, py).manhattanLength() > 5.0) {
             rMouseZoom.isDragging = true;
         }
     }
