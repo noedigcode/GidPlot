@@ -405,7 +405,7 @@ void MainWindow::on_action_testPlot_triggered()
 void MainWindow::on_action_importCsv_triggered()
 {
     QString filename = QFileDialog::getOpenFileName(this, "Import CSV", "",
-                                                    "CSV file (*.csv)");
+                                            "CSV file (*.csv);;All files (*)");
 
     if (filename.isEmpty()) { return; }
 
