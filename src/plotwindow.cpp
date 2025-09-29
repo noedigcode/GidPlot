@@ -519,6 +519,7 @@ void PlotWindow::deleteMarker(MarkerPtr marker)
     ui->plot->removeItem(marker->textItem);
     ui->plot->removeItem(marker->dot);
     mMarkers.removeAll(marker);
+    ui->plot->replot();
 }
 
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,
