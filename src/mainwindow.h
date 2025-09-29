@@ -82,6 +82,7 @@ private slots:
     void on_action_About_triggered();
 
 private:
+    bool mDestroying = false;
     Ui::MainWindow *ui;
     CsvImportDialog csvImportDialog {this};
     ProgressDialog progressDialog {this};

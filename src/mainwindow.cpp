@@ -67,6 +67,8 @@ MainWindow::~MainWindow()
     }
 
     delete ui;
+
+    mDestroying = true;
 }
 
 void MainWindow::importCsv(Csv::FileInfo info)
@@ -193,6 +195,8 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
 
 void MainWindow::onPlotWindowDestroyed(PlotWindow* p)
 {
+    if (mDestroying) { return; }
+
     mPlots.removeAll(p);
     mPlotLinkGroups.remove(p);
     onPlotRemoved(p);
