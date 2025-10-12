@@ -264,12 +264,14 @@ private:
     {
         MarkerPtr a;
         MarkerPtr b;
+        QString tag;
     };
     typedef QSharedPointer<Measure> MeasurePtr;
 
     QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
+    int mMeasureCounter = 1;
 
     MarkerPtr findMarkerUnderPos(QPoint pos);
     MarkerPtr mouseDownMarker;

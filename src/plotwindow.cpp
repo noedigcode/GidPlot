@@ -560,6 +560,17 @@ void PlotWindow::deleteMarker(MarkerPtr marker)
     ui->plot->removeItem(marker->textItem);
     ui->plot->removeItem(marker->dot);
     mMarkers.removeAll(marker);
+
+    // Remove related measure
+    foreach (MeasurePtr m, mMeasures) {
+        if ((m->a == marker) || (m->b == marker)) {
+            mMeasures.removeAll(m);
+            if (mCurrentMeasure == m) {
+                mCurrentMeasure.reset();
+            }
+        }
+    }
+
     ui->plot->replot();
 }
 
@@ -774,9 +785,10 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
             mCurrentMeasure->b->dot->position->setCoords(mouseX, mouseY);
             mCurrentMeasure->b->xCoord = mouseX;
             mCurrentMeasure->b->yCoord = mouseY;
-            mCurrentMeasure->b->text = QString("B\n$x, $y\ndx: %1, dy: %2")
-                                                .arg(delta.x())
-                                                .arg(delta.y());
+            mCurrentMeasure->b->text = QString("%1 B\n$x, $y\ndx: %2, dy: %3")
+                                           .arg(mCurrentMeasure->tag)
+                                           .arg(delta.x())
+                                           .arg(delta.y());
             updateMarkerText(mCurrentMeasure->b);
             updateMarkerArrow(mCurrentMeasure->b);
 
@@ -1628,11 +1640,14 @@ void PlotWindow::on_action_Measure_triggered()
     double x = xaxis->pixelToCoord(pos.x());
     double y = yaxis->pixelToCoord(pos.y());
 
+    MeasurePtr m(new Measure());
+    m->tag = QString("Measure %1").arg(mMeasureCounter++);
+
     QList<MarkerPtr> ab;
     for (int i = 0; i < 2; i++) {
 
         MarkerPtr a = addMarker(QPointF(x, y));
-        a->text = "A\n$x, $y";
+        a->text = QString("%1 A\n$x, $y").arg(m->tag);
         updateMarkerText(a);
         updateMarkerArrow(a);
         a->dot->showCircle = false;
@@ -1643,7 +1658,6 @@ void PlotWindow::on_action_Measure_triggered()
         ab.append(a);
     }
 
-    MeasurePtr m(new Measure());
     m->a = ab.value(0);
     m->b = ab.value(1);
 
