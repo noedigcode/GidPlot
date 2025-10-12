@@ -183,6 +183,15 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
 
                 foreach (int iycol, iycols) {
                     p->plotData(csv3, ixcol, iycol, range);
+                    if (!ui->tabWidget->isPoppedOut(p)) {
+                        ui->tabWidget->setCurrentWidget(p);
+                    } else {
+                        QMainWindow* mw = ui->tabWidget->tabWindow(p);
+                        if (mw) {
+                            mw->raise();
+                            mw->activateWindow();
+                        }
+                    }
                 }
             });
         }
