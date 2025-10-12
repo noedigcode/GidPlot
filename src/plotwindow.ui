@@ -484,7 +484,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>20</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -830,6 +830,14 @@
    </property>
    <property name="text">
     <string>Delete Marker</string>
+   </property>
+  </action>
+  <action name="action_Measure">
+   <property name="text">
+    <string>Measure</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
  </widget>

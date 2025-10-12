@@ -112,6 +112,7 @@ private slots:
     void onLegendRightClicked(QCPLegend* legend, const QPoint& pos);
     void onPlotMouseRelease(QMouseEvent* event);
     void plotRightClicked(const QPoint &pos);
+    void plotLeftClicked(const QPoint &pos);
 
     void onAxisRangesChanged();
 
@@ -187,6 +188,7 @@ private:
     } rMouseZoom;
 
     bool lMouseDown = false;
+    bool lMouseDragging = false;
     QPoint lMouseStart;
 
     bool lMouseDownOnLegend = false;
@@ -258,11 +260,22 @@ private:
     };
     typedef QSharedPointer<Marker> MarkerPtr;
 
+    struct Measure
+    {
+        MarkerPtr a;
+        MarkerPtr b;
+    };
+    typedef QSharedPointer<Measure> MeasurePtr;
+
     QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
+    QList<MeasurePtr> mMeasures;
+    MeasurePtr mCurrentMeasure;
 
     MarkerPtr findMarkerUnderPos(QPoint pos);
     MarkerPtr mouseDownMarker;
     QPointF markerTextPixelPosAtMouseDown;
+
+    MarkerPtr addMarker(QPointF coord);
 
     bool markerMouseDown(QMouseEvent* mouseEvent);
     bool markerMouseMove(QMouseEvent* mouseEvent);
@@ -276,6 +289,7 @@ private:
 
 private slots:
     void on_action_Place_Marker_triggered();
+    void on_action_Measure_triggered();
 };
 
 #endif // PLOTWINDOW_H

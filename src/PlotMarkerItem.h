@@ -35,7 +35,7 @@ public:
     QCPItemAnchor* const anchor;
     QPen pen;
     QBrush brush;
-    double size;
+    double size = 1;
     bool showCircle = true;
     bool verticalLine = false;
     bool horizontalLine = false;

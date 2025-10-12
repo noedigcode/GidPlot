@@ -361,6 +361,46 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
     updateLegendPlacement();
 }
 
+PlotWindow::MarkerPtr PlotWindow::addMarker(QPointF coord)
+{
+    PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
+    dot->setLayer("markers");
+    dot->position->setCoords(coord);
+    dot->size = 10;
+    dot->brush = QBrush(QColor(255, 0, 0, 100));
+
+    QCPItemText* label = new QCPItemText(ui->plot);
+    label->setLayer("markers");
+    label->position->setParentAnchor(dot->anchor);
+    // Pixel position is set relative to the anchor assigned above
+    label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
+    label->setPadding(QMargins(2, 2, 2, 2));
+    label->setPen(QPen(Qt::black));
+    label->setBrush(QBrush(QColor("#f8fabe")));
+    label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
+
+    QCPItemLine* arrow = new QCPItemLine(ui->plot);
+    arrow->setLayer("markers");
+    arrow->end->setCoords(coord);
+    arrow->setHead(QCPLineEnding::esSpikeArrow);
+
+    MarkerPtr marker(new Marker());
+    marker->xCoord = coord.x();
+    marker->yCoord = coord.y();
+    marker->dot = dot;
+    marker->textItem = label;
+    marker->arrow = arrow;
+    marker->text = "$x, $y";
+
+    mMarkers.prepend(marker);
+    updateMarkerArrow(marker);
+    updateMarkerText(marker);
+
+    ui->plot->replot();
+
+    return marker;
+}
+
 PlotWindow::MarkerPtr PlotWindow::findMarkerUnderPos(QPoint pos)
 {
     MarkerPtr ret;
@@ -454,6 +494,7 @@ bool PlotWindow::markerRightClick(QPoint pos)
 
 void PlotWindow::updateMarkerArrow(MarkerPtr m)
 {
+    m->arrow->end->setCoords(m->dot->position->coords());
     QPointF p = m->arrow->end->pixelPosition();
     QRectF r(m->textItem->topLeft->pixelPosition(),
              m->textItem->bottomRight->pixelPosition());
@@ -713,7 +754,7 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
     bool posValid = false;
     bool replot = false;
 
-    bool dragging = rMouseZoom.isDragging || lMouseDown;
+    lMouseDragging = rMouseZoom.isDragging || lMouseDown;
 
     QCPAxis* xaxis = ui->plot->xAxis;
     QCPAxis* yaxis = ui->plot->yAxis;
@@ -724,17 +765,32 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
         bool mouseInAxisRect = r.contains(event->x(), event->y());
 
         posValid = true;
+        double mouseX = xaxis->pixelToCoord(event->x());
+        double mouseY = yaxis->pixelToCoord(event->y());
+
+        if (mCurrentMeasure) {
+            QPointF delta = QPointF(mouseX, mouseY) -
+                            mCurrentMeasure->a->dot->position->coords();
+            mCurrentMeasure->b->dot->position->setCoords(mouseX, mouseY);
+            mCurrentMeasure->b->xCoord = mouseX;
+            mCurrentMeasure->b->yCoord = mouseY;
+            mCurrentMeasure->b->text = QString("B\n$x, $y\ndx: %1, dy: %2")
+                                                .arg(delta.x())
+                                                .arg(delta.y());
+            updateMarkerText(mCurrentMeasure->b);
+            updateMarkerArrow(mCurrentMeasure->b);
+
+            replot = true;
+        }
 
         // - Only update tracers and coordinates if not dragging as it could
         //   slow down dragging
         // - Don't draw crosshairs when mouse is outside of axis rect. This
         //   could lead to the crosshair being directly behind the axis labels,
         //   preventing click events to the labels.
-        if (!dragging && mouseInAxisRect) {
+        if (!lMouseDragging && mouseInAxisRect) {
 
             QString text;
-            double mouseX = xaxis->pixelToCoord(event->x());
-            double mouseY = yaxis->pixelToCoord(event->y());
 
             if (mPlotCrosshair->visible() && dataTipGraph) {
 
@@ -906,6 +962,10 @@ void PlotWindow::onPlotMouseRelease(QMouseEvent* event)
         rMouseZoom.isDragging = false;
     } else if (event->button() == Qt::LeftButton) {
         lMouseDown = false;
+        if (!lMouseDragging) {
+            // Was not dragging. Trigger mouse right click event
+            plotLeftClicked(event->pos());
+        }
         lMouseDownOnLegend = false;
         lMouseDownOnMarker = false;
         markerMouseUp();
@@ -1050,6 +1110,14 @@ void PlotWindow::plotRightClicked(const QPoint &pos)
     }
 }
 
+void PlotWindow::plotLeftClicked(const QPoint& /*pos*/)
+{
+    if (mCurrentMeasure) {
+        // Stop measuring
+        mCurrentMeasure.reset();
+    }
+}
+
 void PlotWindow::queueReplot()
 {
     ui->plot->replot(QCustomPlot::rpQueuedReplot);
@@ -1126,6 +1194,7 @@ void PlotWindow::setupMenus()
 
     plotContextMenu.addActions({
         ui->action_Place_Marker,
+        ui->action_Measure,
         ui->action_Show_All,
         ui->action_Equal_Axes
     });
@@ -1539,40 +1608,47 @@ void PlotWindow::on_action_Place_Marker_triggered()
     ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
     if (!closest.valid) { return; }
 
-    PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
-    dot->setLayer("markers");
-    dot->position->setCoords(closest.xCoord, closest.yCoord);
-    dot->size = 10;
-    dot->brush = QBrush(QColor(255, 0, 0, 100));
+    MarkerPtr marker = addMarker(QPointF(closest.xCoord, closest.yCoord));
 
-    QCPItemText* label = new QCPItemText(ui->plot);
-    label->setLayer("markers");
-    label->position->setParentAnchor(dot->anchor);
-    // Pixel position is set relative to the anchor assigned above
-    label->position->setPixelPosition(label->position->pixelPosition() + QPointF(10, -10));
-    label->setPadding(QMargins(2, 2, 2, 2));
-    label->setPen(QPen(Qt::black));
-    label->setBrush(QBrush(QColor("#f8fabe")));
-    label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
-
-    QCPItemLine* arrow = new QCPItemLine(ui->plot);
-    arrow->setLayer("markers");
-    arrow->end->setCoords(closest.xCoord, closest.yCoord);
-    arrow->setHead(QCPLineEnding::esSpikeArrow);
-
-    MarkerPtr marker(new Marker());
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
-    marker->xCoord = closest.xCoord;
-    marker->yCoord = closest.yCoord;
-    marker->dot = dot;
-    marker->textItem = label;
-    marker->arrow = arrow;
     marker->text = "Index: $i\n$x, $y";
-
-    mMarkers.prepend(marker);
-    updateMarkerArrow(marker);
     updateMarkerText(marker);
+    updateMarkerArrow(marker);
+
+    ui->plot->replot();
+}
+
+void PlotWindow::on_action_Measure_triggered()
+{
+    QCPAxis* xaxis = ui->plot->xAxis;
+    QCPAxis* yaxis = ui->plot->yAxis;
+
+    QPoint pos = mLastMouseMovePos;
+    double x = xaxis->pixelToCoord(pos.x());
+    double y = yaxis->pixelToCoord(pos.y());
+
+    QList<MarkerPtr> ab;
+    for (int i = 0; i < 2; i++) {
+
+        MarkerPtr a = addMarker(QPointF(x, y));
+        a->text = "A\n$x, $y";
+        updateMarkerText(a);
+        updateMarkerArrow(a);
+        a->dot->showCircle = false;
+        a->dot->verticalLine = true;
+        a->dot->horizontalLine = true;
+        a->dot->pen.setStyle(Qt::DashLine);
+
+        ab.append(a);
+    }
+
+    MeasurePtr m(new Measure());
+    m->a = ab.value(0);
+    m->b = ab.value(1);
+
+    mMeasures.append(m);
+    mCurrentMeasure = m;
 
     ui->plot->replot();
 }
