@@ -370,7 +370,7 @@ void TableWidget::on_treeWidget_cols_y_itemSelectionChanged()
 void TableWidget::on_toolButton_range_clicked()
 {
     QMenu* menu = new QMenu();
-    connect(menu, &QMenu::triggered, this, [=]()
+    connect(menu, &QMenu::aboutToHide, this, [=]()
     {
         menu->deleteLater();
     });

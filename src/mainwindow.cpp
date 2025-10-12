@@ -169,7 +169,7 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
     } else {
         // Show a menu to select an existing plot.
         QMenu* menu = new QMenu();
-        connect(menu, &QMenu::triggered, this, [=]()
+        connect(menu, &QMenu::aboutToHide, this, [=]()
         {
             menu->deleteLater();
         });

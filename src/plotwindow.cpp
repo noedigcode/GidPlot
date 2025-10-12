@@ -427,7 +427,7 @@ bool PlotWindow::markerRightClick(QPoint pos)
     if (!marker) { return false; }
 
     QMenu* menu = new QMenu();
-    connect(menu, &QMenu::triggered, this, [=]() { menu->deleteLater(); });
+    connect(menu, &QMenu::aboutToHide, this, [=]() { menu->deleteLater(); });
 
     // Use weak pointer to not capture shared pointer in lambdas that might
     // hold on to it.
@@ -850,7 +850,7 @@ void PlotWindow::onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
     QCPAbstractPlottable* plottable = legendItem->plottable();
 
     QMenu* menu = new QMenu();
-    connect(menu, &QMenu::triggered, this, [=]() {
+    connect(menu, &QMenu::aboutToHide, this, [=]() {
         menu->deleteLater();
     });
 
