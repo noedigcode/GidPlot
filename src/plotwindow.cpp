@@ -35,6 +35,17 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
 
     setupMenus();
 
+    // Initialise plot font
+#if defined(Q_OS_WIN)
+    mPlotFont = QFont("Tahoma");
+#else
+    mPlotFont = this->font();
+#endif
+    // Set explicit fonts of all plot elements. This is required as, on Windows,
+    // if the font is the default MS Shell Dlg 2, exported SVGs don't load
+    // properly in some programs.
+    setPlotFont(mPlotFont);
+
     connect(ui->plot, &QCustomPlot::plottableClick, this, &PlotWindow::plottableClick);
     connect(ui->plot, &QCustomPlot::mouseMove, this, &PlotWindow::onPlotMouseMove);
     connect(ui->plot, &QCustomPlot::mousePress, this, &PlotWindow::onPlotMousePress);
@@ -361,6 +372,13 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
     updateLegendPlacement();
 }
 
+void PlotWindow::clearCurrentMeasure()
+{
+    mCurrentMeasure.reset();
+    // Restore measure action text that was set to end measure when started
+    ui->action_Measure->setText("Measure");
+}
+
 PlotWindow::MarkerPtr PlotWindow::addMarker(QPointF coord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
@@ -370,6 +388,7 @@ PlotWindow::MarkerPtr PlotWindow::addMarker(QPointF coord)
     dot->brush = QBrush(QColor(255, 0, 0, 100));
 
     QCPItemText* label = new QCPItemText(ui->plot);
+    label->setFont(ui->plot->font());
     label->setLayer("markers");
     label->position->setParentAnchor(dot->anchor);
     // Pixel position is set relative to the anchor assigned above
@@ -566,7 +585,7 @@ void PlotWindow::deleteMarker(MarkerPtr marker)
         if ((m->a == marker) || (m->b == marker)) {
             mMeasures.removeAll(m);
             if (mCurrentMeasure == m) {
-                mCurrentMeasure.reset();
+                clearCurrentMeasure();
             }
         }
     }
@@ -1063,6 +1082,20 @@ PlotWindow::ClosestCoord PlotWindow::findClosestCoord(QPoint pos, GraphPtr graph
     return closest;
 }
 
+void PlotWindow::storeAndDisableCrosshairs()
+{
+    lastPlotCrosshairVisible = mPlotCrosshair->visible();
+    mPlotCrosshair->setVisible(false);
+    lastMouseCrosshairVisible = mMouseCrosshair->visible();
+    mMouseCrosshair->setVisible(false);
+}
+
+void PlotWindow::restoreCrosshairs()
+{
+    mPlotCrosshair->setVisible(lastPlotCrosshairVisible);
+    mMouseCrosshair->setVisible(lastMouseCrosshairVisible);
+}
+
 void PlotWindow::setLinkGroup(int group)
 {
     mLinkGroup = group;
@@ -1126,7 +1159,7 @@ void PlotWindow::plotLeftClicked(const QPoint& /*pos*/)
 {
     if (mCurrentMeasure) {
         // Stop measuring
-        mCurrentMeasure.reset();
+        clearCurrentMeasure();
     }
 }
 
@@ -1188,6 +1221,19 @@ void PlotWindow::updatePlotForEqualAxes(QRectF xyrange)
     xaxis->setRange(xyrange.left(), xyrange.right());
     yaxis->setRange(xyrange.top(), xyrange.bottom());
     queueReplot();
+}
+
+QByteArray PlotWindow::plotToSvg()
+{
+    QByteArray svgData;
+    QBuffer buffer(&svgData);
+    buffer.open(QIODevice::WriteOnly);
+
+    ui->plot->saveSvg(&buffer);
+
+    buffer.close();
+
+    return svgData;
 }
 
 void PlotWindow::setupMenus()
@@ -1574,24 +1620,6 @@ QColor PlotWindow::Graph::color()
     }
 }
 
-void PlotWindow::on_action_Copy_Image_triggered()
-{
-    // Temporarily disable crosshairs
-    bool lastPlotCrosshairVis = mPlotCrosshair->visible();
-    mPlotCrosshair->setVisible(false);
-    bool lastMouseCrosshairVis = mMouseCrosshair->visible();
-    mMouseCrosshair->setVisible(false);
-
-    QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
-
-    // Restore crosshairs
-    mPlotCrosshair->setVisible(lastPlotCrosshairVis);
-    mMouseCrosshair->setVisible(lastMouseCrosshairVis);
-
-    QClipboard* clipboard = QGuiApplication::clipboard();
-    clipboard->setImage(image);
-}
-
 void PlotWindow::on_action_Resize_Plot_triggered()
 {
     bool ok = false;
@@ -1608,6 +1636,18 @@ void PlotWindow::on_action_Resize_Plot_triggered()
     if (!ok || (y < 10)) { return; }
 
     emit requestWindowResize(x, y);
+}
+
+void PlotWindow::setPlotFont(QFont font)
+{
+    mPlotFont = font;
+
+    ui->plot->setFont(mPlotFont);
+    for (auto axis : ui->plot->axisRect()->axes()) {
+        axis->setLabelFont(ui->plot->font());
+        axis->setTickLabelFont(ui->plot->font());
+    }
+    ui->plot->legend->setFont(ui->plot->font());
 }
 
 void PlotWindow::on_action_Place_Marker_triggered()
@@ -1633,6 +1673,15 @@ void PlotWindow::on_action_Place_Marker_triggered()
 
 void PlotWindow::on_action_Measure_triggered()
 {
+    if (!mCurrentMeasure) {
+        // Not busy with a measure. Start a new one.
+        ui->action_Measure->setText("End Measure");
+    } else {
+        // Busy with a measure. End it here.
+        clearCurrentMeasure();
+        return;
+    }
+
     QCPAxis* xaxis = ui->plot->xAxis;
     QCPAxis* yaxis = ui->plot->yAxis;
 
@@ -1667,3 +1716,79 @@ void PlotWindow::on_action_Measure_triggered()
     ui->plot->replot();
 }
 
+void PlotWindow::on_action_Save_as_PDF_triggered()
+{
+    QString path = QFileDialog::getSaveFileName(this, "Save as PDF",
+                                                "",
+                                                "PDF (*.pdf)");
+    if (path.isEmpty()) { return; }
+
+    storeAndDisableCrosshairs();
+    bool ok = ui->plot->savePdf(path,0, 0, QCP::epNoCosmetic);
+    if (!ok) {
+        QMessageBox::critical(this, "Save to PDF failed",
+                              "Failed to save to PDF: " + path);
+    }
+    restoreCrosshairs();
+}
+
+void PlotWindow::on_action_Copy_PNG_triggered()
+{
+    storeAndDisableCrosshairs();
+    QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+    restoreCrosshairs();
+
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    clipboard->setImage(image);
+}
+
+void PlotWindow::on_action_Copy_SVG_triggered()
+{
+    storeAndDisableCrosshairs();
+    QByteArray svgData = plotToSvg();
+    restoreCrosshairs();
+
+    // Copy to clipboard
+    QMimeData *mimeData = new QMimeData();
+    mimeData->setData("image/svg+xml", svgData);
+
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setMimeData(mimeData);
+}
+
+void PlotWindow::on_action_Save_as_PNG_triggered()
+{
+    QString path = QFileDialog::getSaveFileName(this, "Save as PNG",
+                                                "",
+                                                "PNG Image (*.png)");
+    if (path.isEmpty()) { return; }
+
+    storeAndDisableCrosshairs();
+    bool ok = ui->plot->savePng(path, 0, 0, 2.0);
+    if (!ok) {
+        QMessageBox::critical(this, "Save to PNG failed",
+                              "Failed to save to PNG: " + path);
+    }
+    restoreCrosshairs();
+}
+
+void PlotWindow::on_action_Save_as_SVG_triggered()
+{
+    QString path = QFileDialog::getSaveFileName(this, "Save as SVG",
+                                                "",
+                                                "SVG Vector Image (*.svg)");
+    if (path.isEmpty()) { return; }
+
+    storeAndDisableCrosshairs();
+    QByteArray svgData = plotToSvg();
+    restoreCrosshairs();
+
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(svgData);
+        file.close();
+    } else {
+        QMessageBox::critical(this, "Save to SVG failed",
+                              "Failed to save to SVG: " + path);
+    }
+}

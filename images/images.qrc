@@ -29,5 +29,7 @@
         <file alias="delete">PastelSVG-1.2/cross.png</file>
         <file alias="marker">PastelSVG-1.2/tag-yellow.png</file>
         <file alias="rename">PastelSVG-1.2/textfield-rename.png</file>
+        <file alias="measure">ruler.png</file>
+        <file alias="save">PastelSVG-1.2/disk.png</file>
     </qresource>
 </RCC>

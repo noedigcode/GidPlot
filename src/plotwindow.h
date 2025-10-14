@@ -141,11 +141,14 @@ private slots:
     void on_action_Undocked_triggered();
     void on_action_Tab_in_Main_Window_triggered();
 
-    void on_action_Copy_Image_triggered();
     void on_action_Resize_Plot_triggered();
 
 private:
     Ui::PlotWindow *ui;
+
+    QFont mPlotFont;
+    void setPlotFont(QFont font);
+
     int mTag = 0;
     QCPTextElement* mPlotTitle = nullptr;
 
@@ -162,6 +165,8 @@ private:
 
     bool mEqualAxes = false;
     void updatePlotForEqualAxes(QRectF xyrange);
+
+    QByteArray plotToSvg();
 
     // -------------------------------------------------------------------------
     // Menus
@@ -231,6 +236,11 @@ private:
     };
     ClosestCoord findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap);
 
+    bool lastPlotCrosshairVisible = false;
+    bool lastMouseCrosshairVisible = false;
+    void storeAndDisableCrosshairs();
+    void restoreCrosshairs();
+
     // -------------------------------------------------------------------------
 
     int mLinkGroup = 0;
@@ -271,6 +281,7 @@ private:
     QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
+    void clearCurrentMeasure();
     int mMeasureCounter = 1;
 
     MarkerPtr findMarkerUnderPos(QPoint pos);
@@ -292,6 +303,11 @@ private:
 private slots:
     void on_action_Place_Marker_triggered();
     void on_action_Measure_triggered();
+    void on_action_Save_as_PDF_triggered();
+    void on_action_Copy_PNG_triggered();
+    void on_action_Copy_SVG_triggered();
+    void on_action_Save_as_PNG_triggered();
+    void on_action_Save_as_SVG_triggered();
 };
 
 #endif // PLOTWINDOW_H
