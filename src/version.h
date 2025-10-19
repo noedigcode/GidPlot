@@ -22,7 +22,7 @@
 #define VERSION_H
 
 #define APP_NAME "Gid~Plot"
-#define APP_VERSION "0.0.3"
+#define APP_VERSION "0.0.4-rc1"
 #define APP_YEAR "2025"
 #define APP_YEAR_FROM "2024"
 

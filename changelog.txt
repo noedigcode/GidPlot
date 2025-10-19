@@ -1,6 +1,28 @@
 Gid~Plot Changelog
 ==================
 
+[0.0.4] - Unreleased
+--------------------
+
+Added
+
+- Measure feature from plot context menu.
+- Add All Files (*) to file import dialog.
+- Copy to SVG and save to PNG, SVG and PDF.
+
+Changed
+
+- Better formatting in about dialog.
+- Update plot immediately when a marker is deleted.
+- When adding to an existing plot, show the plot tab or window.
+
+Fixed
+
+- Fix calculation of start threshold for right mouse drag for zooming.
+- Fix crash on quit when plots are open.
+
+
+
 [0.0.3] - 2025-09-27
 --------------------
 

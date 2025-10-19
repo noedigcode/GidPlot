@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui svg
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport
 
@@ -34,6 +34,7 @@ SOURCES += \
     src/PlotMarkerItem.cpp \
     src/PopoutTabWidget.cpp \
     src/ProgressDialog.cpp \
+    src/QCustomPlot/GidQCustomPlot.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
     src/crosshair.cpp \
@@ -51,6 +52,7 @@ HEADERS += \
     src/PlotMarkerItem.h \
     src/PopoutTabWidget.h \
     src/ProgressDialog.h \
+    src/QCustomPlot/GidQCustomPlot.h \
     src/Range.h \
     src/aboutdialog.h \
     src/crosshair.h \

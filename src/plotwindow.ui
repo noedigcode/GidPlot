@@ -38,7 +38,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QCustomPlot" name="plot" native="true">
+     <widget class="GidQCustomPlot" name="plot" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
         <horstretch>0</horstretch>
@@ -484,7 +484,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>30</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -545,7 +545,11 @@
      <string>Image</string>
     </property>
     <addaction name="action_Resize_Plot"/>
-    <addaction name="action_Copy_Image"/>
+    <addaction name="action_Copy_PNG"/>
+    <addaction name="action_Copy_SVG"/>
+    <addaction name="action_Save_as_PNG"/>
+    <addaction name="action_Save_as_SVG"/>
+    <addaction name="action_Save_as_PDF"/>
    </widget>
    <addaction name="menuView"/>
    <addaction name="menuLink"/>
@@ -755,13 +759,13 @@
     <string>Tab in Main Window</string>
    </property>
   </action>
-  <action name="action_Copy_Image">
+  <action name="action_Copy_PNG">
    <property name="icon">
     <iconset resource="../images/images.qrc">
      <normaloff>:/copy</normaloff>:/copy</iconset>
    </property>
    <property name="text">
-    <string>Copy Image</string>
+    <string>Copy as PNG</string>
    </property>
   </action>
   <action name="action_Resize_Plot">
@@ -833,6 +837,10 @@
    </property>
   </action>
   <action name="action_Measure">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/measure</normaloff>:/measure</iconset>
+   </property>
    <property name="text">
     <string>Measure</string>
    </property>
@@ -840,12 +848,48 @@
     <enum>QAction::NoRole</enum>
    </property>
   </action>
+  <action name="action_Save_as_PDF">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/save</normaloff>:/save</iconset>
+   </property>
+   <property name="text">
+    <string>Save as PDF</string>
+   </property>
+  </action>
+  <action name="action_Copy_SVG">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/copy</normaloff>:/copy</iconset>
+   </property>
+   <property name="text">
+    <string>Copy as SVG</string>
+   </property>
+  </action>
+  <action name="action_Save_as_SVG">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/save</normaloff>:/save</iconset>
+   </property>
+   <property name="text">
+    <string>Save as SVG</string>
+   </property>
+  </action>
+  <action name="action_Save_as_PNG">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/save</normaloff>:/save</iconset>
+   </property>
+   <property name="text">
+    <string>Save as PNG</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QCustomPlot</class>
+   <class>GidQCustomPlot</class>
    <extends>QWidget</extends>
-   <header>src/QCustomPlot/qcustomplot.h</header>
+   <header>src/QCustomPlot/GidQCustomPlot.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
