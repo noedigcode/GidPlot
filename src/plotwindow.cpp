@@ -115,7 +115,7 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         qcpgraph->setPen(pen);
         qcpgraph->setName(csv->matrix->heading(iycol));
         mPlotCrosshairSnap = SnapXOnly;
-        mPlotCrosshair->horizontalLine = false;
+        mPlotCrosshair->showHorizontalLine = false;
         updateGuiForCrosshairOptions();
     } else {
         // Curve is used otherwise
@@ -366,8 +366,9 @@ PlotWindow::MarkerPtr PlotWindow::addMarker(QPointF coord)
     PlotMarkerItem* dot = new PlotMarkerItem(ui->plot);
     dot->setLayer("markers");
     dot->position->setCoords(coord);
-    dot->size = 10;
-    dot->brush = QBrush(QColor(255, 0, 0, 100));
+    dot->circleSize = 10;
+    dot->circleFillBrush = QBrush(QColor(255, 0, 0, 100));
+    dot->linePen.setStyle(Qt::DashLine);
 
     QCPItemText* label = new QCPItemText(ui->plot);
     label->setLayer("markers");
@@ -387,14 +388,14 @@ PlotWindow::MarkerPtr PlotWindow::addMarker(QPointF coord)
     MarkerPtr marker(new Marker());
     marker->xCoord = coord.x();
     marker->yCoord = coord.y();
-    marker->dot = dot;
+    marker->plotMarker = dot;
     marker->textItem = label;
     marker->arrow = arrow;
     marker->text = "$x, $y";
 
     mMarkers.prepend(marker);
-    updateMarkerArrow(marker);
     updateMarkerText(marker);
+    updateMarkerArrow(marker);
 
     ui->plot->replot();
 
@@ -425,7 +426,7 @@ bool PlotWindow::markerMouseDown(QMouseEvent* mouseEvent)
     mouseDownMarker = findMarkerUnderPos(mouseEvent->pos());
     if (mouseDownMarker) {
         // Bring marker to the front (setting layer again puts it a the top)
-        mouseDownMarker->dot->setLayer("markers");
+        mouseDownMarker->plotMarker->setLayer("markers");
         mouseDownMarker->textItem->setLayer("markers");
         mouseDownMarker->arrow->setLayer("markers");
         // Move to start of markers list (top to bottom)
@@ -494,7 +495,7 @@ bool PlotWindow::markerRightClick(QPoint pos)
 
 void PlotWindow::updateMarkerArrow(MarkerPtr m)
 {
-    m->arrow->end->setCoords(m->dot->position->coords());
+    m->arrow->end->setCoords(m->plotMarker->position->coords());
     QPointF p = m->arrow->end->pixelPosition();
     QRectF r(m->textItem->topLeft->pixelPosition(),
              m->textItem->bottomRight->pixelPosition());
@@ -542,14 +543,24 @@ void PlotWindow::editMarkerText(MarkerPtr marker)
 {
     if (!marker) { return; }
 
-    bool ok;
-    QString text = QInputDialog::getMultiLineText(this, "Marker Text",
-        "Text ($i = index, $x, $y, $name = plot name)",
-        marker->text, &ok);
-    if (!ok) { return; }
-    marker->text = text;
-    updateMarkerText(marker);
-    ui->plot->replot();
+    mMarkerEditDialog.edit(marker->text,
+                           marker->plotMarker->showHorizontalLine,
+                           marker->plotMarker->showVerticalLine,
+                           marker->plotMarker->showCircle,
+    [this, markerWkPtr = marker.toWeakRef()]()
+    {
+        MarkerPtr m(markerWkPtr);
+        if (!m) { return; }
+
+        m->text = mMarkerEditDialog.text();
+        m->plotMarker->showHorizontalLine = mMarkerEditDialog.showHline();
+        m->plotMarker->showVerticalLine = mMarkerEditDialog.showVline();
+        m->plotMarker->showCircle = mMarkerEditDialog.showDot();
+
+        updateMarkerText(m);
+        updateMarkerArrow(m);
+        ui->plot->replot();
+    });
 }
 
 void PlotWindow::deleteMarker(MarkerPtr marker)
@@ -558,7 +569,7 @@ void PlotWindow::deleteMarker(MarkerPtr marker)
 
     ui->plot->removeItem(marker->arrow);
     ui->plot->removeItem(marker->textItem);
-    ui->plot->removeItem(marker->dot);
+    ui->plot->removeItem(marker->plotMarker);
     mMarkers.removeAll(marker);
 
     // Remove related measure
@@ -781,8 +792,8 @@ bool PlotWindow::plotMouseMove(QMouseEvent* event)
 
         if (mCurrentMeasure) {
             QPointF delta = QPointF(mouseX, mouseY) -
-                            mCurrentMeasure->a->dot->position->coords();
-            mCurrentMeasure->b->dot->position->setCoords(mouseX, mouseY);
+                            mCurrentMeasure->a->plotMarker->position->coords();
+            mCurrentMeasure->b->plotMarker->position->setCoords(mouseX, mouseY);
             mCurrentMeasure->b->xCoord = mouseX;
             mCurrentMeasure->b->yCoord = mouseY;
             mCurrentMeasure->b->text = QString("%1 B\n$x, $y\ndx: %2, dy: %3")
@@ -989,14 +1000,14 @@ void PlotWindow::setupCrosshairs()
 {
     mPlotCrosshair = new PlotMarkerItem(ui->plot);
     mPlotCrosshair->setLayer("crosshairs");
-    mPlotCrosshair->size = 7;
-    mPlotCrosshair->verticalLine = true;
+    mPlotCrosshair->circleSize = 7;
+    mPlotCrosshair->showVerticalLine = true;
 
     mMouseCrosshair = new PlotMarkerItem(ui->plot);
     mMouseCrosshair->setLayer("crosshairs");
-    mMouseCrosshair->size = 7;
-    mMouseCrosshair->verticalLine = true;
-    mMouseCrosshair->horizontalLine = true;
+    mMouseCrosshair->circleSize = 7;
+    mMouseCrosshair->showVerticalLine = true;
+    mMouseCrosshair->showHorizontalLine = true;
     mMouseCrosshair->setVisible(false);
 
     updateGuiForCrosshairOptions();
@@ -1005,13 +1016,13 @@ void PlotWindow::setupCrosshairs()
 void PlotWindow::updateGuiForCrosshairOptions()
 {
     ui->action_Show_Plot_Crosshair->setChecked(mPlotCrosshair->visible());
-    ui->action_PlotCrosshair_Vertical_Line->setChecked(mPlotCrosshair->verticalLine);
-    ui->action_PlotCrosshair_Horizontal_Line->setChecked(mPlotCrosshair->horizontalLine);
+    ui->action_PlotCrosshair_Vertical_Line->setChecked(mPlotCrosshair->showVerticalLine);
+    ui->action_PlotCrosshair_Horizontal_Line->setChecked(mPlotCrosshair->showHorizontalLine);
     ui->action_PlotCrosshair_Dot->setChecked(mPlotCrosshair->showCircle);
 
     ui->action_Show_Mouse_Crosshair->setChecked(mMouseCrosshair->visible());
-    ui->action_MouseCrosshair_Vertical_Line->setChecked(mMouseCrosshair->verticalLine);
-    ui->action_MouseCrosshair_Horizontal_Line->setChecked(mMouseCrosshair->horizontalLine);
+    ui->action_MouseCrosshair_Vertical_Line->setChecked(mMouseCrosshair->showVerticalLine);
+    ui->action_MouseCrosshair_Horizontal_Line->setChecked(mMouseCrosshair->showHorizontalLine);
     ui->action_MouseCrosshair_Dot->setChecked(mMouseCrosshair->showCircle);
 
     queueReplot();
@@ -1433,13 +1444,13 @@ void PlotWindow::on_action_Show_Mouse_Crosshair_triggered()
 
 void PlotWindow::on_action_PlotCrosshair_Horizontal_Line_triggered()
 {
-    mPlotCrosshair->horizontalLine = ui->action_PlotCrosshair_Horizontal_Line->isChecked();
+    mPlotCrosshair->showHorizontalLine = ui->action_PlotCrosshair_Horizontal_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_PlotCrosshair_Vertical_Line_triggered()
 {
-    mPlotCrosshair->verticalLine = ui->action_PlotCrosshair_Vertical_Line->isChecked();
+    mPlotCrosshair->showVerticalLine = ui->action_PlotCrosshair_Vertical_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
@@ -1451,13 +1462,13 @@ void PlotWindow::on_action_PlotCrosshair_Dot_triggered()
 
 void PlotWindow::on_action_MouseCrosshair_Horizontal_Line_triggered()
 {
-    mMouseCrosshair->horizontalLine = ui->action_MouseCrosshair_Horizontal_Line->isChecked();
+    mMouseCrosshair->showHorizontalLine = ui->action_MouseCrosshair_Horizontal_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
 void PlotWindow::on_action_MouseCrosshair_Vertical_Line_triggered()
 {
-    mMouseCrosshair->verticalLine = ui->action_MouseCrosshair_Vertical_Line->isChecked();
+    mMouseCrosshair->showVerticalLine = ui->action_MouseCrosshair_Vertical_Line->isChecked();
     updateGuiForCrosshairOptions();
 }
 
@@ -1624,7 +1635,7 @@ void PlotWindow::on_action_Place_Marker_triggered()
 
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
-    marker->text = "Index: $i\n$x, $y";
+    marker->text = "X: $x\nY: $y\nIndex: $i";
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 
@@ -1650,10 +1661,9 @@ void PlotWindow::on_action_Measure_triggered()
         a->text = QString("%1 A\n$x, $y").arg(m->tag);
         updateMarkerText(a);
         updateMarkerArrow(a);
-        a->dot->showCircle = false;
-        a->dot->verticalLine = true;
-        a->dot->horizontalLine = true;
-        a->dot->pen.setStyle(Qt::DashLine);
+        a->plotMarker->showCircle = false;
+        a->plotMarker->showVerticalLine = true;
+        a->plotMarker->showHorizontalLine = true;
 
         ab.append(a);
     }

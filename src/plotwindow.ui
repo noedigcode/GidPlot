@@ -820,7 +820,7 @@
      <normaloff>:/edit</normaloff>:/edit</iconset>
    </property>
    <property name="text">
-    <string>Edit Marker Text</string>
+    <string>Edit Marker</string>
    </property>
   </action>
   <action name="action_marker_delete">

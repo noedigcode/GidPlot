@@ -21,6 +21,7 @@
 #ifndef PLOTWINDOW_H
 #define PLOTWINDOW_H
 
+#include "MarkerEditDialog.h"
 #include "PlotMarkerItem.h"
 #include "crosshair.h"
 #include "csv.h"
@@ -253,7 +254,7 @@ private:
         int dataIndex = 0;
         double xCoord = 0;
         double yCoord = 0;
-        PlotMarkerItem* dot = nullptr;
+        PlotMarkerItem* plotMarker = nullptr;
         QCPItemText* textItem = nullptr;
         QCPItemLine* arrow = nullptr;
         QString text;
@@ -272,6 +273,8 @@ private:
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
     int mMeasureCounter = 1;
+
+    MarkerEditDialog mMarkerEditDialog;
 
     MarkerPtr findMarkerUnderPos(QPoint pos);
     MarkerPtr mouseDownMarker;

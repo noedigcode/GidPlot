@@ -33,12 +33,15 @@ public:
 
     QCPItemPosition* const position;
     QCPItemAnchor* const anchor;
-    QPen pen;
-    QBrush brush;
-    double size = 1;
+
+    QPen circlePen;
+    QBrush circleFillBrush;
+    double circleSize = 1;
     bool showCircle = true;
-    bool verticalLine = false;
-    bool horizontalLine = false;
+
+    QPen linePen;
+    bool showVerticalLine = false;
+    bool showHorizontalLine = false;
 
     double selectTest(const QPointF& pos, bool onlySelectable,
                       QVariant* details) const override;
