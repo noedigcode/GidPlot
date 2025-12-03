@@ -361,6 +361,13 @@
           <number>1</number>
          </property>
          <item>
+          <widget class="QLabel" name="label_24">
+           <property name="text">
+            <string>Shift+</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="label_23">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
@@ -376,13 +383,6 @@
            </property>
            <property name="pixmap">
             <pixmap resource="../images/images.qrc">:/mouse_scroll.png</pixmap>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_24">
-           <property name="text">
-            <string>Shift+</string>
            </property>
           </widget>
          </item>
@@ -484,7 +484,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuView">
@@ -551,10 +551,17 @@
     <addaction name="action_Save_as_SVG"/>
     <addaction name="action_Save_as_PDF"/>
    </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>Test</string>
+    </property>
+    <addaction name="action_Test_1"/>
+   </widget>
    <addaction name="menuView"/>
    <addaction name="menuLink"/>
    <addaction name="menuWindow"/>
    <addaction name="menuImage"/>
+   <addaction name="menuTest"/>
   </widget>
   <action name="action_Show_All">
    <property name="icon">
@@ -882,6 +889,14 @@
    </property>
    <property name="text">
     <string>Save as PNG</string>
+   </property>
+  </action>
+  <action name="action_Test_1">
+   <property name="text">
+    <string>Subplot</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
    </property>
   </action>
  </widget>

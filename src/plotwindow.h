@@ -23,13 +23,14 @@
 
 #include "MarkerEditDialog.h"
 #include "PlotMarkerItem.h"
-#include "crosshair.h"
 #include "csv.h"
 #include "utils.h"
+#include "subplot.h"
 
 #include "QCustomPlot/qcustomplot.h"
 
 #include <QMainWindow>
+
 
 namespace Ui {
 class PlotWindow;
@@ -45,33 +46,6 @@ public:
 
     // =========================================================================
 
-    /* Graph provides a unified interface for either a QCPGraph or QCPCurve,
-     * either of which can be used to plot data depending on whether it is
-     * monotonically increasing (QCPGraph) or not (QCPCurve). */
-    struct Graph {
-
-        Graph(QCPGraph* graph) : graph(graph) {}
-        Graph(QCPCurve* curve) : curve(curve) {}
-
-        QCPCurve* curve = nullptr;
-        QCPGraph* graph = nullptr;
-        QCPAbstractPlottable* plottable();
-
-        CsvPtr csv;
-        Range range;
-
-        bool isCurve();
-        bool isGraph();
-        QString name();
-        int dataCount();
-        double datax(int index);
-        double datay(int index);
-        QColor color();
-    };
-    typedef QSharedPointer<Graph> GraphPtr;
-
-    // =========================================================================
-
     enum Dock {
         DockTop, DockBottom, DockLeft, DockRight, DockFloating, DockTab
     };
@@ -83,9 +57,6 @@ public:
     void setXLabel(QString xlabel);
     void setYLabel(QString ylabel);
     void showAll();
-
-    void setEqualAxesButDontReplot(bool fixed);
-    void setEqualAxesAndReplot(bool fixed);
 
     void syncAxisRanges(QRectF xyrange);
     void syncDataTip(int index);
@@ -106,34 +77,16 @@ private slots:
     void onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part, QMouseEvent *event);
     void onPlotItemDoubleClick(QCPAbstractItem *item, QMouseEvent *event);
     void onTitleDoubleClick(QMouseEvent* event);
-    bool plotMouseRightDrag(QMouseEvent* event);
-    bool plotMouseMove(QMouseEvent* event);
-    bool legendMouseMove(QMouseEvent* event);
-    void onLegendItemRightClicked(QCPPlottableLegendItem* legendItem, const QPoint& pos);
-    void onLegendRightClicked(QCPLegend* legend, const QPoint& pos);
+
     void onPlotMouseRelease(QMouseEvent* event);
-    void plotRightClicked(const QPoint &pos);
-    void plotLeftClicked(const QPoint &pos);
 
-    void onAxisRangesChanged();
-
-    void on_action_Equal_Axes_triggered();
-    void on_action_Show_All_triggered();
+    void onAxisRangesChanged(SubplotPtr subplot, QRectF xyrange);
+    void onDataTipChanged(SubplotPtr subplot, int index);
 
     void on_action_No_Link_triggered();
     void on_action_Link_to_Group_1_triggered();
     void on_action_Link_to_Group_2_triggered();
     void on_action_Link_to_Group_3_triggered();
-
-    void on_action_Show_Plot_Crosshair_triggered();
-    void on_action_Show_Mouse_Crosshair_triggered();
-    void on_action_PlotCrosshair_Horizontal_Line_triggered();
-    void on_action_PlotCrosshair_Vertical_Line_triggered();
-    void on_action_PlotCrosshair_Dot_triggered();
-
-    void on_action_MouseCrosshair_Horizontal_Line_triggered();
-    void on_action_MouseCrosshair_Vertical_Line_triggered();
-    void on_action_MouseCrosshair_Dot_triggered();
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -147,100 +100,37 @@ private slots:
 private:
     Ui::PlotWindow *ui;
 
+    int mTag = 0;
     QFont mPlotFont;
     void setPlotFont(QFont font);
 
-    int mTag = 0;
     QCPTextElement* mPlotTitle = nullptr;
-
-    void queueReplot();
-
-    QList<QPen> pens {
-        QPen(Qt::blue),
-        QPen(Qt::red),
-        QPen(Qt::green),
-        QPen(Qt::cyan),
-        QPen(Qt::magenta),
-        QPen(Qt::darkRed),
-    };
-
-    bool mEqualAxes = false;
-    void updatePlotForEqualAxes(QRectF xyrange);
 
     QByteArray plotToSvg();
 
     // -------------------------------------------------------------------------
-    // Menus
-private:
-    QMenu rangeMenu;
-    QMenu plotContextMenu;
-    QMenu dataTipMenu;
-    void setupMenus();
-private slots:
-    void onRangeMenuAboutToShow();
-    void onDataTipMenuAboutToShow();
-
-    // -------------------------------------------------------------------------
     // Mouse drag zoom
 private:
-    QPoint mLastMouseMovePos;
-
-    struct {
+    struct Mouse {
+        QPoint lastMovePos;
+        Qt::MouseButton button;
+        QCPAxisRect* axisRect = nullptr;
+        QCPAxis* xAxis = nullptr;
+        QCPAxis* yAxis = nullptr;
         QPoint start;
-        QCPRange origXrange;
-        QCPRange origYrange;
+        QCPRange startXrange;
+        QCPRange startYrange;
         bool mouseDown = false;
         bool isDragging = false;
-    } rMouseZoom;
+    } mouse;
 
-    bool lMouseDown = false;
-    bool lMouseDragging = false;
-    QPoint lMouseStart;
-
-    bool lMouseDownOnLegend = false;
-    QRectF mLegendStartRect;
-
-    bool lMouseDownOnMarker = false;
-
-    bool mFirstLegendPlacement = true;
-    void updateLegendPlacement();
-
-    GraphPtr dataTipGraph;
-    QList<GraphPtr> graphs;
-    QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
-    void removeGraph(GraphPtr graph);
-
-    // -------------------------------------------------------------------------
-
-    double xmin = 0;
-    double xmax = 0;
-    double ymin = 0;
-    double ymax = 0;
-
-    // -------------------------------------------------------------------------
-    // Crosshairs
-
-    void setupCrosshairs();
-    enum CrosshairSnap { SnapXOnly, SnapToClosest } mPlotCrosshairSnap = SnapXOnly;
-    PlotMarkerItem* mPlotCrosshair = nullptr;
-    int mPlotCrosshairIndex = 0;
-    bool mPlotCrosshairVisibilityChangedByUser = false;
-    PlotMarkerItem* mMouseCrosshair = nullptr;
-    void updateGuiForCrosshairOptions();
-
-    struct ClosestCoord {
-        bool valid = false;
-        int distancePixels = 0;
-        double xCoord = 0;
-        double yCoord = 0;
-        int dataIndex = 0;
-    };
-    ClosestCoord findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap);
-
-    bool lastPlotCrosshairVisible = false;
-    bool lastMouseCrosshairVisible = false;
-    void storeAndDisableCrosshairs();
-    void restoreCrosshairs();
+    struct {
+        QRectF startRect;
+        bool mouseDown = false;
+        QCPLegend* legend = nullptr;
+    } legendDrag;
+    QCPLegend* findLegendInAxisRect(QCPAxisRect* axisRect);
+    QCPLegend* findLegendUnderPos(QPoint pos);
 
     // -------------------------------------------------------------------------
 
@@ -252,65 +142,21 @@ private:
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
-    bool mRangesChanged = false;
-    bool mRangesSyncedFromOutside = false;
-
     // -------------------------------------------------------------------------
-    // Markers
+    // Subplots
 
-    struct Marker
-    {
-        QString datasetName;
-        int dataIndex = 0;
-        double xCoord = 0;
-        double yCoord = 0;
-        PlotMarkerItem* plotMarker = nullptr;
-        QCPItemText* textItem = nullptr;
-        QCPItemLine* arrow = nullptr;
-        QString text;
-    };
-    typedef QSharedPointer<Marker> MarkerPtr;
-
-    struct Measure
-    {
-        MarkerPtr a;
-        MarkerPtr b;
-        QString tag;
-    };
-    typedef QSharedPointer<Measure> MeasurePtr;
-
-    QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
-    QList<MeasurePtr> mMeasures;
-    MeasurePtr mCurrentMeasure;
-    void clearCurrentMeasure();
-    int mMeasureCounter = 1;
-
-    MarkerEditDialog mMarkerEditDialog;
-
-    MarkerPtr findMarkerUnderPos(QPoint pos);
-    MarkerPtr mouseDownMarker;
-    QPointF markerTextPixelPosAtMouseDown;
-
-    MarkerPtr addMarker(QPointF coord);
-
-    bool markerMouseDown(QMouseEvent* mouseEvent);
-    bool markerMouseMove(QMouseEvent* mouseEvent);
-    void markerMouseUp();
-    bool markerRightClick(QPoint pos);
-    void updateMarkerArrow(MarkerPtr marker);
-    void updateMarkerText(MarkerPtr marker);
-
-    void editMarkerText(MarkerPtr marker);
-    void deleteMarker(MarkerPtr marker);
+    QList<SubplotPtr> subplots;
+    void addSubplot(SubplotPtr subplot);
+    void storeAndDisableCrosshairsOfAllSubplots();
+    void restoreCrosshairsOfAllSubplots();
 
 private slots:
-    void on_action_Place_Marker_triggered();
-    void on_action_Measure_triggered();
     void on_action_Save_as_PDF_triggered();
     void on_action_Copy_PNG_triggered();
     void on_action_Copy_SVG_triggered();
     void on_action_Save_as_PNG_triggered();
     void on_action_Save_as_SVG_triggered();
+    void on_action_Test_1_triggered();
 };
 
 #endif // PLOTWINDOW_H
