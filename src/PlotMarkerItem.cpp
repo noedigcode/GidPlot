@@ -20,11 +20,15 @@
 
 #include "PlotMarkerItem.h"
 
-PlotMarkerItem::PlotMarkerItem(QCustomPlot* parentPlot) :
+PlotMarkerItem::PlotMarkerItem(QCustomPlot* parentPlot, QCPAxisRect *axisRect,
+                               QCPAxis* xAxis, QCPAxis* yAxis) :
     QCPAbstractItem(parentPlot),
     position(createPosition("position")),
     anchor(createAnchor("anchor", 0))
 {
+    this->setClipAxisRect(axisRect);
+    position->setAxisRect(axisRect);
+    position->setAxes(xAxis, yAxis);
     position->setCoords(0, 0);
 }
 
@@ -36,7 +40,6 @@ double PlotMarkerItem::selectTest(const QPointF& /*pos*/, bool /*onlySelectable*
 
 void PlotMarkerItem::draw(QCPPainter* painter)
 {
-
     QPointF center(position->pixelPosition());
     QRect clip = clipRect();
 

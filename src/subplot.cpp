@@ -938,7 +938,7 @@ void Subplot::removeGraph(GraphPtr graph)
 
 MarkerPtr Subplot::addMarker(QPointF coord)
 {
-    PlotMarkerItem* dot = new PlotMarkerItem(plot);
+    PlotMarkerItem* dot = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
     dot->position->setCoords(coord);
     dot->circleSize = 10;
@@ -1172,12 +1172,14 @@ void Subplot::clearCurrentMeasure()
 
 void Subplot::setupCrosshairs()
 {
-    mPlotCrosshair = new PlotMarkerItem(plot);
+    mPlotCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mPlotCrosshair->setClipAxisRect(axisRect);
     mPlotCrosshair->setLayer("crosshairs");
     mPlotCrosshair->circleSize = 7;
     mPlotCrosshair->showVerticalLine = true;
 
-    mMouseCrosshair = new PlotMarkerItem(plot);
+    mMouseCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mMouseCrosshair->setClipAxisRect(axisRect);
     mMouseCrosshair->setLayer("crosshairs");
     mMouseCrosshair->circleSize = 7;
     mMouseCrosshair->showVerticalLine = true;

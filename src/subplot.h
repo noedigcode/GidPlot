@@ -76,6 +76,7 @@ public:
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QCPLegend* legend = nullptr;
+    QString tag = "subplot";
 
     static QCPLegend* findLegend(QCPAxisRect* axisRect);
 

@@ -219,6 +219,8 @@ void PlotWindow::initSubplot(SubplotPtr subplot)
     });
 
     mSubplots.append(subplot);
+
+    subplot->tag = QString("Subplot %1").arg(mSubplots.count());
 }
 
 void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
@@ -362,7 +364,7 @@ void PlotWindow::onDataTipChanged(SubplotPtr subplot, int index)
     foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
         // TODO only if linked
-        s->syncDataTip(index);
+        //s->syncDataTip(index);
     }
     emit dataTipChanged(index);
 }

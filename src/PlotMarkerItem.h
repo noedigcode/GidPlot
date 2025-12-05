@@ -29,7 +29,8 @@ class PlotMarkerItem : public QCPAbstractItem
 {
     Q_OBJECT
 public:
-    explicit PlotMarkerItem(QCustomPlot* parentPlot);
+    explicit PlotMarkerItem(QCustomPlot* parentPlot, QCPAxisRect* axisRect,
+                            QCPAxis* xAxis, QCPAxis* yAxis);
 
     QCPItemPosition* const position;
     QCPItemAnchor* const anchor;
