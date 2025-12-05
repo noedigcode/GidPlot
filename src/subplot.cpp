@@ -9,7 +9,20 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     plot = axisRect->parentPlot();
     xAxis = axisRect->axis(QCPAxis::atBottom);
     yAxis = axisRect->axis(QCPAxis::atLeft);
-    legend = findLegend(axisRect);
+
+    // We will manually add plottables to legends per subplot
+    plot->setAutoAddPlottableToLegend(false);
+
+    if (axisRect->insetLayout()->elements(false).contains(plot->legend)) {
+        // Use already existing default plot legend for this subplot (axisrect)
+        legend = plot->legend;
+    } else {
+        // Create new legend for this subplot (axisrect)
+        legend = new QCPLegend();
+        axisRect->insetLayout()->addElement(legend, Qt::AlignRight|Qt::AlignTop);
+        axisRect->insetLayout()->setMargins(QMargins(12, 12, 12, 12));
+        legend->setLayer("legend");
+    }
 
     connect(plot, &QCustomPlot::mouseMove, this, &Subplot::onPlotMouseMove);
     connect(plot, &QCustomPlot::mousePress, this, &Subplot::onPlotMousePress);
@@ -27,7 +40,6 @@ QCPLegend *Subplot::findLegend(QCPAxisRect *axisRect)
     if (!axisRect) { return nullptr; }
 
     QCPLegend* legend = nullptr;
-
     for (int i = 0; i < axisRect->insetLayout()->elementCount(); ++i) {
         legend = qobject_cast<QCPLegend*>(axisRect->insetLayout()->elementAt(i));
         if (legend) {
@@ -136,7 +148,7 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
 
 void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 {
-    bool firstPlot = (plot->plottableCount() == 0);
+    bool firstPlot = (axisRect->plottables().size() == 0);
 
     QVector<double> x = csv->matrix->data[ixcol].mid(range.start, range.size());
     QVector<double> y = csv->matrix->data[iycol].mid(range.start, range.size());
@@ -162,13 +174,13 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         }
     }
 
-    QPen pen = pens.value(plot->plottableCount() % pens.count());
+    QPen pen = pens.value((mPenIndex++) % pens.count());
 
     GraphPtr graph;
     if (up) {
         // Graph is more efficient but can only be used if x is monotonically
         // increasing
-        QCPGraph* qcpgraph = plot->addGraph();
+        QCPGraph* qcpgraph = plot->addGraph(xAxis, yAxis);
         graph.reset(new Graph(qcpgraph));
         qcpgraph->setData(x, y);
         qcpgraph->setPen(pen);
@@ -178,7 +190,7 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         updateGuiForCrosshairOptions();
     } else {
         // Curve is used otherwise
-        QCPCurve* qcpcurve = new QCPCurve(plot->xAxis, plot->yAxis);
+        QCPCurve* qcpcurve = new QCPCurve(xAxis, yAxis);
         graph.reset(new Graph(qcpcurve));
         qcpcurve->setData(x, y);
         qcpcurve->setPen(pen);
@@ -191,32 +203,29 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     graphs.append(graph);
     plottableGraphMap.insert(graph->plottable(), graph);
 
+    legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
+
     if (graphs.count() == 1) {
         dataTipGraph = graphs.value(0);
     }
 
-    if (plot->plottableCount() > 1) {
-        plot->legend->setVisible(true);
+    // TODO
+    //if (axisRect->plottables().count() > 1) {
+        legend->setVisible(true);
         updateLegendPlacement();
-    }
+    //}
 
     if (firstPlot) {
         // Only show all on first plot as to not mess up view when adding more
         // to existing plot.
         showAll();
 
-        QCPAxis* xaxis = plot->xAxis;
-        if (xaxis) {
-            connect(xaxis,
-                    QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
-                    this, &Subplot::onAxisRangesChanged);
-        }
-        QCPAxis* yaxis = plot->yAxis;
-        if (yaxis) {
-            connect(yaxis,
-                    QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
-                    this, &Subplot::onAxisRangesChanged);
-        }
+        connect(xAxis,
+                QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
+                this, &Subplot::onAxisRangesChanged);
+        connect(yAxis,
+                QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),
+                this, &Subplot::onAxisRangesChanged);
 
     } else {
         queueReplot();
@@ -331,13 +340,6 @@ void Subplot::keyEvent(QEvent *event)
 
 void Subplot::showAll()
 {
-    QCPAxisRect* ar = plot->axisRect(0);
-    if (!ar) { return; }
-    QCPAxis* xaxis = plot->xAxis;
-    if (!xaxis) { return; }
-    QCPAxis* yaxis = plot->yAxis;
-    if (!yaxis) { return; }
-
     QRectF rect(xmin, ymin, xmax - xmin, ymax - ymin);
 
     // If the plot is a constant horizontal Y line, adjust y axis to display it better.
@@ -358,8 +360,8 @@ void Subplot::showAll()
     // Calculate a padding so lines at the edges of the axis ranges can be seen,
     // e.g. line on x axis (y = 0), or initial line on y axis (x = 0).
     double paddingPx = 2;
-    double ypad = rect.height() / ar->height() * paddingPx;
-    double xpad = rect.width() / ar->width() * paddingPx;
+    double ypad = rect.height() / axisRect->height() * paddingPx;
+    double xpad = rect.width() / axisRect->width() * paddingPx;
 
     rect.setLeft(rect.left() - xpad);
     rect.setRight(rect.right() + xpad);
@@ -369,8 +371,8 @@ void Subplot::showAll()
     if (mEqualAxes) {
         updatePlotForEqualAxes(rect);
     } else {
-        xaxis->setRange(rect.left(), rect.right());
-        yaxis->setRange(rect.top(), rect.bottom());
+        xAxis->setRange(rect.left(), rect.right());
+        yAxis->setRange(rect.top(), rect.bottom());
         queueReplot();
     }
 }
@@ -381,9 +383,9 @@ void Subplot::setEqualAxesButDontReplot(bool fixed)
     actionEqualAxes->setChecked(mEqualAxes);
 
     if (fixed) {
-        plot->axisRect()->setRangeZoom(Qt::Vertical | Qt::Horizontal);
+        axisRect->setRangeZoom(Qt::Vertical | Qt::Horizontal);
     } else {
-        plot->axisRect()->setRangeZoom(Qt::Horizontal);
+        axisRect->setRangeZoom(Qt::Horizontal);
     }
 }
 
@@ -392,28 +394,16 @@ void Subplot::setEqualAxesAndReplot(bool fixed)
     setEqualAxesButDontReplot(fixed);
 
     if (fixed) {
-        QCPAxis* xaxis = plot->xAxis;
-        if (!xaxis) { return; }
-        QCPAxis* yaxis = plot->yAxis;
-        if (!yaxis) { return; }
-
-        QRectF r(xaxis->range().lower, yaxis->range().lower,
-                 xaxis->range().size(), yaxis->range().size());
+        QRectF r(xAxis->range().lower, yAxis->range().lower,
+                 xAxis->range().size(), yAxis->range().size());
         updatePlotForEqualAxes(r);
     }
 }
 
 void Subplot::updatePlotForEqualAxes(QRectF xyrange)
 {
-    QCPAxisRect* ar = plot->axisRect(0);
-    if (!ar) { return; }
-    QCPAxis* xaxis = plot->xAxis;
-    if (!xaxis) { return; }
-    QCPAxis* yaxis = plot->yAxis;
-    if (!yaxis) { return; }
-
-    int widthpx = ar->width();
-    int heightpx = ar->height();
+    int widthpx = axisRect->width();
+    int heightpx = axisRect->height();
 
     double viewRatio = (double)widthpx / (double)heightpx;
     double rangeRatio = xyrange.width() / xyrange.height();
@@ -453,8 +443,8 @@ void Subplot::updatePlotForEqualAxes(QRectF xyrange)
 
     xyrange.moveCenter(center);
 
-    xaxis->setRange(xyrange.left(), xyrange.right());
-    yaxis->setRange(xyrange.top(), xyrange.bottom());
+    xAxis->setRange(xyrange.left(), xyrange.right());
+    yAxis->setRange(xyrange.top(), xyrange.bottom());
     queueReplot();
 }
 
@@ -891,10 +881,10 @@ void Subplot::updateLegendPlacement()
     // TODO Used to use (plotWindow) this->isVisible(). Confirm whether use plot below is sufficient.
     if (!plot->isVisible()) { return; }
 
-    QRect axisRectPixels = plot->axisRect()->rect();
-    QSize legendSize = plot->legend->minimumOuterSizeHint();
+    QRect axisRectPixels = axisRect->rect();
+    QSize legendSize = legend->minimumOuterSizeHint();
 
-    QRectF rect = plot->axisRect()->insetLayout()->insetRect(0);
+    QRectF rect = axisRect->insetLayout()->insetRect(0);
     double x = rect.x() * axisRectPixels.width();
     double y = rect.y() * axisRectPixels.height();
     double w = double(legendSize.width());
@@ -903,9 +893,9 @@ void Subplot::updateLegendPlacement()
     if (mFirstLegendPlacement) {
         mFirstLegendPlacement = false;
         // Set free layout so legend can be moved freely
-        plot->axisRect()->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
+        axisRect->insetLayout()->setInsetPlacement(0, QCPLayoutInset::ipFree);
         // Zero margins so legend can be moved to the edges
-        plot->axisRect()->insetLayout()->setMargins(QMargins(0, 0, 0, 0));
+        axisRect->insetLayout()->setMargins(QMargins(0, 0, 0, 0));
         x = axisRectPixels.width() - legendSize.width() - 10;
         y = 10;
     } else {
@@ -929,7 +919,7 @@ void Subplot::updateLegendPlacement()
     rect.setY(yNorm);
     rect.setWidth(wNorm);
     rect.setHeight(hNorm);
-    plot->axisRect()->insetLayout()->setInsetRect(0, rect);
+    axisRect->insetLayout()->setInsetRect(0, rect);
     plot->replot();
 }
 
@@ -1370,10 +1360,7 @@ Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, Cros
 {
     ClosestCoord closest;
 
-    QCPAxis* xaxis = plot->xAxis;
-    QCPAxis* yaxis = plot->yAxis;
-
-    if (!graph || !xaxis || !yaxis) {
+    if (!graph || !xAxis || !yAxis) {
         closest.valid = false;
         return closest;
     }
@@ -1381,7 +1368,7 @@ Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, Cros
     for (int i = 0; i < graph->dataCount(); ++i) {
 
         double xCrd = graph->datax(i);
-        int xPixel = xaxis->coordToPixel(xCrd);
+        int xPixel = xAxis->coordToPixel(xCrd);
         double yCrd = graph->datay(i);
 
         int dist = 0;
@@ -1389,7 +1376,7 @@ Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, Cros
         if (snap == SnapXOnly) {
             dist = qAbs(pos.x() - xPixel);
         } else if (snap == SnapToClosest) {
-            int yPixel = yaxis->coordToPixel(yCrd);
+            int yPixel = yAxis->coordToPixel(yCrd);
             // Calculate distance in pixels to account for zooms
             dist = qSqrt( qPow(pos.x() - xPixel, 2)
                           + qPow(pos.y() - yPixel, 2) );

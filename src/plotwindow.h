@@ -51,8 +51,11 @@ public:
     };
 
     int tag();
+    QList<SubplotPtr> subplots();
     QCustomPlot* plotWidget();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
+    void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
+    SubplotPtr addSubplot();
     void setTitle(QString title);
     void setXLabel(QString xlabel);
     void setYLabel(QString ylabel);
@@ -145,8 +148,8 @@ private:
     // -------------------------------------------------------------------------
     // Subplots
 
-    QList<SubplotPtr> subplots;
-    void addSubplot(SubplotPtr subplot);
+    QList<SubplotPtr> mSubplots;
+    void initSubplot(SubplotPtr subplot);
     void storeAndDisableCrosshairsOfAllSubplots();
     void restoreCrosshairsOfAllSubplots();
 

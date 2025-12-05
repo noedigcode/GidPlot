@@ -112,6 +112,11 @@ private:
         QPen(Qt::magenta),
         QPen(Qt::darkRed),
     };
+    // Keep count of current pen index when adding new plots instead of simply
+    // using (plottables.count % pens.count), so when a plottable has been
+    // removed and a new one is added, it doesn't get the same colour as an
+    // existing plottable (unless there are more plottables than pens).
+    int mPenIndex = 0;
 
     double xmin = 0;
     double xmax = 0;

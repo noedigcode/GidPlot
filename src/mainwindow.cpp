@@ -175,14 +175,50 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
         });
 
         foreach (PlotWindow* p, mPlots) {
-            menu->addAction(p->windowTitle(), this,
-                            [this, csvWkPtr, ixcol, iycols, range, p]()
+            QMenu* submenu = new QMenu();
+            submenu->setTitle(p->windowTitle());
+            int i = 0;
+            QList<SubplotPtr> subplots = p->subplots();
+            foreach (SubplotPtr s, subplots) {
+                i += 1;
+                QString name = p->windowTitle();
+                if (subplots.count() > 1) {
+                    name += QString(" Subplot %1").arg(i);
+                }
+                submenu->addAction(name, this,
+                                [this, csvWkPtr, ixcol, iycols, range, p,
+                                 subplotWkPtr = s.toWeakRef()]()
+                {
+                    CsvPtr csv(csvWkPtr);
+                    if (!csv) { return; }
+
+                    SubplotPtr subplot(subplotWkPtr);
+                    if (!subplot) { return; }
+
+                    foreach (int iycol, iycols) {
+                        p->plotData(subplot, csv, ixcol, iycol, range);
+                        if (!ui->tabWidget->isPoppedOut(p)) {
+                            ui->tabWidget->setCurrentWidget(p);
+                        } else {
+                            QMainWindow* mw = ui->tabWidget->tabWindow(p);
+                            if (mw) {
+                                mw->raise();
+                                mw->activateWindow();
+                            }
+                        }
+                    }
+                });
+            }
+            submenu->addAction("New Subplot", this,
+                               [this, csvWkPtr, ixcol, iycols, range, p]()
             {
-                CsvPtr csv3(csvWkPtr);
-                if (!csv3) { return; }
+                CsvPtr csv(csvWkPtr);
+                if (!csv) { return; }
+
+                SubplotPtr subplot = p->addSubplot();
 
                 foreach (int iycol, iycols) {
-                    p->plotData(csv3, ixcol, iycol, range);
+                    p->plotData(subplot, csv, ixcol, iycol, range);
                     if (!ui->tabWidget->isPoppedOut(p)) {
                         ui->tabWidget->setCurrentWidget(p);
                     } else {
@@ -194,6 +230,8 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                     }
                 }
             });
+
+            menu->addMenu(submenu);
         }
         if (menu->isEmpty()) {
             menu->addAction("No existing plots");

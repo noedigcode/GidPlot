@@ -78,6 +78,11 @@ int PlotWindow::tag()
     return mTag;
 }
 
+QList<SubplotPtr> PlotWindow::subplots()
+{
+    return mSubplots;
+}
+
 QCustomPlot *PlotWindow::plotWidget()
 {
     return ui->plot;
@@ -85,13 +90,29 @@ QCustomPlot *PlotWindow::plotWidget()
 
 void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 {
-    SubplotPtr subplot = subplots.value(0);
+    SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) {
         subplot.reset(new Subplot(ui->plot->axisRect()));
-        addSubplot(subplot);
+        initSubplot(subplot);
     }
 
+    plotData(subplot, csv, ixcol, iycol, range);
+}
+
+void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range)
+{
+    if (!subplot) { return; }
+
     subplot->plotData(csv, ixcol, iycol, range);
+}
+
+SubplotPtr PlotWindow::addSubplot()
+{
+    QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);
+    ui->plot->plotLayout()->addElement(ui->plot->plotLayout()->rowCount(), 0, bottomAxisRect);
+    SubplotPtr subplot(new Subplot(bottomAxisRect));
+    initSubplot(subplot);
+    return subplot;
 }
 
 void PlotWindow::setTitle(QString title)
@@ -113,28 +134,28 @@ void PlotWindow::setTitle(QString title)
 
 void PlotWindow::setXLabel(QString xlabel)
 {
-    SubplotPtr subplot = subplots.value(0);
+    SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) { return; }
     subplot->setXLabel(xlabel);
 }
 
 void PlotWindow::setYLabel(QString ylabel)
 {
-    SubplotPtr subplot = subplots.value(0);
+    SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) { return; }
     subplot->setYLabel(ylabel);
 }
 
 void PlotWindow::showAll()
 {
-    SubplotPtr subplot = subplots.value(0);
+    SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) { return; }
     subplot->showAll();
 }
 
 void PlotWindow::syncAxisRanges(QRectF xyrange)
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
 
         subplot->syncAxisRanges(xyrange,
                                 ui->action_Link_X_Position->isChecked(),
@@ -146,7 +167,7 @@ void PlotWindow::syncAxisRanges(QRectF xyrange)
 
 void PlotWindow::syncDataTip(int index)
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
         subplot->syncDataTip(index);
     }
 }
@@ -157,7 +178,7 @@ bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
                              || (event->type() == QEvent::KeyRelease);
 
     if (keyPressOrRelease) {
-        foreach (SubplotPtr subplot, subplots) {
+        foreach (SubplotPtr subplot, mSubplots) {
             subplot->keyEvent(event);
         }
     }
@@ -167,19 +188,19 @@ bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 
 void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
         subplot->resizeEvent();
     }
 }
 
 void PlotWindow::showEvent(QShowEvent* /*event*/)
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
         subplot->showEvent();
     }
 }
 
-void PlotWindow::addSubplot(SubplotPtr subplot)
+void PlotWindow::initSubplot(SubplotPtr subplot)
 {
     connect(subplot.data(), &Subplot::axisRangesChanged,
             this, [this, sWkPtr = subplot.toWeakRef()](QRectF xyrange)
@@ -197,19 +218,19 @@ void PlotWindow::addSubplot(SubplotPtr subplot)
         onDataTipChanged(s, index);
     });
 
-    subplots.append(subplot);
+    mSubplots.append(subplot);
 }
 
 void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
         subplot->storeAndDisableCrosshairs();
     }
 }
 
 void PlotWindow::restoreCrosshairsOfAllSubplots()
 {
-    foreach (SubplotPtr subplot, subplots) {
+    foreach (SubplotPtr subplot, mSubplots) {
         subplot->restoreCrosshairs();
     }
 }
@@ -325,7 +346,7 @@ QCPLegend *PlotWindow::findLegendUnderPos(QPoint pos)
 
 void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, QRectF xyrange)
 {
-    foreach (SubplotPtr s, subplots) {
+    foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
         s->syncAxisRanges(xyrange,
                           ui->action_Link_X_Position->isChecked(),
@@ -338,7 +359,7 @@ void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, QRectF xyrange)
 
 void PlotWindow::onDataTipChanged(SubplotPtr subplot, int index)
 {
-    foreach (SubplotPtr s, subplots) {
+    foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
         // TODO only if linked
         s->syncDataTip(index);
@@ -510,6 +531,6 @@ void PlotWindow::on_action_Test_1_triggered()
     QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);
     ui->plot->plotLayout()->addElement(ui->plot->plotLayout()->rowCount(), 0, bottomAxisRect);
     SubplotPtr subplot(new Subplot(bottomAxisRect));
-    addSubplot(subplot);
+    initSubplot(subplot);
 }
 
