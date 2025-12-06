@@ -948,6 +948,8 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     dot->linePen.setStyle(Qt::DashLine);
 
     QCPItemText* label = new QCPItemText(plot);
+    label->setClipAxisRect(axisRect);
+    label->position->setAxes(xAxis, yAxis);
     label->setFont(plot->font());
     label->setLayer("marker-labels");
     label->position->setParentAnchor(dot->anchor);
@@ -959,6 +961,10 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
 
     QCPItemLine* arrow = new QCPItemLine(plot);
+    arrow->setClipAxisRect(axisRect);
+    foreach (QCPItemPosition* position, arrow->positions()) {
+        position->setAxes(xAxis, yAxis);
+    }
     arrow->setLayer("markers");
     arrow->end->setCoords(coord);
     arrow->setHead(QCPLineEnding::esSpikeArrow);
