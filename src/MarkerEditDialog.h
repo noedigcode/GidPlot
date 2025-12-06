@@ -35,7 +35,6 @@ public:
 private slots:
     void on_pushButton_apply_clicked();
     void on_pushButton_cancel_clicked();
-    void on_pushButton_presets_clicked();
 
 private:
     Ui::MarkerEditDialog *ui;

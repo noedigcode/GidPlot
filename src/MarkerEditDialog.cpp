@@ -61,11 +61,6 @@ void MarkerEditDialog::on_pushButton_cancel_clicked()
     hide();
 }
 
-void MarkerEditDialog::on_pushButton_presets_clicked()
-{
-    mPresetMenu.popup(QCursor::pos());
-}
-
 void MarkerEditDialog::setupPresetMenu()
 {
     presets << Preset{"X, Y labeled on separate lines",
@@ -83,5 +78,7 @@ void MarkerEditDialog::setupPresetMenu()
             ui->plainTextEdit_labelText->setPlainText(preset.text);
         });
     }
+
+    ui->toolButton_presets->setMenu(&mPresetMenu);
 }
 
