@@ -209,16 +209,18 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         dataTipGraph = graphs.value(0);
     }
 
-    // TODO
-    //if (axisRect->plottables().count() > 1) {
+    // Show legend if there is more than one curve
+    if (axisRect->plottables().count() > 1) {
         legend->setVisible(true);
         updateLegendPlacement();
-    //}
+    }
 
     if (firstPlot) {
         // Only show all on first plot as to not mess up view when adding more
         // to existing plot.
-        showAll();
+
+        // Queue show all to give subplot a chance to be set up and displayed.
+        QMetaObject::invokeMethod(this, [=]() { showAll(); }, Qt::QueuedConnection);
 
         connect(xAxis,
                 QOverload<const QCPRange &>::of(&QCPAxis::rangeChanged),

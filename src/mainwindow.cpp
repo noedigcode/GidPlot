@@ -229,6 +229,17 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                         }
                     }
                 }
+
+                // Prepare and set x and y axis labels
+                MatrixPtr mat = csv->matrix;
+                QStringList ylabels;
+                foreach (int iycol, iycols) {
+                    ylabels.append(mat->heading(iycol));
+                }
+                QString ytext = Utils::elidedText(ylabels.join(","), 20);
+                QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
+                subplot->setXLabel(xtext);
+                subplot->setYLabel(ytext);
             });
 
             menu->addMenu(submenu);
