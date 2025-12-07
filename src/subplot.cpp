@@ -287,6 +287,10 @@ void Subplot::syncDataTip(int index)
             double x = dataTipGraph->datax(index);
             double y = dataTipGraph->datay(index);
             mPlotCrosshair->position->setCoords(x, y);
+            mPlotCrosshair->text = QString("%1, %2 [%3]")
+                    .arg(x)
+                    .arg(y)
+                    .arg(index);
             queueReplot();
         }
     }
@@ -730,12 +734,10 @@ void Subplot::onActionEqualAxesTriggered()
 
 bool Subplot::plotMouseMove(QMouseEvent *event)
 {
-    bool posValid = false;
     bool replot = false;
 
     if (inAxisRect(event->pos()) && xAxis && yAxis) {
 
-        posValid = true;
         double mouseX = xAxis->pixelToCoord(event->x());
         double mouseY = yAxis->pixelToCoord(event->y());
 
@@ -783,6 +785,10 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                     updateGuiForCrosshairOptions();
                 } else if (closest.valid) {
                     mPlotCrosshair->position->setCoords(closest.xCoord, closest.yCoord);
+                    mPlotCrosshair->text = QString("%1, %2 [%3]")
+                            .arg(closest.xCoord)
+                            .arg(closest.yCoord)
+                            .arg(closest.dataIndex);
                     text = QString("Plot: [%1] (%2, %3)")
                             .arg(closest.dataIndex)
                             .arg(closest.xCoord)
@@ -798,23 +804,12 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
             // Update mouse crosshair
             if (mMouseCrosshair->visible()) {
                 mMouseCrosshair->position->setCoords(mouseX, mouseY);
+                mMouseCrosshair->text = QString("%1, %2").arg(mouseX).arg(mouseY);
                 replot = true;
             }
-
-            // Update coordinates label
-            if (!text.isEmpty()) { text += ", "; }
-            text += QString("Mouse: (%4, %5)").arg(mouseX).arg(mouseY);
-
-            // TODO
-            //ui->label_coordinates->setText(text);
         }
     }
 
-    if (!posValid) {
-        // Clear coordinates label
-        // TODO
-        //ui->label_coordinates->clear();
-    }
 
     return replot;
 }

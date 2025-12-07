@@ -43,6 +43,31 @@ void PlotMarkerItem::draw(QCPPainter* painter)
     QPointF center(position->pixelPosition());
     QRect clip = clipRect();
 
+    // Draw text
+    if (!text.isEmpty()) {
+
+        QFont font = parentPlot()->font();
+        font.setPointSize(10);
+        painter->setFont(font);
+
+        int xoffset = 5;
+        int yoffset = 5;
+        int pad = 3;
+        QPoint textPos(center.x() + xoffset + pad, center.y() - yoffset - pad);
+
+        QFontMetrics fm(font);
+        int textWidth = fm.horizontalAdvance(text);
+        QRectF textRect(textPos.x() - pad,
+                        textPos.y() - fm.ascent(),
+                        textWidth + 2*pad,
+                        fm.height() + 2*pad);
+        painter->fillRect(textRect, QBrush(QColor(255, 255, 255, 150)));
+
+        painter->setPen(QPen(Qt::black));
+        painter->drawText(textPos, text);
+
+    }
+
     // Draw circle
     if (showCircle) {
         double w = circleSize / 2.0;

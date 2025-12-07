@@ -62,8 +62,6 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     ui->plot->addLayer("marker-labels", ui->plot->layer("marker-labels"), QCustomPlot::limAbove);
 
     ui->plot->installEventFilter(this);
-
-    ui->label_coordinates->clear();
 }
 
 PlotWindow::~PlotWindow()

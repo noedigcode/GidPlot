@@ -44,6 +44,8 @@ public:
     bool showVerticalLine = false;
     bool showHorizontalLine = false;
 
+    QString text;
+
     double selectTest(const QPointF& pos, bool onlySelectable,
                       QVariant* details) const override;
 
