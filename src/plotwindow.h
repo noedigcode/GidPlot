@@ -59,7 +59,6 @@ public:
     void setTitle(QString title);
     void setXLabel(QString xlabel);
     void setYLabel(QString ylabel);
-    void showAll();
 
     void syncAxisRanges(QRectF xyrange);
     void syncDataTip(int index);
@@ -159,7 +158,6 @@ private slots:
     void on_action_Copy_SVG_triggered();
     void on_action_Save_as_PNG_triggered();
     void on_action_Save_as_SVG_triggered();
-    void on_action_Test_1_triggered();
 };
 
 #endif // PLOTWINDOW_H

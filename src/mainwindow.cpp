@@ -386,8 +386,6 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
     p->setTitle(title);
     p->setXLabel(xtext);
     p->setYLabel(ytext);
-
-    p->showAll();
 }
 
 void MainWindow::csvImportFinished(CsvPtr csv)

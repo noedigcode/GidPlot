@@ -146,13 +146,6 @@ void PlotWindow::setYLabel(QString ylabel)
     subplot->setYLabel(ylabel);
 }
 
-void PlotWindow::showAll()
-{
-    SubplotPtr subplot = mSubplots.value(0);
-    if (!subplot) { return; }
-    subplot->showAll();
-}
-
 void PlotWindow::syncAxisRanges(QRectF xyrange)
 {
     foreach (SubplotPtr subplot, mSubplots) {
@@ -526,13 +519,5 @@ void PlotWindow::on_action_Save_as_SVG_triggered()
         QMessageBox::critical(this, "Save to SVG failed",
                               "Failed to save to SVG: " + path);
     }
-}
-
-void PlotWindow::on_action_Test_1_triggered()
-{
-    QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);
-    ui->plot->plotLayout()->addElement(ui->plot->plotLayout()->rowCount(), 0, bottomAxisRect);
-    SubplotPtr subplot(new Subplot(bottomAxisRect));
-    initSubplot(subplot);
 }
 
