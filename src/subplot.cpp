@@ -19,6 +19,7 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     } else {
         // Create new legend for this subplot (axisrect)
         legend = new QCPLegend();
+        legend->setVisible(false);
         axisRect->insetLayout()->addElement(legend, Qt::AlignRight|Qt::AlignTop);
         axisRect->insetLayout()->setMargins(QMargins(12, 12, 12, 12));
         legend->setLayer("legend");
@@ -929,6 +930,10 @@ void Subplot::removeGraph(GraphPtr graph)
 {
     if (!graph) { return; }
 
+    QCPPlottableLegendItem* legendItem = legend->itemWithPlottable(graph->plottable());
+    if (legendItem) {
+        legend->remove(legendItem);
+    }
     plot->removePlottable(graph->plottable());
     graphs.removeAll(graph);
     plottableGraphMap.remove(graph->plottable());
@@ -1282,7 +1287,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
         // Check if plottable item in legend has been right clicked
         for (int i = 0; i < legend->itemCount(); i++) {
             QCPAbstractLegendItem* legendItem = legend->item(i);
-            if (legendItem->selectTest(pos, false) >= 0) {
+            if (legendItem && legendItem->selectTest(pos, false) >= 0) {
                 QCPPlottableLegendItem* plItem = qobject_cast<QCPPlottableLegendItem*>(legendItem);
                 if (plItem) {
                     onLegendItemRightClicked(plItem, pos);
