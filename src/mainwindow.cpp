@@ -88,17 +88,23 @@ PlotWindow *MainWindow::addPlot(QString title)
     PlotWindow* p = new PlotWindow(++mPlotCounter);
 
     connect(p, &PlotWindow::destroyed, this, [=]() { onPlotWindowDestroyed(p); });
-    connect(p, &PlotWindow::linkGroupChanged,
-            this, [=](int group) { onPlotLinkGroupChanged(p, group); });
     connect(p, &PlotWindow::axisRangesChanged,
-            this, [=](QRectF xyrange) { onPlotAxisRangesChanged(p, xyrange); });
+            this, [=](int linkGroup, QRectF xyrange)
+    {
+        onPlotAxisRangesChanged(p, linkGroup, xyrange);
+    });
     connect(p, &PlotWindow::dataTipChanged,
-            this, [=](int index) { onPlotDataTipChanged(p, index); });
+            this, [=](int linkGroup, int index)
+    {
+        onPlotDataTipChanged(p, linkGroup, index);
+    });
     connect(p, &PlotWindow::requestWindowDock,
             this, [=](PlotWindow::Dock location) {
                 onPlotRequestWindowDock(p, location); });
     connect(p, &PlotWindow::titleSet,
             this, [=](QString title) { onPlotTitleSet(p, title); });
+    connect(p, &PlotWindow::linkSettingsTriggered,
+            this, &MainWindow::onPlotLinkSettingsTrigerred);
 
     connect(p, &PlotWindow::requestWindowResize,
             this, [=](int w, int h) { onPlotRequestWindowResize(p, w, h); });
@@ -175,14 +181,50 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
         });
 
         foreach (PlotWindow* p, mPlots) {
-            menu->addAction(p->windowTitle(), this,
-                            [this, csvWkPtr, ixcol, iycols, range, p]()
+            QMenu* submenu = new QMenu();
+            submenu->setTitle(p->windowTitle());
+            int i = 0;
+            QList<SubplotPtr> subplots = p->subplots();
+            foreach (SubplotPtr s, subplots) {
+                i += 1;
+                QString name = p->windowTitle();
+                if (subplots.count() > 1) {
+                    name += QString(" Subplot %1").arg(i);
+                }
+                submenu->addAction(name, this,
+                                [this, csvWkPtr, ixcol, iycols, range, p,
+                                 subplotWkPtr = s.toWeakRef()]()
+                {
+                    CsvPtr csv(csvWkPtr);
+                    if (!csv) { return; }
+
+                    SubplotPtr subplot(subplotWkPtr);
+                    if (!subplot) { return; }
+
+                    foreach (int iycol, iycols) {
+                        p->plotData(subplot, csv, ixcol, iycol, range);
+                        if (!ui->tabWidget->isPoppedOut(p)) {
+                            ui->tabWidget->setCurrentWidget(p);
+                        } else {
+                            QMainWindow* mw = ui->tabWidget->tabWindow(p);
+                            if (mw) {
+                                mw->raise();
+                                mw->activateWindow();
+                            }
+                        }
+                    }
+                });
+            }
+            submenu->addAction("New Subplot", this,
+                               [this, csvWkPtr, ixcol, iycols, range, p]()
             {
-                CsvPtr csv3(csvWkPtr);
-                if (!csv3) { return; }
+                CsvPtr csv(csvWkPtr);
+                if (!csv) { return; }
+
+                SubplotPtr subplot = p->addSubplot();
 
                 foreach (int iycol, iycols) {
-                    p->plotData(csv3, ixcol, iycol, range);
+                    p->plotData(subplot, csv, ixcol, iycol, range);
                     if (!ui->tabWidget->isPoppedOut(p)) {
                         ui->tabWidget->setCurrentWidget(p);
                     } else {
@@ -193,7 +235,20 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                         }
                     }
                 }
+
+                // Prepare and set x and y axis labels
+                MatrixPtr mat = csv->matrix;
+                QStringList ylabels;
+                foreach (int iycol, iycols) {
+                    ylabels.append(mat->heading(iycol));
+                }
+                QString ytext = Utils::elidedText(ylabels.join(","), 20);
+                QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
+                subplot->setXLabel(xtext);
+                subplot->setYLabel(ytext);
             });
+
+            menu->addMenu(submenu);
         }
         if (menu->isEmpty()) {
             menu->addAction("No existing plots");
@@ -207,36 +262,22 @@ void MainWindow::onPlotWindowDestroyed(PlotWindow* p)
     if (mDestroying) { return; }
 
     mPlots.removeAll(p);
-    mPlotLinkGroups.remove(p);
     onPlotRemoved(p);
 }
 
-void MainWindow::onPlotLinkGroupChanged(PlotWindow* p, int group)
+void MainWindow::onPlotAxisRangesChanged(PlotWindow* p, int linkGroup, QRectF xyrange)
 {
-    mPlotLinkGroups.insert(p, group);
-}
-
-void MainWindow::onPlotAxisRangesChanged(PlotWindow* p, QRectF xyrange)
-{
-    int group = mPlotLinkGroups.value(p, 0);
-    if (group == 0) { return; }
-    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-        if (pp == p) { continue; }
-        if (mPlotLinkGroups.value(pp) == group) {
-            pp->syncAxisRanges(xyrange);
-        }
+    foreach (PlotWindow* pw, mPlots) {
+        if (pw == p) { continue; }
+        pw->syncAxisRanges(linkGroup, xyrange);
     }
 }
 
-void MainWindow::onPlotDataTipChanged(PlotWindow* p, int index)
+void MainWindow::onPlotDataTipChanged(PlotWindow* p, int linkGroup, int index)
 {
-    int group = mPlotLinkGroups.value(p, 0);
-    if (group == 0) { return; }
-    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-        if (pp == p) { continue; }
-        if (mPlotLinkGroups.value(pp) == group) {
-            pp->syncDataTip(index);
-        }
+    foreach (PlotWindow* pw, mPlots) {
+        if (pw == p) { continue; }
+        pw->syncDataTip(linkGroup, index);
     }
 }
 
@@ -310,6 +351,11 @@ void MainWindow::onPlotTitleSet(PlotWindow* p, QString title)
     updatePlotWindowTitle(p, title);
 }
 
+void MainWindow::onPlotLinkSettingsTrigerred(SubplotPtr subplot)
+{
+    mLinkDialog.show(mPlots, subplot);
+}
+
 void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
 {
     MatrixPtr mat = csv->matrix;
@@ -337,8 +383,6 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
     p->setTitle(title);
     p->setXLabel(xtext);
     p->setYLabel(ytext);
-
-    p->showAll();
 }
 
 void MainWindow::csvImportFinished(CsvPtr csv)

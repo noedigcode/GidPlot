@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>345</width>
-    <height>314</height>
+    <height>321</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,9 +23,18 @@
       <item>
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QPushButton" name="pushButton_presets">
+         <widget class="QToolButton" name="toolButton_presets">
           <property name="text">
            <string>Label Presets</string>
+          </property>
+          <property name="popupMode">
+           <enum>QToolButton::InstantPopup</enum>
+          </property>
+          <property name="toolButtonStyle">
+           <enum>Qt::ToolButtonTextBesideIcon</enum>
+          </property>
+          <property name="arrowType">
+           <enum>Qt::NoArrow</enum>
           </property>
          </widget>
         </item>
@@ -61,13 +70,6 @@
     </widget>
    </item>
    <item>
-    <widget class="QCheckBox" name="checkBox_verticalLine">
-     <property name="text">
-      <string>Vertical line</string>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QCheckBox" name="checkBox_horizontalLine">
      <property name="text">
       <string>Horizontal line</string>
@@ -75,9 +77,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBox_verticalLine">
+     <property name="text">
+      <string>Vertical line</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QCheckBox" name="checkBox_dot">
      <property name="text">
-      <string>Circle/dot</string>
+      <string>Dot</string>
      </property>
     </widget>
    </item>

@@ -29,7 +29,9 @@ QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 include(appicon/appicon.pri)
 
 SOURCES += \
+    src/CrosshairsDialog.cpp \
     src/CsvImportDialog.cpp \
+    src/LinkDialog.cpp \
     src/MarkerEditDialog.cpp \
     src/PlotMarkerItem.cpp \
     src/PopoutTabWidget.cpp \
@@ -37,17 +39,19 @@ SOURCES += \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
-    src/crosshair.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
     src/plotwindow.cpp \
+    src/subplot.cpp \
     src/tablewidget.cpp \
     src/matrix.cpp \
     src/csvimporter.cpp
 
 HEADERS += \
+    src/CrosshairsDialog.h \
     src/CsvImportDialog.h \
+    src/LinkDialog.h \
     src/MarkerEditDialog.h \
     src/PlotMarkerItem.h \
     src/PopoutTabWidget.h \
@@ -55,12 +59,12 @@ HEADERS += \
     src/QCustomPlot/GidQCustomPlot.h \
     src/Range.h \
     src/aboutdialog.h \
-    src/crosshair.h \
     src/csv.h \
     src/defer.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
     src/plotwindow.h \
+    src/subplot.h \
     src/tablewidget.h \
     src/matrix.h \
     src/csvimporter.h \
@@ -68,7 +72,9 @@ HEADERS += \
     src/version.h
 
 FORMS += \
+    src/CrosshairsDialog.ui \
     src/CsvImportDialog.ui \
+    src/LinkDialog.ui \
     src/MarkerEditDialog.ui \
     src/ProgressDialog.ui \
     src/aboutdialog.ui \

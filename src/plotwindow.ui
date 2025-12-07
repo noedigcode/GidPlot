@@ -361,6 +361,13 @@
           <number>1</number>
          </property>
          <item>
+          <widget class="QLabel" name="label_24">
+           <property name="text">
+            <string>Shift+</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QLabel" name="label_23">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
@@ -376,13 +383,6 @@
            </property>
            <property name="pixmap">
             <pixmap resource="../images/images.qrc">:/mouse_scroll.png</pixmap>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QLabel" name="label_24">
-           <property name="text">
-            <string>Shift+</string>
            </property>
           </widget>
          </item>
@@ -484,51 +484,9 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>26</height>
+     <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuView">
-    <property name="title">
-     <string>View</string>
-    </property>
-    <widget class="QMenu" name="menuMouse_Crosshair_Options">
-     <property name="title">
-      <string>Mouse Crosshair Options</string>
-     </property>
-     <addaction name="action_MouseCrosshair_Horizontal_Line"/>
-     <addaction name="action_MouseCrosshair_Vertical_Line"/>
-     <addaction name="action_MouseCrosshair_Dot"/>
-    </widget>
-    <widget class="QMenu" name="menuPlot_Crosshair_Options">
-     <property name="title">
-      <string>Plot Crosshair Options</string>
-     </property>
-     <addaction name="action_PlotCrosshair_Horizontal_Line"/>
-     <addaction name="action_PlotCrosshair_Vertical_Line"/>
-     <addaction name="action_PlotCrosshair_Dot"/>
-    </widget>
-    <addaction name="action_Show_All"/>
-    <addaction name="action_Equal_Axes"/>
-    <addaction name="action_Show_Mouse_Crosshair"/>
-    <addaction name="action_Show_Plot_Crosshair"/>
-    <addaction name="menuMouse_Crosshair_Options"/>
-    <addaction name="menuPlot_Crosshair_Options"/>
-    <addaction name="action_datatipPlotMenuPlaceholder"/>
-   </widget>
-   <widget class="QMenu" name="menuLink">
-    <property name="title">
-     <string>Link</string>
-    </property>
-    <addaction name="action_No_Link"/>
-    <addaction name="action_Link_to_Group_1"/>
-    <addaction name="action_Link_to_Group_2"/>
-    <addaction name="action_Link_to_Group_3"/>
-    <addaction name="separator"/>
-    <addaction name="action_Link_X_Zoom"/>
-    <addaction name="action_Link_Y_Zoom"/>
-    <addaction name="action_Link_X_Position"/>
-    <addaction name="action_Link_Y_Position"/>
-   </widget>
    <widget class="QMenu" name="menuWindow">
     <property name="title">
      <string>Window</string>
@@ -551,160 +509,9 @@
     <addaction name="action_Save_as_SVG"/>
     <addaction name="action_Save_as_PDF"/>
    </widget>
-   <addaction name="menuView"/>
-   <addaction name="menuLink"/>
    <addaction name="menuWindow"/>
    <addaction name="menuImage"/>
   </widget>
-  <action name="action_Show_All">
-   <property name="icon">
-    <iconset resource="../images/images.qrc">
-     <normaloff>:/showall</normaloff>:/showall</iconset>
-   </property>
-   <property name="text">
-    <string>Show All</string>
-   </property>
-  </action>
-  <action name="action_Show_Plot_Crosshair">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Show Plot Crosshair</string>
-   </property>
-  </action>
-  <action name="action_Show_Mouse_Crosshair">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Show Mouse Crosshair</string>
-   </property>
-  </action>
-  <action name="action_No_Link">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>No Link</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_1">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 1</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_2">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 2</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_3">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 3</string>
-   </property>
-  </action>
-  <action name="action_Link_X_Zoom">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link X Zoom</string>
-   </property>
-  </action>
-  <action name="action_Link_Y_Zoom">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link Y Zoom</string>
-   </property>
-  </action>
-  <action name="action_Link_X_Position">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link X Position</string>
-   </property>
-  </action>
-  <action name="action_Link_Y_Position">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link Y Position</string>
-   </property>
-  </action>
-  <action name="action_PlotCrosshair_Horizontal_Line">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Horizontal Line</string>
-   </property>
-  </action>
-  <action name="action_PlotCrosshair_Vertical_Line">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Vertical Line</string>
-   </property>
-  </action>
-  <action name="action_PlotCrosshair_Dot">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Dot</string>
-   </property>
-  </action>
-  <action name="action_MouseCrosshair_Horizontal_Line">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Horizontal Line</string>
-   </property>
-  </action>
-  <action name="action_MouseCrosshair_Vertical_Line">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Vertical Line</string>
-   </property>
-  </action>
-  <action name="action_MouseCrosshair_Dot">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Dot</string>
-   </property>
-  </action>
-  <action name="action_Equal_Axes">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="../images/images.qrc">
-     <normaloff>:/equalaxes</normaloff>:/equalaxes</iconset>
-   </property>
-   <property name="text">
-    <string>Equal Axes</string>
-   </property>
-  </action>
   <action name="action_Dock_to_Screen_Top">
    <property name="icon">
     <iconset resource="../images/images.qrc">
@@ -775,11 +582,6 @@
    </property>
    <property name="text">
     <string>Resize Plot</string>
-   </property>
-  </action>
-  <action name="action_datatipPlotMenuPlaceholder">
-   <property name="text">
-    <string>Datatip Plot Menu Placeholder</string>
    </property>
   </action>
   <action name="action_Place_Marker">

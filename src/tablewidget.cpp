@@ -153,27 +153,34 @@ void TableWidget::selectDefaultColumns()
     if (!mCsv) { return; }
     MatrixPtr mat = mCsv->matrix;
 
-    // Try to select time for x-axis, otherwise index column
+    // X-axis selection
+    // If there is <= 2 columns (including index), select index column (0) for x-axis,
+    // Otherwise try to select a column that looks like time for x-axis,
+    // otherwise first column (index 1) if there are more than 1 columns
 
-    int iExact = -1;
-    int iContain = -1;
-    for (int i = 0; i < mat->headingCount(); i++) {
-        Utils::Match match = Utils::looksLikeTimeTitle(mat->heading(i));
-        if (match == Utils::ExactMatch) {
-            iExact = i;
-            break;
+    int iSelect = (mat->headingCount() <= 2) ? 0 : 1;
+
+    if (mat->headingCount() > 2) {
+        int iExact = -1;
+        int iContain = -1;
+        for (int i = 0; i < mat->headingCount(); i++) {
+            Utils::Match match = Utils::looksLikeTimeTitle(mat->heading(i));
+            if (match == Utils::ExactMatch) {
+                iExact = i;
+                break;
+            }
+            if ((match == Utils::ContainsMatch) && (iContain < 0)) {
+                iContain = i;
+            }
         }
-        if ((match == Utils::ContainsMatch) && (iContain < 0)) {
-            iContain = i;
+
+        if (iExact >= 0) {
+            // Select exact match
+            iSelect = iExact;
+        } else if (iContain >= 0) {
+            // Select semi match
+            iSelect = iContain;
         }
-    }
-    int iSelect = 0;
-    if (iExact >= 0) {
-        // Select exact match
-        iSelect = iExact;
-    } else if (iContain >= 0) {
-        // Select semi match
-        iSelect = iContain;
     }
     ui->treeWidget_cols_x->setCurrentItem(
                 ui->treeWidget_cols_x->topLevelItem(iSelect));
