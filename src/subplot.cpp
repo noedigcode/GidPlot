@@ -777,13 +777,12 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
             replot = true;
         }
 
-        // - Only update tracers and coordinates if not dragging as it could
-        //   slow down dragging
-        // - Use event button and not recorded mouse down button, as button
+        // - Only update crosshairs if not dragging as it could slow down dragging
+        // - Use event buttons and not recorded mouse down button, as button
         //   could have been pressed down on another subplot and move over
         //   this one.
 
-        if (event->button() == Qt::NoButton) {
+        if (event->buttons() == Qt::NoButton) {
 
             QString text;
 
