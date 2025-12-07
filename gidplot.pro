@@ -31,6 +31,7 @@ include(appicon/appicon.pri)
 SOURCES += \
     src/CrosshairsDialog.cpp \
     src/CsvImportDialog.cpp \
+    src/LinkDialog.cpp \
     src/MarkerEditDialog.cpp \
     src/PlotMarkerItem.cpp \
     src/PopoutTabWidget.cpp \
@@ -50,6 +51,7 @@ SOURCES += \
 HEADERS += \
     src/CrosshairsDialog.h \
     src/CsvImportDialog.h \
+    src/LinkDialog.h \
     src/MarkerEditDialog.h \
     src/PlotMarkerItem.h \
     src/PopoutTabWidget.h \
@@ -72,6 +74,7 @@ HEADERS += \
 FORMS += \
     src/CrosshairsDialog.ui \
     src/CsvImportDialog.ui \
+    src/LinkDialog.ui \
     src/MarkerEditDialog.ui \
     src/ProgressDialog.ui \
     src/aboutdialog.ui \

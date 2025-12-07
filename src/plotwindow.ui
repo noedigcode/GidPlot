@@ -487,20 +487,6 @@
      <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuLink">
-    <property name="title">
-     <string>Link</string>
-    </property>
-    <addaction name="action_No_Link"/>
-    <addaction name="action_Link_to_Group_1"/>
-    <addaction name="action_Link_to_Group_2"/>
-    <addaction name="action_Link_to_Group_3"/>
-    <addaction name="separator"/>
-    <addaction name="action_Link_X_Zoom"/>
-    <addaction name="action_Link_Y_Zoom"/>
-    <addaction name="action_Link_X_Position"/>
-    <addaction name="action_Link_Y_Position"/>
-   </widget>
    <widget class="QMenu" name="menuWindow">
     <property name="title">
      <string>Window</string>
@@ -523,74 +509,9 @@
     <addaction name="action_Save_as_SVG"/>
     <addaction name="action_Save_as_PDF"/>
    </widget>
-   <addaction name="menuLink"/>
    <addaction name="menuWindow"/>
    <addaction name="menuImage"/>
   </widget>
-  <action name="action_No_Link">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>No Link</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_1">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 1</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_2">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 2</string>
-   </property>
-  </action>
-  <action name="action_Link_to_Group_3">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link to Group 3</string>
-   </property>
-  </action>
-  <action name="action_Link_X_Zoom">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link X Zoom</string>
-   </property>
-  </action>
-  <action name="action_Link_Y_Zoom">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link Y Zoom</string>
-   </property>
-  </action>
-  <action name="action_Link_X_Position">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link X Position</string>
-   </property>
-  </action>
-  <action name="action_Link_Y_Position">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Link Y Position</string>
-   </property>
-  </action>
   <action name="action_Dock_to_Screen_Top">
    <property name="icon">
     <iconset resource="../images/images.qrc">

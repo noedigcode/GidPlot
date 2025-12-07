@@ -88,17 +88,23 @@ PlotWindow *MainWindow::addPlot(QString title)
     PlotWindow* p = new PlotWindow(++mPlotCounter);
 
     connect(p, &PlotWindow::destroyed, this, [=]() { onPlotWindowDestroyed(p); });
-    connect(p, &PlotWindow::linkGroupChanged,
-            this, [=](int group) { onPlotLinkGroupChanged(p, group); });
     connect(p, &PlotWindow::axisRangesChanged,
-            this, [=](QRectF xyrange) { onPlotAxisRangesChanged(p, xyrange); });
+            this, [=](int linkGroup, QRectF xyrange)
+    {
+        onPlotAxisRangesChanged(p, linkGroup, xyrange);
+    });
     connect(p, &PlotWindow::dataTipChanged,
-            this, [=](int index) { onPlotDataTipChanged(p, index); });
+            this, [=](int linkGroup, int index)
+    {
+        onPlotDataTipChanged(p, linkGroup, index);
+    });
     connect(p, &PlotWindow::requestWindowDock,
             this, [=](PlotWindow::Dock location) {
                 onPlotRequestWindowDock(p, location); });
     connect(p, &PlotWindow::titleSet,
             this, [=](QString title) { onPlotTitleSet(p, title); });
+    connect(p, &PlotWindow::linkSettingsTriggered,
+            this, &MainWindow::onPlotLinkSettingsTrigerred);
 
     connect(p, &PlotWindow::requestWindowResize,
             this, [=](int w, int h) { onPlotRequestWindowResize(p, w, h); });
@@ -256,36 +262,22 @@ void MainWindow::onPlotWindowDestroyed(PlotWindow* p)
     if (mDestroying) { return; }
 
     mPlots.removeAll(p);
-    mPlotLinkGroups.remove(p);
     onPlotRemoved(p);
 }
 
-void MainWindow::onPlotLinkGroupChanged(PlotWindow* p, int group)
+void MainWindow::onPlotAxisRangesChanged(PlotWindow* p, int linkGroup, QRectF xyrange)
 {
-    mPlotLinkGroups.insert(p, group);
-}
-
-void MainWindow::onPlotAxisRangesChanged(PlotWindow* p, QRectF xyrange)
-{
-    int group = mPlotLinkGroups.value(p, 0);
-    if (group == 0) { return; }
-    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-        if (pp == p) { continue; }
-        if (mPlotLinkGroups.value(pp) == group) {
-            pp->syncAxisRanges(xyrange);
-        }
+    foreach (PlotWindow* pw, mPlots) {
+        if (pw == p) { continue; }
+        pw->syncAxisRanges(linkGroup, xyrange);
     }
 }
 
-void MainWindow::onPlotDataTipChanged(PlotWindow* p, int index)
+void MainWindow::onPlotDataTipChanged(PlotWindow* p, int linkGroup, int index)
 {
-    int group = mPlotLinkGroups.value(p, 0);
-    if (group == 0) { return; }
-    foreach (PlotWindow* pp, mPlotLinkGroups.keys()) {
-        if (pp == p) { continue; }
-        if (mPlotLinkGroups.value(pp) == group) {
-            pp->syncDataTip(index);
-        }
+    foreach (PlotWindow* pw, mPlots) {
+        if (pw == p) { continue; }
+        pw->syncDataTip(linkGroup, index);
     }
 }
 
@@ -357,6 +349,11 @@ void MainWindow::onPlotRequestWindowResize(PlotWindow* p, int width, int height)
 void MainWindow::onPlotTitleSet(PlotWindow* p, QString title)
 {
     updatePlotWindowTitle(p, title);
+}
+
+void MainWindow::onPlotLinkSettingsTrigerred(SubplotPtr subplot)
+{
+    mLinkDialog.show(mPlots, subplot);
 }
 
 void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)

@@ -60,16 +60,16 @@ public:
     void setXLabel(QString xlabel);
     void setYLabel(QString ylabel);
 
-    void syncAxisRanges(QRectF xyrange);
-    void syncDataTip(int index);
+    void syncAxisRanges(int linkGroup, QRectF xyrange);
+    void syncDataTip(int linkGroup, int index);
 
 signals:
-    void linkGroupChanged(int group);
-    void axisRangesChanged(QRectF xyrange);
-    void dataTipChanged(int index);
+    void axisRangesChanged(int linkGroup, QRectF xyrange);
+    void dataTipChanged(int linkGroup, int index);
     void requestWindowDock(Dock location);
     void requestWindowResize(int width, int height);
     void titleSet(QString title);
+    void linkSettingsTriggered(SubplotPtr subplot);
 
 private slots:
     void plottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *event);
@@ -82,13 +82,8 @@ private slots:
 
     void onPlotMouseRelease(QMouseEvent* event);
 
-    void onAxisRangesChanged(SubplotPtr subplot, QRectF xyrange);
-    void onDataTipChanged(SubplotPtr subplot, int index);
-
-    void on_action_No_Link_triggered();
-    void on_action_Link_to_Group_1_triggered();
-    void on_action_Link_to_Group_2_triggered();
-    void on_action_Link_to_Group_3_triggered();
+    void onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange);
+    void onDataTipChanged(SubplotPtr subplot, int linkGroup, int index);
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -135,10 +130,6 @@ private:
     QCPLegend* findLegendUnderPos(QPoint pos);
 
     // -------------------------------------------------------------------------
-
-    int mLinkGroup = 0;
-    void setLinkGroup(int group);
-    void updateGuiForLinkGroup();
 
     bool eventFilter(QObject *watched, QEvent *event);
     void resizeEvent(QResizeEvent* event) override;

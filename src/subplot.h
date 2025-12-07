@@ -77,6 +77,11 @@ public:
     QCPAxis* yAxis = nullptr;
     QCPLegend* legend = nullptr;
     QString tag = "subplot";
+    int linkGroup = 0;
+    bool linkXpos = false;
+    bool linkYpos = false;
+    bool linkXzoom = false;
+    bool linkYzoom = false;
 
     static QCPLegend* findLegend(QCPAxisRect* axisRect);
 
@@ -90,7 +95,7 @@ public:
     void setEqualAxesAndReplot(bool fixed);
     void queueReplot();
 
-    void syncAxisRanges(QRectF xyrange, bool xpos, bool ypos, bool xzoom, bool yzoom);
+    void syncAxisRanges(QRectF xyrange);
     void syncDataTip(int index);
 
     void resizeEvent();
@@ -101,8 +106,9 @@ public:
     void restoreCrosshairs();
 
 signals:
-    void axisRangesChanged(QRectF xyrange);
-    void dataTipChanged(int index);
+    void axisRangesChanged(int linkGroup, QRectF xyrange);
+    void dataTipChanged(int linkGroup, int index);
+    void linkSettingsTriggered();
 
 private:
     QList<QPen> pens {

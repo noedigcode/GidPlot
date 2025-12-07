@@ -252,24 +252,23 @@ void Subplot::queueReplot()
     plot->replot(QCustomPlot::rpQueuedReplot);
 }
 
-void Subplot::syncAxisRanges(QRectF xyrange, bool xpos, bool ypos, bool xzoom,
-                             bool yzoom)
+void Subplot::syncAxisRanges(QRectF xyrange)
 {
     mRangesSyncedFromOutside = true;
 
     QRectF r(xAxis->range().lower, yAxis->range().lower,
              xAxis->range().size(), yAxis->range().size());
     QPointF center = r.center();
-    if (xpos) {
+    if (linkXpos) {
         center.setX(xyrange.center().x());
     }
-    if (ypos) {
+    if (linkYpos) {
         center.setY(xyrange.center().y());
     }
-    if (xzoom) {
+    if (linkXzoom) {
         r.setWidth(xyrange.width());
     }
-    if (yzoom) {
+    if (linkYzoom) {
         r.setHeight(xyrange.height());
     }
     r.moveCenter(center);
@@ -579,6 +578,8 @@ void Subplot::setupMenus()
     plotContextMenu.addMenu(&rangeMenu);
 
     plotContextMenu.addAction("Crosshairs...", this, [=]() { showCrosshairsDialog(); });
+
+    plotContextMenu.addAction("Link to Other Plots...", this, &Subplot::linkSettingsTriggered);
 }
 
 void Subplot::onRangeMenuAboutToShow()
@@ -789,8 +790,8 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                             .arg(closest.dataIndex)
                             .arg(closest.xCoord)
                             .arg(closest.yCoord);
-                    emit dataTipChanged(closest.dataIndex
-                                        + dataTipGraph->range.start);
+                    emit dataTipChanged(linkGroup,
+                                closest.dataIndex+ dataTipGraph->range.start);
                     replot = true;
 
                     mPlotCrosshairIndex = closest.dataIndex;
@@ -1347,7 +1348,7 @@ void Subplot::onAxisRangesChanged()
             mRangesChanged = false;
             QRectF r(xAxis->range().lower, yAxis->range().lower,
                      xAxis->range().size(), yAxis->range().size());
-            emit axisRangesChanged(r);
+            emit axisRangesChanged(linkGroup, r);
         }
     });
 }

@@ -64,8 +64,6 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     ui->plot->installEventFilter(this);
 
     ui->label_coordinates->clear();
-
-    updateGuiForLinkGroup();
 }
 
 PlotWindow::~PlotWindow()
@@ -146,21 +144,20 @@ void PlotWindow::setYLabel(QString ylabel)
     subplot->setYLabel(ylabel);
 }
 
-void PlotWindow::syncAxisRanges(QRectF xyrange)
+void PlotWindow::syncAxisRanges(int linkGroup, QRectF xyrange)
 {
     foreach (SubplotPtr subplot, mSubplots) {
-
-        subplot->syncAxisRanges(xyrange,
-                                ui->action_Link_X_Position->isChecked(),
-                                ui->action_Link_Y_Position->isChecked(),
-                                ui->action_Link_X_Zoom->isChecked(),
-                                ui->action_Link_Y_Zoom->isChecked());
+        if (!subplot->linkGroup) { continue; }
+        if (subplot->linkGroup != linkGroup) { continue; }
+        subplot->syncAxisRanges(xyrange);
     }
 }
 
-void PlotWindow::syncDataTip(int index)
+void PlotWindow::syncDataTip(int linkGroup, int index)
 {
     foreach (SubplotPtr subplot, mSubplots) {
+        if (!subplot->linkGroup) { continue; }
+        if (subplot->linkGroup != linkGroup) { continue; }
         subplot->syncDataTip(index);
     }
 }
@@ -196,19 +193,29 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
 void PlotWindow::initSubplot(SubplotPtr subplot)
 {
     connect(subplot.data(), &Subplot::axisRangesChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()](QRectF xyrange)
+            this, [this, sWkPtr = subplot.toWeakRef()]
+            (int linkGroup, QRectF xyrange)
     {
         SubplotPtr s(sWkPtr);
         if (!s) { return; }
-        onAxisRangesChanged(s, xyrange);
+        onAxisRangesChanged(s, linkGroup, xyrange);
     });
 
     connect(subplot.data(), &Subplot::dataTipChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()](int index)
+            this, [this, sWkPtr = subplot.toWeakRef()]
+            (int linkGroup, int index)
     {
         SubplotPtr s(sWkPtr);
         if (!s) { return; }
-        onDataTipChanged(s, index);
+        onDataTipChanged(s, linkGroup, index);
+    });
+
+    connect(subplot.data(), &Subplot::linkSettingsTriggered,
+            this, [this, sWkPtr = subplot.toWeakRef()]()\
+    {
+        SubplotPtr s(sWkPtr);
+        if (!s) { return; }
+        emit linkSettingsTriggered(s);
     });
 
     mSubplots.append(subplot);
@@ -279,27 +286,6 @@ void PlotWindow::onPlotMouseRelease(QMouseEvent* /*event*/)
 
 }
 
-void PlotWindow::setLinkGroup(int group)
-{
-    mLinkGroup = group;
-    emit linkGroupChanged(group);
-    updateGuiForLinkGroup();
-}
-
-void PlotWindow::updateGuiForLinkGroup()
-{
-    ui->action_No_Link->setChecked(mLinkGroup == 0);
-    ui->action_Link_to_Group_1->setChecked(mLinkGroup == 1);
-    ui->action_Link_to_Group_2->setChecked(mLinkGroup == 2);
-    ui->action_Link_to_Group_3->setChecked(mLinkGroup == 3);
-
-    if (mLinkGroup == 0) {
-        ui->menuLink->setTitle("Link");
-    } else {
-        ui->menuLink->setTitle(QString("Link (%1)").arg(mLinkGroup));
-    }
-}
-
 QByteArray PlotWindow::plotToSvg()
 {
     QByteArray svgData;
@@ -339,47 +325,26 @@ QCPLegend *PlotWindow::findLegendUnderPos(QPoint pos)
     return nullptr;
 }
 
-void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, QRectF xyrange)
+void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange)
 {
     foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
-        s->syncAxisRanges(xyrange,
-                          ui->action_Link_X_Position->isChecked(),
-                          ui->action_Link_Y_Position->isChecked(),
-                          ui->action_Link_X_Zoom->isChecked(),
-                          ui->action_Link_Y_Zoom->isChecked());
+        if (!s->linkGroup) { continue; }
+        if (s->linkGroup != linkGroup) { continue; }
+        s->syncAxisRanges(xyrange);
     }
-    emit axisRangesChanged(xyrange);
+    emit axisRangesChanged(linkGroup, xyrange);
 }
 
-void PlotWindow::onDataTipChanged(SubplotPtr subplot, int index)
+void PlotWindow::onDataTipChanged(SubplotPtr subplot, int linkGroup, int index)
 {
     foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
-        // TODO only if linked
-        //s->syncDataTip(index);
+        if (!s->linkGroup) { continue; }
+        if (s->linkGroup != linkGroup) { continue; }
+        s->syncDataTip(index);
     }
-    emit dataTipChanged(index);
-}
-
-void PlotWindow::on_action_No_Link_triggered()
-{
-    setLinkGroup(0);
-}
-
-void PlotWindow::on_action_Link_to_Group_1_triggered()
-{
-    setLinkGroup(1);
-}
-
-void PlotWindow::on_action_Link_to_Group_2_triggered()
-{
-    setLinkGroup(2);
-}
-
-void PlotWindow::on_action_Link_to_Group_3_triggered()
-{
-    setLinkGroup(3);
+    emit dataTipChanged(linkGroup, index);
 }
 
 void PlotWindow::on_action_Dock_to_Screen_Top_triggered()
