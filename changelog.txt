@@ -1,26 +1,39 @@
 Gid~Plot Changelog
 ==================
 
-[0.0.4] - Unreleased
+[0.0.4] - 2025-12-07
 --------------------
 
 Added
 
+- Subplots on the same plot.
 - Measure feature from plot context menu.
+- Crosshair settings dialog.
+- Plot link dialog.
 - Add All Files (*) to file import dialog.
 - Copy to SVG and save to PNG, SVG and PDF.
 
 Changed
 
+- Plot and mouse coordinates are now drawn on the plots with the crosshairs
+  and no longer in a label above the plot.
 - Better formatting in about dialog.
 - Update plot immediately when a marker is deleted.
 - When adding to an existing plot, show the plot tab or window.
+- Marker labels are now on their own layer, always above markers and crosshairs.
+- View and link menus have been removed from the plot window as they are now
+  accessible per subplot in the context menu.
+- Default column selection when a CSV is loaded: if there is only one CSV
+  column, select index for x-axis and the first column for y-axis. If there
+  are 2 or more columns and no time column is identified, select column 1 for
+  x-axis and column 2 for y-axis.
 
 Fixed
 
 - Fix calculation of start threshold for right mouse drag for zooming.
 - Fix crash on quit when plots are open.
-
+- Fix pen colour becoming the same as an existing curve on a plot if a curve
+  was deleted from the plot and a new one added.
 
 
 [0.0.3] - 2025-09-27
