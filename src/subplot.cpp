@@ -112,7 +112,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
     QIcon icon(pixmap);
     menu->addAction(icon, plottable->name());
 
-    menu->addAction(/* TODO ui->action_legend_item_rename->icon(),*/ "Rename", this, [=]()
+    menu->addAction(QIcon("://edit"), "Rename", this, [=]()
     {
         bool ok;
         QString name = QInputDialog::getText(parentWidget, "Curve Name", "Name",
@@ -123,7 +123,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
         plot->replot();
         updateLegendPlacement();
     });
-    menu->addAction(/* TODO ui->action_legend_item_set_color->icon(),*/ "Set Color", this, [=]()
+    menu->addAction(QIcon("://color"), "Set Color", this, [=]()
     {
         QPen pen = plottable->pen();
         QColor color = QColorDialog::getColor(pen.color(), parentWidget);
@@ -133,7 +133,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
         plot->replot();
         updateLegendPlacement();
     });
-    menu->addAction(/* TODO ui->action_legend_item_delete->icon(),*/ "Delete", this, [=]()
+    menu->addAction(QIcon("://delete"), "Delete", this, [=]()
     {
         removeGraph(plottableGraphMap.value(plottable));
         plot->replot();
@@ -810,7 +810,6 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
         }
     }
 
-
     return replot;
 }
 
@@ -874,7 +873,6 @@ bool Subplot::legendMouseMove(QMouseEvent *event)
 
 void Subplot::updateLegendPlacement()
 {
-    // TODO Used to use (plotWindow) this->isVisible(). Confirm whether use plot below is sufficient.
     if (!plot->isVisible()) { return; }
 
     QRect axisRectPixels = axisRect->rect();
@@ -1048,7 +1046,7 @@ MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
 
 bool Subplot::markerRightClick(QPoint pos)
 {
-    MarkerPtr marker = findMarkerUnderPos(pos);
+    MarkerPtr marker = markerMouse.marker;
     if (!marker) { return false; }
 
     QMenu* menu = new QMenu();
@@ -1056,20 +1054,22 @@ bool Subplot::markerRightClick(QPoint pos)
 
     // Use weak pointer to not capture shared pointer in lambdas that might
     // hold on to it.
-    QWeakPointer<Marker> mWptr(marker);
+    QWeakPointer<Marker> mWptr(markerMouse.marker);
 
-    menu->addAction(/* TODO ui->action_marker_edit_text->icon() ,*/ "Edit Text", [=]()
+    menu->addAction(QIcon("://edit"), "Edit Text",
+                    this, [this, mWptr = marker.toWeakRef()]()
     {
-        MarkerPtr m2(mWptr);
-        if (!m2) { return; }
-        editMarkerText(m2);
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        editMarkerText(m);
     });
 
-    menu->addAction(/* TODO ui->action_marker_delete->icon() ,*/ "Delete Marker", [=]()
+    menu->addAction(QIcon("://delete"), "Delete Marker",
+                    this, [this, mWptr = marker.toWeakRef()]()
     {
-        MarkerPtr m2(mWptr);
-        if (!m2) { return; }
-        deleteMarker(m2);
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        deleteMarker(m);
     });
 
     menu->popup(plot->mapToGlobal(pos));
@@ -1260,11 +1260,11 @@ void Subplot::onPlotMouseRelease(QMouseEvent *event)
             // Was not dragging. Trigger mouse click event
             plotLeftClicked(event->pos());
         }
-        legendMouse.mouseDown = false;
-        markerMouseUp();
         plot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
     }
 
+    legendMouse.mouseDown = false;
+    markerMouseUp();
     mouse.mouseDown = false;
     mouse.isDragging = false;
 }
@@ -1299,14 +1299,11 @@ void Subplot::plotRightClicked(const QPoint &pos)
     }
 
     if (!used) {
-        // TODO: Can use markerMouse.marker that was already determined in mouse press
         used = markerRightClick(pos);
     }
 
     if (!used) {
         // Plot area
-        // TODO adapt pos based on plotrect?
-        // TODO add plotContextMenu to Subplot or signal PlotWindow
         plotContextMenu.popup(plot->mapToGlobal(pos));
     }
 }
