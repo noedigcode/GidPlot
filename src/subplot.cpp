@@ -550,11 +550,6 @@ void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
 
 void Subplot::setupMenus()
 {
-    // View menu
-    // TODO
-    //ui->menuView->insertMenu(ui->action_datatipPlotMenuPlaceholder, &dataTipMenu);
-    //ui->menuView->removeAction(ui->action_datatipPlotMenuPlaceholder);
-
     // Plot context menu
 
     plotContextMenu.addAction(QIcon("://marker"), "Place Marker", this,
@@ -577,9 +572,11 @@ void Subplot::setupMenus()
     connect(&rangeMenu, &QMenu::aboutToShow, this, &Subplot::onRangeMenuAboutToShow);
     plotContextMenu.addMenu(&rangeMenu);
 
-    plotContextMenu.addAction("Crosshairs...", this, [=]() { showCrosshairsDialog(); });
+    plotContextMenu.addAction(QIcon("://crosshair"), "Crosshairs...",
+                              this, [=]() { showCrosshairsDialog(); });
 
-    plotContextMenu.addAction("Link to Other Plots...", this, &Subplot::linkSettingsTriggered);
+    plotContextMenu.addAction(QIcon("://link"), "Link to Other Plots...",
+                                    this, &Subplot::linkSettingsTriggered);
 }
 
 void Subplot::onRangeMenuAboutToShow()
