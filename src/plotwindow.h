@@ -105,6 +105,9 @@ private:
 
     QByteArray plotToSvg();
 
+    QString sanitizeFilename(QString filename);
+    QString filenameForThisPlot();
+
     // -------------------------------------------------------------------------
     // Mouse drag zoom
 private:

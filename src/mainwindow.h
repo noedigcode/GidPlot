@@ -88,6 +88,7 @@ private:
     CsvImportDialog csvImportDialog {this};
     ProgressDialog progressDialog {this};
     AboutDialog aboutDialog {"", this};
+    LinkDialog mLinkDialog {this};
 
     QList<PlotWindow*> mPlots;
     int mPlotCounter = 0;
@@ -99,8 +100,6 @@ private:
 
     CsvImporter csvImporter;
     QThread thread;
-
-    LinkDialog mLinkDialog;
 
     void msgBox(QString msg);
 

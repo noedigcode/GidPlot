@@ -297,6 +297,22 @@ QByteArray PlotWindow::plotToSvg()
     return svgData;
 }
 
+QString PlotWindow::sanitizeFilename(QString filename)
+{
+    static QByteArray invalid = "<:\"/\\|?*";
+
+    foreach (QChar c, invalid) {
+        filename.replace(c, "");
+    }
+
+    return filename;
+}
+
+QString PlotWindow::filenameForThisPlot()
+{
+    return sanitizeFilename(this->windowTitle());
+}
+
 QCPLegend *PlotWindow::findLegendInAxisRect(QCPAxisRect *axisRect)
 {
     if (!axisRect) { return nullptr; }
@@ -408,8 +424,8 @@ void PlotWindow::setPlotFont(QFont font)
 void PlotWindow::on_action_Save_as_PDF_triggered()
 {
     QString path = QFileDialog::getSaveFileName(this, "Save as PDF",
-                                                "",
-                                                "PDF (*.pdf)");
+                                filenameForThisPlot() + ".pdf",
+                                "PDF (*.pdf)");
     if (path.isEmpty()) { return; }
 
     storeAndDisableCrosshairsOfAllSubplots();
@@ -450,7 +466,7 @@ void PlotWindow::on_action_Copy_SVG_triggered()
 void PlotWindow::on_action_Save_as_PNG_triggered()
 {
     QString path = QFileDialog::getSaveFileName(this, "Save as PNG",
-                                                "",
+                                                filenameForThisPlot() + ".png",
                                                 "PNG Image (*.png)");
     if (path.isEmpty()) { return; }
 
@@ -466,7 +482,7 @@ void PlotWindow::on_action_Save_as_PNG_triggered()
 void PlotWindow::on_action_Save_as_SVG_triggered()
 {
     QString path = QFileDialog::getSaveFileName(this, "Save as SVG",
-                                                "",
+                                                filenameForThisPlot() + ".svg",
                                                 "SVG Vector Image (*.svg)");
     if (path.isEmpty()) { return; }
 
