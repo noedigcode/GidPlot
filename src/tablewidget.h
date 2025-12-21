@@ -46,6 +46,7 @@ public:
 
 signals:
     void plot(bool newPlot, int ixcol, QList<int> iycols, Range range);
+    void mapPlot(bool newPlot, int ixcol, int iycol, Range range);
 
 private slots:
     void setRangeToAll();
@@ -63,6 +64,8 @@ private slots:
     void on_treeWidget_cols_y_itemSelectionChanged();
     void on_toolButton_range_clicked();
     void on_pushButton_newPlot_clicked();
+
+    void on_pushButton_newMapPlot_clicked();
 
 private:
     Ui::TableWidget *ui;
@@ -91,6 +94,7 @@ private:
     void setRange(RangePtr range);
 
     void emitPlot(bool newPlot);
+    void emitMapPlot(bool newPlot);
 
     void resizeEvent(QResizeEvent* event);
 };

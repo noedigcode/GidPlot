@@ -27,11 +27,13 @@ QMAKE_CXXFLAGS += -Wno-deprecated-declarations
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
 include(appicon/appicon.pri)
+include(src/QGeoView/QGeoView.pri)
 
 SOURCES += \
     src/CrosshairsDialog.cpp \
     src/CsvImportDialog.cpp \
     src/LinkDialog.cpp \
+    src/MapPlot.cpp \
     src/MarkerEditDialog.cpp \
     src/PlotMarkerItem.cpp \
     src/PopoutTabWidget.cpp \
@@ -42,6 +44,7 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
+    src/mapline.cpp \
     src/plotwindow.cpp \
     src/subplot.cpp \
     src/tablewidget.cpp \
@@ -52,6 +55,7 @@ HEADERS += \
     src/CrosshairsDialog.h \
     src/CsvImportDialog.h \
     src/LinkDialog.h \
+    src/MapPlot.h \
     src/MarkerEditDialog.h \
     src/PlotMarkerItem.h \
     src/PopoutTabWidget.h \
@@ -63,6 +67,7 @@ HEADERS += \
     src/defer.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
+    src/mapline.h \
     src/plotwindow.h \
     src/subplot.h \
     src/tablewidget.h \

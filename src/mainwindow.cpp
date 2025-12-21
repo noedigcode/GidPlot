@@ -145,12 +145,17 @@ void MainWindow::addTable(CsvPtr csv)
     mTables.append(t);
     t->setAddToPlotButtonEnabled( !mPlots.isEmpty() );
 
-    CsvWeakPtr csvWkPtr(csv);
     connect(t, &TableWidget::plot,
-            this, [this, csvWkPtr]
+            this, [this, csvWkPtr = csv.toWeakRef()]
             (bool newPlot, int ixcol, QList<int> iycols, Range range)
     {
         onTablePlot(csvWkPtr, newPlot, ixcol, iycols, range);
+    });
+    connect(t, &TableWidget::mapPlot,
+            this, [this, csvWkPtr = csv.toWeakRef()]
+            (bool newPlot, int ixcol, int iycol, Range range)
+    {
+        onTableMapPlot(csvWkPtr, newPlot, ixcol, iycol, range);
     });
 
     int tab = ui->tabWidget->addTab(t, QIcon(":/table"),
@@ -254,6 +259,25 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
             menu->addAction("No existing plots");
         }
         menu->popup(QCursor::pos());
+    }
+}
+
+void MainWindow::onTableMapPlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol, int iycol, Range range)
+{
+    if (newPlot) {
+
+        CsvPtr csv(csvWkPtr);
+        if (!csv) { return; }
+
+        QString title = QString("Map of %1, %2")
+                .arg(csv->matrix->heading(ixcol))
+                .arg(csv->matrix->heading(iycol));
+
+        PlotWindow* p = addPlot(title);
+        p->plotMap(csv, ixcol, iycol, range);
+
+    } else {
+        // TODO handle if not new plot
     }
 }
 

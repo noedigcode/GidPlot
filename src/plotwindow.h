@@ -26,8 +26,11 @@
 #include "csv.h"
 #include "utils.h"
 #include "subplot.h"
+#include "MapPlot.h"
 
 #include "QCustomPlot/qcustomplot.h"
+
+#include "QGeoView/QGVMap.h"
 
 #include <QMainWindow>
 
@@ -55,6 +58,7 @@ public:
     QCustomPlot* plotWidget();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
     void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
+    void plotMap(CsvPtr csv, int ixcol, int iycol, Range range);
     SubplotPtr addSubplot();
     void setTitle(QString title);
     void setXLabel(QString xlabel);
@@ -96,6 +100,7 @@ private slots:
 
 private:
     Ui::PlotWindow *ui;
+    QGVMap* mMapWidget = nullptr;
 
     int mTag = 0;
     QFont mPlotFont;
@@ -145,6 +150,8 @@ private:
     void initSubplot(SubplotPtr subplot);
     void storeAndDisableCrosshairsOfAllSubplots();
     void restoreCrosshairsOfAllSubplots();
+
+    MapPlot* mMapPlot = nullptr;
 
 private slots:
     void on_action_Save_as_PDF_triggered();

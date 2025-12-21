@@ -102,6 +102,25 @@ void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, 
     subplot->plotData(csv, ixcol, iycol, range);
 }
 
+void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
+{
+    if (!mMapWidget) {
+        mMapWidget = new QGVMap();
+        mMapWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+        QHBoxLayout* layout = static_cast<QHBoxLayout*>(ui->centralwidget->layout());
+        layout->removeWidget(ui->plot);
+        ui->plot->hide();
+        layout->insertWidget(0, mMapWidget, 1);
+    }
+
+    if (!mMapPlot) {
+        mMapPlot = new MapPlot(mMapWidget, this);
+    }
+
+    mMapPlot->plot(csv, ixcol, iycol, range);
+}
+
 SubplotPtr PlotWindow::addSubplot()
 {
     QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);

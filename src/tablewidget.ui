@@ -98,6 +98,17 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="pushButton_newMapPlot">
+           <property name="text">
+            <string>Map Plot</string>
+           </property>
+           <property name="icon">
+            <iconset resource="../images/images.qrc">
+             <normaloff>:/showall</normaloff>:/showall</iconset>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QPushButton" name="pushButton_addToPlot">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">

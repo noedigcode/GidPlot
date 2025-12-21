@@ -62,6 +62,8 @@ private slots:
     void addTable(CsvPtr csv);
     void onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                      QList<int> iycols, Range range);
+    void onTableMapPlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
+                     int iycol, Range range);
     void onPlotWindowDestroyed(PlotWindow* p);
     void onPlotAxisRangesChanged(PlotWindow* p, int linkGroup, QRectF xyrange);
     void onPlotDataTipChanged(PlotWindow* p, int linkGroup, int index);

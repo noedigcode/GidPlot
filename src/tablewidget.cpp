@@ -312,6 +312,16 @@ void TableWidget::emitPlot(bool newPlot)
     emit plot(newPlot, selection.xcols.value(0), selection.ycols, range);
 }
 
+void TableWidget::emitMapPlot(bool newPlot)
+{
+    ColSelection selection = getColumnsSelection();
+
+    Range range;
+    if (!range.fromString(ui->lineEdit_range->text())) { return; }
+
+    emit mapPlot(newPlot, selection.xcols.value(0), selection.ycols.value(0), range);
+}
+
 void TableWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
@@ -397,5 +407,10 @@ void TableWidget::on_toolButton_range_clicked()
 void TableWidget::on_pushButton_newPlot_clicked()
 {
     emitPlot(true);
+}
+
+void TableWidget::on_pushButton_newMapPlot_clicked()
+{
+    emitMapPlot(true);
 }
 
