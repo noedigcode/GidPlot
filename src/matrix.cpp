@@ -178,18 +178,6 @@ bool Matrix::colValid(int column)
     return ( (column < data.count()) && (column >= 0) );
 }
 
-double Matrix::min(int column)
-{
-    if (!colValid(column)) { return 0; }
-    return vmin(data[column]);
-}
-
-double Matrix::max(int column)
-{
-    if (!colValid(column)) { return 0; }
-    return vmax(data[column]);
-}
-
 bool Matrix::convertToBool(const QByteArray& data, bool defaultValue, bool* ok)
 {
     bool ret = defaultValue;
@@ -221,24 +209,23 @@ bool Matrix::convertToBool(const QByteArray& data, bool defaultValue, bool* ok)
     return ret;
 }
 
-double Matrix::vmin(const QVector<double> &v)
+Matrix::VStats Matrix::vstats(const QVector<double> &vector)
 {
-    if (v.isEmpty()) { return 0; }
-    double min = v[0];
-    for (int i=1; i < v.count(); i++) {
-        if (v[i] < min) { min = v[i]; }
+    VStats s;
+    if (vector.isEmpty()) { return s; }
+    s.max = vector[0];
+    s.min = vector[0];
+    s.monotonicallyIncreasing = true;
+    double lastValue = vector[0];
+    for (int i = 1; i < vector.count(); i++) {
+        double value = vector[i];
+        if (value < s.min) { s.min = value; }
+        if (value > s.max) { s.max = value; }
+        if (value < lastValue) { s.monotonicallyIncreasing = false; }
+        lastValue = value;
     }
-    return min;
-}
 
-double Matrix::vmax(const QVector<double> &v)
-{
-    if (v.isEmpty()) { return 0; }
-    double max = v[0];
-    for (int i=1; i < v.count(); i++) {
-        if (v[i] > max) { max = v[i]; }
-    }
-    return max;
+    return s;
 }
 
 bool Matrix::MetaData::hasError()

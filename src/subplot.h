@@ -72,6 +72,11 @@ struct Graph {
     CsvPtr csv;
     Range range;
 
+    double xmin = 0;
+    double xmax = 0;
+    double ymin = 0;
+    double ymax = 0;
+
     bool isCurve();
     bool isGraph();
     QString name();

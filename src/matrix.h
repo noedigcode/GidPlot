@@ -69,13 +69,15 @@ public:
     bool addRow(QVector<Value> values);
 
     bool colValid(int column);
-    double min(int column);
-    double max(int column);
 
     bool convertToBool(const QByteArray &data, bool defaultValue, bool* ok = nullptr);
 
-    static double vmin(const QVector<double> &v);
-    static double vmax(const QVector<double> &v);
+    struct VStats {
+        double min = 0;
+        double max = 0;
+        bool monotonicallyIncreasing = false;
+    };
+    static VStats vstats(const QVector<double> &vector);
 
 private:
     QStringList mHeadings;

@@ -174,31 +174,13 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     QVector<double> x = csv->matrix->data[ixcol].mid(range.start, range.size());
     QVector<double> y = csv->matrix->data[iycol].mid(range.start, range.size());
 
-    if (firstPlot) {
-        xmin = Matrix::vmin(x);
-        xmax = Matrix::vmax(x);
-        ymin = Matrix::vmin(y);
-        ymax = Matrix::vmax(y);
-    } else {
-        xmin = qMin(xmin, Matrix::vmin(x));
-        xmax = qMax(xmax, Matrix::vmax(x));
-        ymin = qMin(ymin, Matrix::vmin(y));
-        ymax = qMax(ymax, Matrix::vmax(y));
-    }
-
-    // Determine whether x is monotonically inreasing
-    bool up = true;
-    for (int i = 1; i < x.count(); i++) {
-        if (x[i] < x[i-1]) {
-            up = false;
-            break;
-        }
-    }
+    Matrix::VStats xstats = Matrix::vstats(x);
+    Matrix::VStats ystats = Matrix::vstats(y);
 
     QPen pen = pens.value((mPenIndex++) % pens.count());
 
     GraphPtr graph;
-    if (up) {
+    if (xstats.monotonicallyIncreasing) {
         // Graph is more efficient but can only be used if x is monotonically
         // increasing
         QCPGraph* qcpgraph = plot->addGraph(xAxis, yAxis);
@@ -221,8 +203,25 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     }
     graph->csv = csv;
     graph->range = range;
+    graph->xmin = xstats.min;
+    graph->xmax = xstats.max;
+    graph->ymin = ystats.min;
+    graph->ymax = ystats.max;
     graphs.append(graph);
     plottableGraphMap.insert(graph->plottable(), graph);
+
+    // Record min/max for all graphs
+    if (firstPlot) {
+        xmin = xstats.min;
+        xmax = xstats.max;
+        ymin = ystats.min;
+        ymax = ystats.max;
+    } else {
+        xmin = qMin(xmin, xstats.min);
+        xmax = qMax(xmax, xstats.max);
+        ymin = qMin(ymin, ystats.min);
+        ymax = qMax(ymax, ystats.max);
+    }
 
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
 
@@ -950,6 +949,23 @@ void Subplot::removeGraph(GraphPtr graph)
 
     if (dataTipGraph == graph) {
         dataTipGraph = graphs.value(0);
+    }
+
+    // Recalculate overall min/max for remaining graphs
+    bool first = true;
+    foreach (GraphPtr graph, graphs) {
+        if (first) {
+            first = false;
+            xmin = graph->xmin;
+            xmax = graph->xmax;
+            ymin = graph->ymin;
+            ymax = graph->ymax;
+        } else {
+            xmin = qMin(xmin, graph->xmin);
+            xmax = qMax(xmax, graph->xmax);
+            ymin = qMin(ymin, graph->ymin);
+            ymax = qMax(ymax, graph->ymax);
+        }
     }
 }
 
