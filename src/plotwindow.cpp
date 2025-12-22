@@ -74,6 +74,20 @@ int PlotWindow::tag()
     return mTag;
 }
 
+QList<LinkPtr> PlotWindow::links()
+{
+    QList<LinkPtr> ret;
+
+    foreach (SubplotPtr subplot, mSubplots) {
+        ret.append(subplot->link);
+    }
+    if (mMapPlot) {
+        ret.append(mMapPlot->link);
+    }
+
+    return ret;
+}
+
 QList<SubplotPtr> PlotWindow::subplots()
 {
     return mSubplots;
@@ -115,7 +129,16 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
     }
 
     if (!mMapPlot) {
-        mMapPlot = new MapPlot(mMapWidget, this);
+        mMapPlot.reset(new MapPlot(mMapWidget, this));
+
+        connect(mMapPlot.data(), &MapPlot::dataTipChanged,
+                this, [this, mapPlotWkPtr = mMapPlot.toWeakRef()]
+                (int linkGroup, int index)
+        {
+            MapPlotPtr mapPlot(mapPlotWkPtr);
+            if (!mapPlot) { return; }
+            onDataTipChanged(mapPlot, linkGroup, index);
+        });
     }
 
     mMapPlot->plot(csv, ixcol, iycol, range);
@@ -164,18 +187,23 @@ void PlotWindow::setYLabel(QString ylabel)
 void PlotWindow::syncAxisRanges(int linkGroup, QRectF xyrange)
 {
     foreach (SubplotPtr subplot, mSubplots) {
-        if (!subplot->linkGroup) { continue; }
-        if (subplot->linkGroup != linkGroup) { continue; }
-        subplot->syncAxisRanges(xyrange);
+        if (subplot->link->match(linkGroup)) {
+            subplot->syncAxisRanges(xyrange);
+        }
     }
 }
 
 void PlotWindow::syncDataTip(int linkGroup, int index)
 {
     foreach (SubplotPtr subplot, mSubplots) {
-        if (!subplot->linkGroup) { continue; }
-        if (subplot->linkGroup != linkGroup) { continue; }
-        subplot->syncDataTip(index);
+        if (subplot->link->match(linkGroup)) {
+            subplot->syncDataTip(index);
+        }
+    }
+    if (mMapPlot) {
+        if (mMapPlot->link->match(linkGroup)) {
+            mMapPlot->syncDataTip(index);
+        }
     }
 }
 
@@ -232,12 +260,12 @@ void PlotWindow::initSubplot(SubplotPtr subplot)
     {
         SubplotPtr s(sWkPtr);
         if (!s) { return; }
-        emit linkSettingsTriggered(s);
+        emit linkSettingsTriggered(s->link);
     });
 
     mSubplots.append(subplot);
 
-    subplot->tag = QString("Subplot %1").arg(mSubplots.count());
+    subplot->link->tag = QString("Subplot %1").arg(mSubplots.count());
 }
 
 void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
@@ -251,6 +279,24 @@ void PlotWindow::restoreCrosshairsOfAllSubplots()
 {
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->restoreCrosshairs();
+    }
+}
+
+void PlotWindow::syncSubplotDataTips(int linkGroup, int index, SubplotPtr except)
+{
+    foreach (SubplotPtr s, mSubplots) {
+        if (s == except) { continue; }
+        if (s->link->match(linkGroup)) {
+            s->syncDataTip(index);
+        }
+    }
+}
+
+void PlotWindow::syncMapPlotDataTips(int linkGroup, int index)
+{
+    if (!mMapPlot) { return; }
+    if (mMapPlot->link->match(linkGroup)) {
+        mMapPlot->syncDataTip(index);
     }
 }
 
@@ -362,21 +408,25 @@ void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF x
 {
     foreach (SubplotPtr s, mSubplots) {
         if (s == subplot) { continue; }
-        if (!s->linkGroup) { continue; }
-        if (s->linkGroup != linkGroup) { continue; }
-        s->syncAxisRanges(xyrange);
+        if (s->link->match(linkGroup)) {
+            s->syncAxisRanges(xyrange);
+        }
     }
     emit axisRangesChanged(linkGroup, xyrange);
 }
 
 void PlotWindow::onDataTipChanged(SubplotPtr subplot, int linkGroup, int index)
 {
-    foreach (SubplotPtr s, mSubplots) {
-        if (s == subplot) { continue; }
-        if (!s->linkGroup) { continue; }
-        if (s->linkGroup != linkGroup) { continue; }
-        s->syncDataTip(index);
-    }
+    syncSubplotDataTips(linkGroup, index, subplot);
+    syncMapPlotDataTips(linkGroup, index);
+
+    emit dataTipChanged(linkGroup, index);
+}
+
+void PlotWindow::onDataTipChanged(MapPlotPtr /*mapPlot*/, int linkGroup, int index)
+{
+    syncSubplotDataTips(linkGroup, index);
+
     emit dataTipChanged(linkGroup, index);
 }
 

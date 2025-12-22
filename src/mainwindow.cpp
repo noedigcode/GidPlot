@@ -375,9 +375,9 @@ void MainWindow::onPlotTitleSet(PlotWindow* p, QString title)
     updatePlotWindowTitle(p, title);
 }
 
-void MainWindow::onPlotLinkSettingsTrigerred(SubplotPtr subplot)
+void MainWindow::onPlotLinkSettingsTrigerred(LinkPtr link)
 {
-    mLinkDialog.show(mPlots, subplot);
+    mLinkDialog.show(mPlots, link);
 }
 
 void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)

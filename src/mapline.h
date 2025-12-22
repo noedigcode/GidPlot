@@ -31,7 +31,6 @@ private:
     void projPaint(QPainter* painter) override;
     QPointF projAnchor() const override;
 
-private:
     // Start and end coordinates of line
     QGV::GeoPos mPos1;
     QGV::GeoPos mPos2;
@@ -40,7 +39,4 @@ private:
     QPointF mProjPos2;
 
     QPen mPen {Qt::red};
-
-signals:
-    void clicked(QPointF projPos);
 };

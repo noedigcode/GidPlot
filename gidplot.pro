@@ -41,9 +41,11 @@ SOURCES += \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
+    src/link.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
+    src/mapMarker.cpp \
     src/mapline.cpp \
     src/plotwindow.cpp \
     src/subplot.cpp \
@@ -65,8 +67,10 @@ HEADERS += \
     src/aboutdialog.h \
     src/csv.h \
     src/defer.h \
+    src/link.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
+    src/mapMarker.h \
     src/mapline.h \
     src/plotwindow.h \
     src/subplot.h \

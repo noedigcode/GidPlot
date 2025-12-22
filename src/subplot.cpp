@@ -54,6 +54,12 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     setupCrosshairs();
     setupCrosshairsDialog();
     setupMenus();
+    setupLink();
+}
+
+void Subplot::setupLink()
+{
+    link->supportPosZoom = true;
 }
 
 QCPLegend *Subplot::findLegend(QCPAxisRect *axisRect)
@@ -278,16 +284,16 @@ void Subplot::syncAxisRanges(QRectF xyrange)
     QRectF r(xAxis->range().lower, yAxis->range().lower,
              xAxis->range().size(), yAxis->range().size());
     QPointF center = r.center();
-    if (linkXpos) {
+    if (link->linkXpos) {
         center.setX(xyrange.center().x());
     }
-    if (linkYpos) {
+    if (link->linkYpos) {
         center.setY(xyrange.center().y());
     }
-    if (linkXzoom) {
+    if (link->linkXzoom) {
         r.setWidth(xyrange.width());
     }
-    if (linkYzoom) {
+    if (link->linkYzoom) {
         r.setHeight(xyrange.height());
     }
     r.moveCenter(center);
@@ -300,19 +306,18 @@ void Subplot::syncAxisRanges(QRectF xyrange)
 
 void Subplot::syncDataTip(int index)
 {
-    if (mPlotCrosshair->visible()) {
-        if (dataTipGraph) {
-            index -= dataTipGraph->range.start;
-            double x = dataTipGraph->datax(index);
-            double y = dataTipGraph->datay(index);
-            mPlotCrosshair->position->setCoords(x, y);
-            mPlotCrosshair->text = QString("%1, %2 [%3]")
-                    .arg(x)
-                    .arg(y)
-                    .arg(index);
-            queueReplot();
-        }
-    }
+    if (!mPlotCrosshair->visible()) { return; }
+    if (!dataTipGraph) { return; }
+
+    index -= dataTipGraph->range.start;
+    double x = dataTipGraph->datax(index);
+    double y = dataTipGraph->datay(index);
+    mPlotCrosshair->position->setCoords(x, y);
+    mPlotCrosshair->text = QString("%1, %2 [%3]")
+            .arg(x)
+            .arg(y)
+            .arg(index);
+    queueReplot();
 }
 
 void Subplot::resizeEvent()
@@ -811,8 +816,8 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                             .arg(closest.dataIndex)
                             .arg(closest.xCoord)
                             .arg(closest.yCoord);
-                    emit dataTipChanged(linkGroup,
-                                closest.dataIndex+ dataTipGraph->range.start);
+                    emit dataTipChanged(link->group,
+                                closest.dataIndex + dataTipGraph->range.start);
                     replot = true;
 
                     mPlotCrosshairIndex = closest.dataIndex;
@@ -1372,7 +1377,7 @@ void Subplot::onAxisRangesChanged()
             mRangesChanged = false;
             QRectF r(xAxis->range().lower, yAxis->range().lower,
                      xAxis->range().size(), yAxis->range().size());
-            emit axisRangesChanged(linkGroup, r);
+            emit axisRangesChanged(link->group, r);
         }
     });
 }

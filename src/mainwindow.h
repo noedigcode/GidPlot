@@ -70,7 +70,7 @@ private slots:
     void onPlotRequestWindowDock(PlotWindow* p, PlotWindow::Dock location);
     void onPlotRequestWindowResize(PlotWindow* p, int width, int height);
     void onPlotTitleSet(PlotWindow* p, QString title);
-    void onPlotLinkSettingsTrigerred(SubplotPtr subplot);
+    void onPlotLinkSettingsTrigerred(LinkPtr link);
 
     void plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range);
 

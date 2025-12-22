@@ -22,6 +22,7 @@
 #define SUBPLOT_H
 
 #include "csv.h"
+#include "link.h"
 #include "PlotMarkerItem.h"
 #include "MarkerEditDialog.h"
 #include "CrosshairsDialog.h"
@@ -101,12 +102,9 @@ public:
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QCPLegend* legend = nullptr;
-    QString tag = "subplot";
-    int linkGroup = 0;
-    bool linkXpos = false;
-    bool linkYpos = false;
-    bool linkXzoom = false;
-    bool linkYzoom = false;
+
+    void setupLink();
+    LinkPtr link {new Link()};
 
     static QCPLegend* findLegend(QCPAxisRect* axisRect);
 
@@ -213,6 +211,9 @@ private:
 
     bool mFirstLegendPlacement = true;
     void updateLegendPlacement();
+
+    // -------------------------------------------------------------------------
+    // Graphs / plottables
 
     GraphPtr dataTipGraph;
     QList<GraphPtr> graphs;

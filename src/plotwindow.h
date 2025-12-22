@@ -54,6 +54,7 @@ public:
     };
 
     int tag();
+    QList<LinkPtr> links();
     QList<SubplotPtr> subplots();
     QCustomPlot* plotWidget();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
@@ -73,7 +74,7 @@ signals:
     void requestWindowDock(Dock location);
     void requestWindowResize(int width, int height);
     void titleSet(QString title);
-    void linkSettingsTriggered(SubplotPtr subplot);
+    void linkSettingsTriggered(LinkPtr link);
 
 private slots:
     void plottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *event);
@@ -88,6 +89,7 @@ private slots:
 
     void onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange);
     void onDataTipChanged(SubplotPtr subplot, int linkGroup, int index);
+    void onDataTipChanged(MapPlotPtr mapPlot, int linkGroup, int index);
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -150,8 +152,10 @@ private:
     void initSubplot(SubplotPtr subplot);
     void storeAndDisableCrosshairsOfAllSubplots();
     void restoreCrosshairsOfAllSubplots();
+    void syncSubplotDataTips(int linkGroup, int index, SubplotPtr except = nullptr);
 
-    MapPlot* mMapPlot = nullptr;
+    MapPlotPtr mMapPlot;
+    void syncMapPlotDataTips(int linkGroup, int index);
 
 private slots:
     void on_action_Save_as_PDF_triggered();
