@@ -1094,7 +1094,7 @@ bool Subplot::markerRightClick(QPoint pos)
     // hold on to it.
     QWeakPointer<Marker> mWptr(markerMouse.marker);
 
-    menu->addAction(QIcon("://edit"), "Edit Text",
+    menu->addAction(QIcon("://edit"), "Edit",
                     this, [this, mWptr = marker.toWeakRef()]()
     {
         MarkerPtr m(mWptr);
