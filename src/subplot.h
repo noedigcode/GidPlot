@@ -22,6 +22,7 @@
 #define SUBPLOT_H
 
 #include "csv.h"
+#include "graph.h"
 #include "link.h"
 #include "PlotMarkerItem.h"
 #include "MarkerEditDialog.h"
@@ -55,38 +56,6 @@ struct Measure
     QString tag;
 };
 typedef QSharedPointer<Measure> MeasurePtr;
-
-// ===========================================================================
-
-/* Graph provides a unified interface for either a QCPGraph or QCPCurve,
- * either of which can be used to plot data depending on whether it is
- * monotonically increasing (QCPGraph) or not (QCPCurve). */
-struct Graph {
-
-    Graph(QCPGraph* graph) : graph(graph) {}
-    Graph(QCPCurve* curve) : curve(curve) {}
-
-    QCPCurve* curve = nullptr;
-    QCPGraph* graph = nullptr;
-    QCPAbstractPlottable* plottable();
-
-    CsvPtr csv;
-    Range range;
-
-    double xmin = 0;
-    double xmax = 0;
-    double ymin = 0;
-    double ymax = 0;
-
-    bool isCurve();
-    bool isGraph();
-    QString name();
-    int dataCount();
-    double datax(int index);
-    double datay(int index);
-    QColor color();
-};
-typedef QSharedPointer<Graph> GraphPtr;
 
 // ===========================================================================
 
@@ -134,14 +103,6 @@ signals:
     void linkSettingsTriggered();
 
 private:
-    QList<QPen> pens {
-        QPen(Qt::blue),
-        QPen(Qt::red),
-        QPen(Qt::green),
-        QPen(Qt::cyan),
-        QPen(Qt::magenta),
-        QPen(Qt::darkRed),
-    };
     // Keep count of current pen index when adding new plots instead of simply
     // using (plottables.count % pens.count), so when a plottable has been
     // removed and a new one is added, it doesn't get the same colour as an

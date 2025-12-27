@@ -31,6 +31,7 @@ MapPlot::MapPlot(QGVMap *mapWidget, QObject *parent)
 void MapPlot::setupLink()
 {
     link->supportPosZoom = false;
+    link->tag = "Map Plot";
 }
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
@@ -38,42 +39,44 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     bool firstPlot = mTracks.isEmpty();
 
     TrackPtr track(new Track());
-    track->csv = csv;
-    track->ilatcol = ilatcol;
-    track->iloncol = iloncol;
-    track->range = range;
+    GraphPtr graph(new Graph(track));
+    graph->csv = csv;
+    graph->iycol = ilatcol;
+    graph->ixcol = iloncol;
+    graph->range = range;
     track->lats = csv->matrix->data[ilatcol].mid(range.start, range.size());
     track->lons = csv->matrix->data[iloncol].mid(range.start, range.size());
 
-    track->latStats = Matrix::vstats(track->lats);
-    track->lonStats = Matrix::vstats(track->lons);
+    graph->ystats = Matrix::vstats(track->lats);
+    graph->xstats = Matrix::vstats(track->lons);
 
     // Combine track mins/maxes with overall of all tracks
     if (firstPlot) {
-        latmin = track->latStats.min;
-        latmax = track->latStats.max;
-        lonmin = track->lonStats.min;
-        lonmax = track->lonStats.max;
+        latmin = graph->ystats.min;
+        latmax = graph->ystats.max;
+        lonmin = graph->xstats.min;
+        lonmax = graph->xstats.max;
     } else {
-        latmin = qMin(latmin, track->latStats.min);
-        latmax = qMax(latmax, track->latStats.max);
-        lonmin = qMin(lonmin, track->lonStats.min);
-        lonmax = qMax(lonmax, track->lonStats.max);
+        latmin = qMin(latmin, graph->ystats.min);
+        latmax = qMax(latmax, graph->ystats.max);
+        lonmin = qMin(lonmin, graph->xstats.min);
+        lonmax = qMax(lonmax, graph->xstats.max);
     }
 
     // Create track on map
-    for (int i = range.start; i < range.end - 1; i++) {
+    QPen pen = Graph::nextPen(mPenIndex++);
+    for (int i = 0; i < track->lats.count() - 1; i++) {
         QGV::GeoPos pos1(track->lats[i], track->lons[i]);
         QGV::GeoPos pos2(track->lats[i+1], track->lons[i+1]);
         MapLine* line = new MapLine(pos1, pos2);
-        line->setColor(Qt::red);
+        line->setColor(pen.color());
         track->mapLines.append(line);
         mMapWidget->addItem(line);
     }
 
-    mTracks.append(track);
+    mTracks.append(graph);
     if (!dataTipTrack) {
-        dataTipTrack = track;
+        dataTipTrack = graph;
         mTrackCrosshair->setVisible(true);
     }
 
@@ -86,9 +89,9 @@ void MapPlot::syncDataTip(int index)
     if (!dataTipTrack) { return; }
 
     index -= dataTipTrack->range.start;
-    if ((index < 0) || (index >= dataTipTrack->lats.count())) { return; }
-    double lat = dataTipTrack->lats[index];
-    double lon = dataTipTrack->lons[index];
+    if ((index < 0) || (index >= dataTipTrack->dataCount())) { return; }
+    double lat = dataTipTrack->track->lats[index];
+    double lon = dataTipTrack->track->lons[index];
     mTrackCrosshair->setPosition(QGV::GeoPos(lat, lon));
 }
 
@@ -111,22 +114,23 @@ void MapPlot::setupCrosshairs()
     mTrackCrosshair = new MapMarker(QGV::GeoPos(), 5);
     mTrackCrosshair->setBrush(QBrush(QColor(255, 0, 0, 100)));
     mTrackCrosshair->setVisible(false);
+    mTrackCrosshair->bringToFront();
     mMapWidget->addItem(mTrackCrosshair);
 }
 
-MapPlot::ClosestCoord MapPlot::findClosestCoord(QGV::GeoPos pos, TrackPtr track)
+MapPlot::ClosestCoord MapPlot::findClosestCoord(QGV::GeoPos pos, GraphPtr graph)
 {
     ClosestCoord closest;
 
-    if (!track) {
+    if (!graph) {
         closest.valid = false;
         return closest;
     }
 
-    for (int i = 0; i < track->lats.count(); i++) {
+    for (int i = 0; i < graph->dataCount(); i++) {
 
-        double lat = track->lats[i];
-        double lon = track->lons[i];
+        double lat = graph->track->lats[i];
+        double lon = graph->track->lons[i];
         double dist = qSqrt( qPow(pos.latitude() - lat, 2)
                              + qPow(pos.longitude() - lon, 2) );
 

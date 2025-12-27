@@ -2,6 +2,7 @@
 #define MAPPLOT_H
 
 #include "csv.h"
+#include "graph.h"
 #include "link.h"
 #include "mapline.h"
 #include "mapMarker.h"
@@ -16,32 +17,12 @@
 
 // ===========================================================================
 
-struct Track
-{
-    CsvPtr csv;
-    int iloncol = 0;
-    int ilatcol = 0;
-    Range range;
-
-    QVector<double> lats;
-    QVector<double> lons;
-
-    Matrix::VStats latStats;
-    Matrix::VStats lonStats;
-
-    QList<MapLine*> mapLines;
-};
-typedef QSharedPointer<Track> TrackPtr;
-
-// ===========================================================================
-
 class MapPlot : public QObject
 {
     Q_OBJECT
 public:
     explicit MapPlot(QGVMap *mapWidget, QObject *parent = nullptr);
 
-    void setupLink();
     LinkPtr link {new Link()};
 
     void plot(CsvPtr csv, int iloncol, int ilatcol, Range range);
@@ -57,11 +38,15 @@ private:
     static QNetworkAccessManager netAccMgr;
     static QNetworkDiskCache netCache;
 
+    int mPenIndex = 0;
+
     QGVMap* mMapWidget = nullptr;
     QGVLayerTiles* mTilesItem = nullptr;
 
-    QList<TrackPtr> mTracks;
-    TrackPtr dataTipTrack;
+    void setupLink();
+
+    QList<GraphPtr> mTracks;
+    GraphPtr dataTipTrack;
 
     double latmin = 0;
     double latmax = 0;
@@ -79,7 +64,7 @@ private:
         double lon = 0;
         int dataIndex;
     };
-    ClosestCoord findClosestCoord(QGV::GeoPos pos, TrackPtr track);
+    ClosestCoord findClosestCoord(QGV::GeoPos pos, GraphPtr graph);
 
     void setMapTiles(QGVLayerTiles* tiles);
     void removeTiles();

@@ -41,6 +41,7 @@ SOURCES += \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
+    src/graph.cpp \
     src/link.cpp \
     src/main.cpp \
     src/mainwindow.cpp \
@@ -67,6 +68,7 @@ HEADERS += \
     src/aboutdialog.h \
     src/csv.h \
     src/defer.h \
+    src/graph.h \
     src/link.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
