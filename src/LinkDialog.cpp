@@ -117,6 +117,7 @@ void LinkDialog::show(QList<PlotWindow *> plotWindows, LinkPtr selectLink)
         }
 
         ui->treeWidget->addTopLevelItem(parentItem);
+        parentItem->setFirstColumnSpanned(true);
         parentItem->setExpanded(true);
     }
 
