@@ -364,8 +364,9 @@ void MainWindow::onPlotRequestWindowResize(PlotWindow* p, int width, int height)
     ui->tabWidget->popoutTabWidget(p);
     QMainWindow* w = ui->tabWidget->tabWindow(p);
 
-    width += w->width() - p->plotWidget()->width();
-    height += w->height() - p->plotWidget()->height();
+    QSize psize = p->plotWidgetSize();
+    width += w->width() - psize.width();
+    height += w->height() - psize.height();
 
     w->resize(width, height);
 }

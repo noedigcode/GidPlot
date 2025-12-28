@@ -33,6 +33,14 @@ public:
 
     void showAll();
 
+    bool saveToPng(QString path);
+    QPixmap toPixmap();
+
+    void storeAndDisableCrosshairs();
+    void restoreCrosshairs();
+
+    void resizeEvent();
+
 signals:
     void dataTipChanged(int linkGroup, int index);
     void linkSettingsTriggered();
@@ -75,6 +83,7 @@ private:
     void setupCrosshairs();
     MapMarker* mTrackCrosshair = nullptr;
     int mTrackCrosshairIndex = 0;
+    bool lastTrackCrosshairVisible = true;
 
     struct ClosestCoord {
         bool valid = false;

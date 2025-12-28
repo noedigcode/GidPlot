@@ -1,5 +1,7 @@
 #include "MapPlot.h"
 
+#include "QGVMapQGView.h"
+
 #include <QLayout>
 #include <QtMath>
 
@@ -62,13 +64,29 @@ void MapPlot::setupMenus()
 
     connect(plotMenu.actionPlaceMarker, &QAction::triggered,
             this, &MapPlot::onActionPlaceMarkerTriggered);
+
+    // TODO
+    plotMenu.actionPlaceMarker->setVisible(false);
+    qDebug() << "TODO Implement place marker for map plots";
+
     connect(plotMenu.actionMeasure, &QAction::triggered,
             this, &MapPlot::onActionMeasureTriggered);
+
+    // TODO
+    plotMenu.actionMeasure->setVisible(false);
+    qDebug() << "TODO Implement measure for map plots";
+
     connect(plotMenu.actionShowAll, &QAction::triggered,
             this, &MapPlot::showAll);
     plotMenu.actionEqualAxes->setVisible(false);
+
     connect(plotMenu.actionCrosshairs, &QAction::triggered,
             this, &MapPlot::showCrosshairsDialog);
+
+    // TODO
+    plotMenu.actionCrosshairs->setVisible(false);
+    qDebug() << "TODO Implement crosshair options fro map plots";
+
     connect(plotMenu.actionLink, &QAction::triggered,
             this, &MapPlot::linkSettingsTriggered);
 
@@ -166,6 +184,46 @@ void MapPlot::zoomTo(double lat1, double lon1, double lat2, double lon2)
 void MapPlot::showAll()
 {
     zoomTo(latmin, lonmin, latmax, lonmax);
+}
+
+bool MapPlot::saveToPng(QString path)
+{
+    bool ok = toPixmap().save(path, "PNG");
+
+    return ok;
+}
+
+QPixmap MapPlot::toPixmap()
+{
+    QGVMapQGView* geoView = mMapWidget->geoView();
+
+    // Get the size of your QGeoView viewport
+    QRect rect = geoView->viewport()->rect();
+
+    // Create a pixmap the same size
+    QPixmap pixmap(rect.size());
+    QPainter painter(&pixmap);
+
+    // Render the current view onto the pixmap
+    geoView->render(&painter, pixmap.rect(), rect);
+
+    return pixmap;
+}
+
+void MapPlot::storeAndDisableCrosshairs()
+{
+    lastTrackCrosshairVisible = mTrackCrosshair->isVisible();
+    mTrackCrosshair->setVisible(false);
+}
+
+void MapPlot::restoreCrosshairs()
+{
+    mTrackCrosshair->setVisible(lastTrackCrosshairVisible);
+}
+
+void MapPlot::resizeEvent()
+{
+
 }
 
 void MapPlot::setupCrosshairs()

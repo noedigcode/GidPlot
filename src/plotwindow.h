@@ -56,7 +56,7 @@ public:
     int tag();
     QList<LinkPtr> links();
     QList<SubplotPtr> subplots();
-    QCustomPlot* plotWidget();
+    QSize plotWidgetSize();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
     void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
     void plotMap(CsvPtr csv, int ixcol, int iycol, Range range);
@@ -68,8 +68,8 @@ public:
     void syncAxisRanges(int linkGroup, QRectF xyrange);
     void syncDataTip(int linkGroup, int index);
 
-    void setGuiInfoForPlot();
-    void setGuiInfoForMap();
+    void setupGuiForNormalPlot();
+    void setupGuiForMap();
 
 signals:
     void axisRangesChanged(int linkGroup, QRectF xyrange);

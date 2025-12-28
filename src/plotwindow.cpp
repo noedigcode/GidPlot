@@ -93,9 +93,13 @@ QList<SubplotPtr> PlotWindow::subplots()
     return mSubplots;
 }
 
-QCustomPlot *PlotWindow::plotWidget()
+QSize PlotWindow::plotWidgetSize()
 {
-    return ui->plot;
+    if (mMapWidget) {
+        return mMapWidget->size();
+    } else {
+        return ui->plot->size();
+    }
 }
 
 void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
@@ -115,7 +119,7 @@ void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, 
 
     subplot->plotData(csv, ixcol, iycol, range);
 
-    setGuiInfoForPlot();
+    setupGuiForNormalPlot();
 }
 
 void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
@@ -152,7 +156,7 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
 
     mMapPlot->plot(csv, ixcol, iycol, range);
 
-    setGuiInfoForMap();
+    setupGuiForMap();
 }
 
 SubplotPtr PlotWindow::addSubplot()
@@ -218,8 +222,9 @@ void PlotWindow::syncDataTip(int linkGroup, int index)
     }
 }
 
-void PlotWindow::setGuiInfoForPlot()
+void PlotWindow::setupGuiForNormalPlot()
 {
+    // Mouse/keyboard control info
     ui->frame_info_ctrlWheelZoom->setVisible(true);
     ui->frame_info_ldragPan->setVisible(true);
     ui->frame_info_rclickMenu->setVisible(true);
@@ -229,8 +234,9 @@ void PlotWindow::setGuiInfoForPlot()
     ui->frame_info_wheelZoom->setVisible(false);
 }
 
-void PlotWindow::setGuiInfoForMap()
+void PlotWindow::setupGuiForMap()
 {
+    // Mouse/keyboard control info
     ui->frame_info_ctrlWheelZoom->setVisible(false);
     ui->frame_info_ldragPan->setVisible(true);
     ui->frame_info_rclickMenu->setVisible(true);
@@ -238,6 +244,11 @@ void PlotWindow::setGuiInfoForMap()
     ui->frame_info_shiftWheelVzoom->setVisible(false);
     ui->frame_info_wheelHzoom->setVisible(false);
     ui->frame_info_wheelZoom->setVisible(true);
+
+    // Image menu items
+    ui->action_Copy_SVG->setVisible(false);
+    ui->action_Save_as_PDF->setVisible(false);
+    ui->action_Save_as_SVG->setVisible(false);
 }
 
 bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
@@ -258,6 +269,9 @@ void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 {
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->resizeEvent();
+    }
+    if (mMapPlot) {
+        mMapPlot->resizeEvent();
     }
 }
 
@@ -306,12 +320,18 @@ void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->storeAndDisableCrosshairs();
     }
+    if (mMapPlot) {
+        mMapPlot->storeAndDisableCrosshairs();
+    }
 }
 
 void PlotWindow::restoreCrosshairsOfAllSubplots()
 {
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->restoreCrosshairs();
+    }
+    if (mMapPlot) {
+        mMapPlot->restoreCrosshairs();
     }
 }
 
@@ -544,7 +564,14 @@ void PlotWindow::on_action_Save_as_PDF_triggered()
 void PlotWindow::on_action_Copy_PNG_triggered()
 {
     storeAndDisableCrosshairsOfAllSubplots();
-    QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+
+    QImage image;
+    if (mMapPlot) {
+        image = mMapPlot->toPixmap().toImage();
+    } else {
+        image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+    }
+
     restoreCrosshairsOfAllSubplots();
 
     QClipboard* clipboard = QGuiApplication::clipboard();
@@ -573,11 +600,24 @@ void PlotWindow::on_action_Save_as_PNG_triggered()
     if (path.isEmpty()) { return; }
 
     storeAndDisableCrosshairsOfAllSubplots();
-    bool ok = ui->plot->savePng(path, 0, 0, 2.0);
+
+    bool ok;
+
+    if (mMapPlot) {
+
+        ok = mMapPlot->saveToPng(path);
+
+    } else {
+
+        ok = ui->plot->savePng(path, 0, 0, 2.0);
+
+    }
+
     if (!ok) {
         QMessageBox::critical(this, "Save to PNG failed",
                               "Failed to save to PNG: " + path);
     }
+
     restoreCrosshairsOfAllSubplots();
 }
 
