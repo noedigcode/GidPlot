@@ -68,6 +68,9 @@ public:
     void syncAxisRanges(int linkGroup, QRectF xyrange);
     void syncDataTip(int linkGroup, int index);
 
+    void setGuiInfoForPlot();
+    void setGuiInfoForMap();
+
 signals:
     void axisRangesChanged(int linkGroup, QRectF xyrange);
     void dataTipChanged(int linkGroup, int index);

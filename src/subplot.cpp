@@ -408,7 +408,6 @@ void Subplot::showAll()
 void Subplot::setEqualAxesButDontReplot(bool fixed)
 {
     mEqualAxes = fixed;
-    actionEqualAxes->setChecked(mEqualAxes);
 
     if (fixed) {
         axisRect->setRangeZoom(Qt::Vertical | Qt::Horizontal);
@@ -576,115 +575,26 @@ void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
 
 void Subplot::setupMenus()
 {
-    // Plot context menu
+    plotMenu.parentWidget = parentWidget;
+    plotMenu.getDataTipGraphCallback = [=]() { return getDataTipGraph(); };
+    plotMenu.getGraphsCallback = [=]() { return getAllGraphs(); };
+    plotMenu.getPlotCrosshairIndexCallback = [=]()
+    {
+        return mPlotCrosshairIndex;
+    };
 
-    plotContextMenu.addAction(QIcon("://marker"), "Place Marker", this,
-                              &Subplot::onActionPlaceMarkerTriggered);
-    actionMeasure = plotContextMenu.addAction(QIcon("://measure"), "Measure", this,
-                              &Subplot::onActionMeasureTriggered);
-    plotContextMenu.addAction(QIcon("://showall"), "Show All", this,
-                              [=]() { showAll(); });
-    actionEqualAxes = plotContextMenu.addAction(QIcon("://equalaxes"), "Equal Axes", this,
-                              &Subplot::onActionEqualAxesTriggered);
-    actionEqualAxes->setCheckable(true);
-
-    // Data tip menu
-    dataTipMenu.setTitle("Datatip Plot");
-    connect(&dataTipMenu, &QMenu::aboutToShow, this, &Subplot::onDataTipMenuAboutToShow);
-    plotContextMenu.addMenu(&dataTipMenu);
-
-    // Range menu
-    rangeMenu.setTitle("Range");
-    connect(&rangeMenu, &QMenu::aboutToShow, this, &Subplot::onRangeMenuAboutToShow);
-    plotContextMenu.addMenu(&rangeMenu);
-
-    plotContextMenu.addAction(QIcon("://crosshair"), "Crosshairs...",
-                              this, [=]() { showCrosshairsDialog(); });
-
-    plotContextMenu.addAction(QIcon("://link"), "Link to Other Plots...",
-                                    this, &Subplot::linkSettingsTriggered);
-}
-
-void Subplot::onRangeMenuAboutToShow()
-{
-    rangeMenu.clear();
-
-    if (!dataTipGraph) {
-        rangeMenu.addAction("No datatip");
-    } else {
-
-        QMenu* newRangeMenu = rangeMenu.addMenu("New Range");
-
-        newRangeMenu->addAction("Set start of new range", this, [=]()
-        {
-            QString name = QInputDialog::getText(parentWidget, "New Range", "Name",
-                                                 QLineEdit::Normal,
-                                                 QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-            if (name.isEmpty()) { return; }
-            RangePtr range(new Range());
-            range->name = name;
-            // Take start of graph range into account
-            range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-            range->end = dataTipGraph->range.end + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
-        });
-        newRangeMenu->addAction("Set end of new range", this, [=]()
-        {
-            QString name = QInputDialog::getText(parentWidget, "New Range", "Name",
-                                                 QLineEdit::Normal,
-                                                 QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-            if (name.isEmpty()) { return; }
-            RangePtr range(new Range());
-            range->name = name;
-            // Take start of graph range into account
-            range->start = 0 + dataTipGraph->range.start;
-            range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
-        });
-
-        foreach (RangePtr range, dataTipGraph->csv->ranges) {
-            QMenu* rangeXMenu = rangeMenu.addMenu(range->name);
-            RangeWeakPtr rangeWkPtr(range);
-            rangeXMenu->addAction("Set start", this, [this, rangeWkPtr]()
-            {
-                RangePtr range(rangeWkPtr);
-                if (!range) { return; }
-                // Take start of graph range into account
-                range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-            });
-            rangeXMenu->addAction("Set end", this, [this, rangeWkPtr]()
-            {
-                RangePtr range(rangeWkPtr);
-                if (!range) { return; }
-                // Take start of graph range into account
-                range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-            });
-        }
-    }
-}
-
-void Subplot::onDataTipMenuAboutToShow()
-{
-    dataTipMenu.clear();
-    foreach (GraphPtr g, graphs) {
-        QAction* action = dataTipMenu.addAction(g->name(), this,
-                                                [this, gwk = g.toWeakRef()]()
-        {
-            GraphPtr g2(gwk);
-            if (!g2) { return; }
-            dataTipGraph = g2;
-        });
-
-        QPixmap pixmap(16, 16);
-        pixmap.fill(g->color());
-        QIcon icon(pixmap);
-        action->setIcon(icon);
-
-        action->setCheckable(true);
-        if (dataTipGraph == g) {
-            action->setChecked(true);
-        }
-    }
+    connect(plotMenu.actionPlaceMarker, &QAction::triggered,
+            this, &Subplot::onActionPlaceMarkerTriggered);
+    connect(plotMenu.actionMeasure, &QAction::triggered,
+            this, &Subplot::onActionMeasureTriggered);
+    connect(plotMenu.actionShowAll, &QAction::triggered,
+            this, &Subplot::showAll);
+    connect(plotMenu.actionEqualAxes, &QAction::triggered,
+            this, &Subplot::onActionEqualAxesTriggered);
+    connect(plotMenu.actionCrosshairs, &QAction::triggered,
+            this, &Subplot::showCrosshairsDialog);
+    connect(plotMenu.actionLink, &QAction::triggered,
+            this, &Subplot::linkSettingsTriggered);
 }
 
 void Subplot::onActionPlaceMarkerTriggered()
@@ -712,7 +622,7 @@ void Subplot::onActionMeasureTriggered()
 {
     if (!mCurrentMeasure) {
         // Not busy with a measure. Start a new one.
-        actionMeasure->setText("End Measure");
+        plotMenu.setMeasureActionStarted();
     } else {
         // Busy with a measure. End it here.
         clearCurrentMeasure();
@@ -751,7 +661,7 @@ void Subplot::onActionMeasureTriggered()
 
 void Subplot::onActionEqualAxesTriggered()
 {
-    setEqualAxesAndReplot(actionEqualAxes->isChecked());
+    setEqualAxesAndReplot(plotMenu.actionEqualAxes->isChecked());
 }
 
 bool Subplot::plotMouseMove(QMouseEvent *event)
@@ -1211,7 +1121,7 @@ void Subplot::clearCurrentMeasure()
 {
     mCurrentMeasure.reset();
     // Restore measure action text that was set to end measure when started
-    actionMeasure->setText("Measure");
+    plotMenu.setMeasureActionEnded();
 }
 
 void Subplot::setupCrosshairs()
@@ -1342,7 +1252,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
 
     if (!used) {
         // Plot area
-        plotContextMenu.popup(plot->mapToGlobal(pos));
+        plotMenu.menu.popup(plot->mapToGlobal(pos));
     }
 }
 

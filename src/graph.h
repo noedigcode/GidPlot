@@ -6,7 +6,10 @@
 
 #include "QCustomPlot/qcustomplot.h"
 
+#include <QObject>
 #include <QSharedPointer>
+
+#include <functional>
 
 
 /* Graph provides a unified interface for either a QCPGraph, QCPCurve, or
@@ -19,13 +22,15 @@ struct Track
     QVector<double> lats;
     QVector<double> lons;
 
-    QString name; // TODO set
-    QPen pen; // TODO set and use
+    QString name;
+    QPen pen;
 
     QList<MapLine*> mapLines;
 
 };
 typedef QSharedPointer<Track> TrackPtr;
+
+// ===========================================================================
 
 class Graph
 {
@@ -61,5 +66,47 @@ public:
 };
 
 typedef QSharedPointer<Graph> GraphPtr;
+
+// ===========================================================================
+
+class PlotMenu : public QObject
+{
+    Q_OBJECT
+public:
+    PlotMenu(QObject* parent = nullptr);
+
+    QWidget* parentWidget = nullptr;
+    std::function<GraphPtr()> getDataTipGraphCallback;
+    std::function<QList<GraphPtr>()> getGraphsCallback;
+    std::function<int()> getPlotCrosshairIndexCallback;
+    void setMeasureActionStarted();
+    void setMeasureActionEnded();
+
+    QMenu menu;
+
+    QAction* actionCrosshairs;
+    QAction* actionEqualAxes;
+    QAction* actionLink;
+    QAction* actionMeasure;
+    QAction* actionPlaceMarker;
+    QAction* actionShowAll;
+    QMenu dataTipMenu;
+    QMenu rangeMenu;
+
+    QList<QAction*> actions();
+
+signals:
+    void dataTipGraphSelected(GraphPtr graph);
+
+private:
+    GraphPtr datatipGraph();
+    QList<GraphPtr> allGraphs();
+    int plotCrosshairIndex();
+
+private slots:
+    void onDataTipMenuAboutToShow();
+    void onRangeMenuAboutToShow();
+};
+
 
 #endif // GRAPH_H

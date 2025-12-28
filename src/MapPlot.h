@@ -31,8 +31,11 @@ public:
     void setMapOSM();
     void zoomTo(double lat1, double lon1, double lat2, double lon2);
 
+    void showAll();
+
 signals:
     void dataTipChanged(int linkGroup, int index);
+    void linkSettingsTriggered();
 
 private:
     static QNetworkAccessManager netAccMgr;
@@ -46,16 +49,32 @@ private:
     void setupLink();
 
     QList<GraphPtr> mTracks;
+    QList<GraphPtr> getAllGraphs();
     GraphPtr dataTipTrack;
+    GraphPtr getDataTipGraph();
 
     double latmin = 0;
     double latmax = 0;
     double lonmin = 0;
     double lonmax = 0;
 
+    void showCrosshairsDialog();
+
+    // -----------------------------------------------------------------------
+    // Menus
+private:
+    PlotMenu plotMenu;
+    void setupMenus();
+private slots:
+    void onActionPlaceMarkerTriggered();
+    void onActionMeasureTriggered();
+
+    // -----------------------------------------------------------------------
     // Crosshairs
+private:
     void setupCrosshairs();
     MapMarker* mTrackCrosshair = nullptr;
+    int mTrackCrosshairIndex = 0;
 
     struct ClosestCoord {
         bool valid = false;

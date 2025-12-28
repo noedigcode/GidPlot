@@ -114,6 +114,8 @@ void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, 
     if (!subplot) { return; }
 
     subplot->plotData(csv, ixcol, iycol, range);
+
+    setGuiInfoForPlot();
 }
 
 void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
@@ -139,9 +141,18 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
             if (!mapPlot) { return; }
             onDataTipChanged(mapPlot, linkGroup, index);
         });
+        connect(mMapPlot.data(), &MapPlot::linkSettingsTriggered,
+                this, [this, mapPlotWkPtr = mMapPlot.toWeakRef()]()
+        {
+            MapPlotPtr mapPlot(mapPlotWkPtr);
+            if (!mapPlot) { return; }
+            emit linkSettingsTriggered(mapPlot->link);
+        });
     }
 
     mMapPlot->plot(csv, ixcol, iycol, range);
+
+    setGuiInfoForMap();
 }
 
 SubplotPtr PlotWindow::addSubplot()
@@ -207,6 +218,28 @@ void PlotWindow::syncDataTip(int linkGroup, int index)
     }
 }
 
+void PlotWindow::setGuiInfoForPlot()
+{
+    ui->frame_info_ctrlWheelZoom->setVisible(true);
+    ui->frame_info_ldragPan->setVisible(true);
+    ui->frame_info_rclickMenu->setVisible(true);
+    ui->frame_info_rdragZoom->setVisible(true);
+    ui->frame_info_shiftWheelVzoom->setVisible(true);
+    ui->frame_info_wheelHzoom->setVisible(true);
+    ui->frame_info_wheelZoom->setVisible(false);
+}
+
+void PlotWindow::setGuiInfoForMap()
+{
+    ui->frame_info_ctrlWheelZoom->setVisible(false);
+    ui->frame_info_ldragPan->setVisible(true);
+    ui->frame_info_rclickMenu->setVisible(true);
+    ui->frame_info_rdragZoom->setVisible(false);
+    ui->frame_info_shiftWheelVzoom->setVisible(false);
+    ui->frame_info_wheelHzoom->setVisible(false);
+    ui->frame_info_wheelZoom->setVisible(true);
+}
+
 bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 {
     bool keyPressOrRelease =    (event->type() == QEvent::KeyPress)
@@ -256,7 +289,7 @@ void PlotWindow::initSubplot(SubplotPtr subplot)
     });
 
     connect(subplot.data(), &Subplot::linkSettingsTriggered,
-            this, [this, sWkPtr = subplot.toWeakRef()]()\
+            this, [this, sWkPtr = subplot.toWeakRef()]()
     {
         SubplotPtr s(sWkPtr);
         if (!s) { return; }

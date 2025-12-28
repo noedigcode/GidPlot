@@ -132,15 +132,9 @@ private slots:
     // -------------------------------------------------------------------------
     // Menus
 private:
-    QAction* actionEqualAxes;
-    QAction* actionMeasure;
-    QMenu rangeMenu;
-    QMenu plotContextMenu;
-    QMenu dataTipMenu;
+    PlotMenu plotMenu;
     void setupMenus();
 private slots:
-    void onRangeMenuAboutToShow();
-    void onDataTipMenuAboutToShow();
     void onActionPlaceMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
@@ -177,7 +171,15 @@ private:
     // Graphs / plottables
 
     GraphPtr dataTipGraph;
+    GraphPtr getDataTipGraph()
+    {
+        return dataTipGraph;
+    }
     QList<GraphPtr> graphs;
+    QList<GraphPtr> getAllGraphs()
+    {
+        return graphs;
+    }
     QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
     void removeGraph(GraphPtr graph);
 

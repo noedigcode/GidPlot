@@ -26,12 +26,63 @@ MapPlot::MapPlot(QGVMap *mapWidget, QObject *parent)
 
     setupCrosshairs();
     setupLink();
+    setupMenus();
 }
 
 void MapPlot::setupLink()
 {
     link->supportPosZoom = false;
     link->tag = "Map Plot";
+}
+
+QList<GraphPtr> MapPlot::getAllGraphs()
+{
+    return mTracks;
+}
+
+GraphPtr MapPlot::getDataTipGraph()
+{
+    return dataTipTrack;
+}
+
+void MapPlot::showCrosshairsDialog()
+{
+    qDebug() << "TODO showCrosshairsDialog()"; // TODO
+}
+
+void MapPlot::setupMenus()
+{
+    plotMenu.parentWidget = nullptr; qDebug() << "TODO MapPlot set plotMenu.parentWidget"; // TODO
+    plotMenu.getDataTipGraphCallback = [=]() { return getDataTipGraph(); };
+    plotMenu.getGraphsCallback = [=]() { return getAllGraphs(); };
+    plotMenu.getPlotCrosshairIndexCallback = [=]()
+    {
+        return mTrackCrosshairIndex;
+    };
+
+    connect(plotMenu.actionPlaceMarker, &QAction::triggered,
+            this, &MapPlot::onActionPlaceMarkerTriggered);
+    connect(plotMenu.actionMeasure, &QAction::triggered,
+            this, &MapPlot::onActionMeasureTriggered);
+    connect(plotMenu.actionShowAll, &QAction::triggered,
+            this, &MapPlot::showAll);
+    plotMenu.actionEqualAxes->setVisible(false);
+    connect(plotMenu.actionCrosshairs, &QAction::triggered,
+            this, &MapPlot::showCrosshairsDialog);
+    connect(plotMenu.actionLink, &QAction::triggered,
+            this, &MapPlot::linkSettingsTriggered);
+
+    mMapWidget->addActions(plotMenu.actions());
+}
+
+void MapPlot::onActionPlaceMarkerTriggered()
+{
+    qDebug() << "TODO onActionPlaceMarkerTriggered()"; // TODO
+}
+
+void MapPlot::onActionMeasureTriggered()
+{
+    qDebug() << "TODO onActionMeasureTriggered()"; // TODO
 }
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
@@ -46,6 +97,9 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     graph->range = range;
     track->lats = csv->matrix->data[ilatcol].mid(range.start, range.size());
     track->lons = csv->matrix->data[iloncol].mid(range.start, range.size());
+    track->name = QString("%1, %2")
+            .arg(csv->matrix->heading(ilatcol))
+            .arg(csv->matrix->heading(iloncol));
 
     graph->ystats = Matrix::vstats(track->lats);
     graph->xstats = Matrix::vstats(track->lons);
@@ -64,12 +118,12 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     }
 
     // Create track on map
-    QPen pen = Graph::nextPen(mPenIndex++);
+    track->pen = Graph::nextPen(mPenIndex++);
     for (int i = 0; i < track->lats.count() - 1; i++) {
         QGV::GeoPos pos1(track->lats[i], track->lons[i]);
         QGV::GeoPos pos2(track->lats[i+1], track->lons[i+1]);
         MapLine* line = new MapLine(pos1, pos2);
-        line->setColor(pen.color());
+        line->setColor(track->pen.color());
         track->mapLines.append(line);
         mMapWidget->addItem(line);
     }
@@ -80,7 +134,7 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
         mTrackCrosshair->setVisible(true);
     }
 
-    zoomTo(latmin, lonmin, latmax, lonmax);
+    showAll();
 }
 
 void MapPlot::syncDataTip(int index)
@@ -107,6 +161,11 @@ void MapPlot::zoomTo(double lat1, double lon1, double lat2, double lon2)
         QGV::GeoRect target(lat1, lon1, lat2, lon2);
         mMapWidget->cameraTo(QGVCameraActions(mMapWidget).scaleTo(target));
     }, Qt::QueuedConnection);
+}
+
+void MapPlot::showAll()
+{
+    zoomTo(latmin, lonmin, latmax, lonmax);
 }
 
 void MapPlot::setupCrosshairs()
@@ -175,6 +234,7 @@ void MapPlot::onMapMouseMove(QPointF projPos)
             mTrackCrosshair->setPosition(closestPos);
             emit dataTipChanged(link->group,
                                 closest.dataIndex + dataTipTrack->range.start);
+            mTrackCrosshairIndex = closest.dataIndex;
         }
     }
 }
