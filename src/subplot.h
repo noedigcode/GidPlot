@@ -65,53 +65,38 @@ class Subplot : public Plot
 {
     Q_OBJECT
 public:
-    explicit Subplot(QCPAxisRect* axisRect, QWidget *parentWidget = nullptr);
+    explicit Subplot(QCPAxisRect* axisRect, QWidget *parentWidget);
 
-    static SubplotPtr newAtBottomOfPlot(QCustomPlot* plot)
-    {
-        QCPAxisRect* ar = new QCPAxisRect(plot);
-        plot->plotLayout()->addElement(plot->plotLayout()->rowCount(), 0, ar);
-        SubplotPtr subplot(new Subplot(ar));
-        return subplot;
-    }
+    static SubplotPtr newAtBottomOfPlot(QCustomPlot* plot, QWidget* parentWidget);
+    static SubplotPtr castFromPlot(PlotPtr plot);
 
-    static SubplotPtr castFromPlot(PlotPtr plot)
-    {
-        return qSharedPointerCast<Subplot>(plot);
-    }
+    static QCPLegend* findLegend(QCPAxisRect* axisRect);
+    bool inAxisRect(QPoint pos);
 
-    QCustomPlot* plot = nullptr;
+    void plot(CsvPtr csv, int ixcol, int iycol, Range range);
+    void setXLabel(QString xlabel);
+    void setYLabel(QString ylabel);
+
+    bool mouseCrosshairVisible();
+    void setMouseCrosshairVisible(bool visible);
+    bool plotCrosshairVisible();
+    void setPlotCrosshairVisible(bool visible);
+    void resized();
+    void showAll();
+    void syncAxisRanges(QRectF xyrange);
+    void syncDataTip(int index);
+
+    void showEvent();
+    void keyEvent(QEvent* event);
+
+private:
+    QCustomPlot* mPlot = nullptr;
     QCPAxisRect* axisRect = nullptr;
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QCPLegend* legend = nullptr;
-
-
-    static QCPLegend* findLegend(QCPAxisRect* axisRect);
-
-    bool inAxisRect(QPoint pos);
-
-    void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
-    void setXLabel(QString xlabel);
-    void setYLabel(QString ylabel);
-    void showAll();
-    void setEqualAxesButDontReplot(bool fixed);
-    void setEqualAxesAndReplot(bool fixed);
     void queueReplot();
 
-    void syncAxisRanges(QRectF xyrange);
-    void syncDataTip(int index);
-
-    void resizeEvent();
-    void showEvent();
-    void keyEvent(QEvent* event);
-
-    bool plotCrosshairVisible();
-    void setPlotCrosshairVisible(bool visible);
-    bool mouseCrosshairVisible();
-    void setMouseCrosshairVisible(bool visible);
-
-private:
     void setupLink();
 
     // Keep count of current pen index when adding new plots instead of simply
@@ -120,13 +105,10 @@ private:
     // existing plottable (unless there are more plottables than pens).
     int mPenIndex = 0;
 
-    double xmin = 0;
-    double xmax = 0;
-    double ymin = 0;
-    double ymax = 0;
-
     bool mEqualAxes = false;
     void updatePlotForEqualAxes(QRectF xyrange);
+    void setEqualAxesButDontReplot(bool fixed);
+    void setEqualAxesAndReplot(bool fixed);
 
     bool plotMouseRightDragZoom(QMouseEvent* event);
 

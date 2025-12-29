@@ -17,11 +17,14 @@ public:
 
     LinkPtr link {new Link()};
 
-    virtual void showAll() = 0;
-    virtual bool plotCrosshairVisible() = 0;
-    virtual void setPlotCrosshairVisible(bool visible) = 0;
     virtual bool mouseCrosshairVisible() = 0;
     virtual void setMouseCrosshairVisible(bool visible) = 0;
+    virtual bool plotCrosshairVisible() = 0;
+    virtual void setPlotCrosshairVisible(bool visible) = 0;
+    virtual void resized() = 0;
+    virtual void showAll() = 0;
+    virtual void syncAxisRanges(QRectF xyrange) = 0;
+    virtual void syncDataTip(int index) = 0;
 
     void storeAndDisableCrosshairs();
     void restoreCrosshairs();
@@ -33,6 +36,11 @@ signals:
 
 protected:
     QWidget* mParentWidget = nullptr;
+
+    double xmin = 0;
+    double xmax = 0;
+    double ymin = 0;
+    double ymax = 0;
 
     // -----------------------------------------------------------------------
     // Menus

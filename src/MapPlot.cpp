@@ -31,6 +31,11 @@ MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
     setupMenus();
 }
 
+MapPlotPtr MapPlot::castFromPlot(PlotPtr plot)
+{
+    return qSharedPointerCast<MapPlot>(plot);
+}
+
 void MapPlot::setupLink()
 {
     link->supportPosZoom = false;
@@ -85,15 +90,15 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 
     // Combine track mins/maxes with overall of all tracks
     if (firstPlot) {
-        latmin = graph->ystats.min;
-        latmax = graph->ystats.max;
-        lonmin = graph->xstats.min;
-        lonmax = graph->xstats.max;
+        ymin = graph->ystats.min;
+        ymax = graph->ystats.max;
+        xmin = graph->xstats.min;
+        xmax = graph->xstats.max;
     } else {
-        latmin = qMin(latmin, graph->ystats.min);
-        latmax = qMax(latmax, graph->ystats.max);
-        lonmin = qMin(lonmin, graph->xstats.min);
-        lonmax = qMax(lonmax, graph->xstats.max);
+        ymin = qMin(ymin, graph->ystats.min);
+        ymax = qMax(ymax, graph->ystats.max);
+        xmin = qMin(xmin, graph->xstats.min);
+        xmax = qMax(xmax, graph->xstats.max);
     }
 
     // Create track on map
@@ -114,6 +119,11 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     }
 
     showAll();
+}
+
+void MapPlot::syncAxisRanges(QRectF /*xyrange*/)
+{
+    // Not applicable for map
 }
 
 void MapPlot::syncDataTip(int index)
@@ -144,7 +154,7 @@ void MapPlot::zoomTo(double lat1, double lon1, double lat2, double lon2)
 
 void MapPlot::showAll()
 {
-    zoomTo(latmin, lonmin, latmax, lonmax);
+    zoomTo(ymin, xmin, ymax, xmax);
 }
 
 bool MapPlot::saveToPng(QString path)
@@ -192,7 +202,7 @@ void MapPlot::setMouseCrosshairVisible(bool /*visible*/)
     // TODO Mouse crosshair
 }
 
-void MapPlot::resizeEvent()
+void MapPlot::resized()
 {
 
 }

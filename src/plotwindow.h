@@ -90,9 +90,8 @@ private slots:
 
     void onPlotMouseRelease(QMouseEvent* event);
 
-    void onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange);
-    void onDataTipChanged(SubplotPtr subplot, int linkGroup, int index);
-    void onDataTipChanged(MapPlotPtr mapPlot, int linkGroup, int index);
+    void onAxisRangesChanged(PlotPtr plot, int linkGroup, QRectF xyrange);
+    void onDataTipChanged(PlotPtr plot, int linkGroup, int index);
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -149,16 +148,18 @@ private:
     void showEvent(QShowEvent* event) override;
 
     // -------------------------------------------------------------------------
-    // Subplots
+    // Plots
+
+    void initPlot(PlotPtr plot);
+
+    QList<PlotPtr> mAllPlots;
 
     QList<SubplotPtr> mSubplots;
     void initSubplot(SubplotPtr subplot);
     void storeAndDisableCrosshairsOfAllSubplots();
     void restoreCrosshairsOfAllSubplots();
-    void syncSubplotDataTips(int linkGroup, int index, SubplotPtr except = nullptr);
 
     MapPlotPtr mMapPlot;
-    void syncMapPlotDataTips(int linkGroup, int index);
 
 private slots:
     void on_action_Save_as_PDF_triggered();

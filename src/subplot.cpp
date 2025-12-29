@@ -26,16 +26,16 @@
 Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     : Plot{parentWidget}, axisRect(axisRect)
 {
-    plot = axisRect->parentPlot();
+    mPlot = axisRect->parentPlot();
     xAxis = axisRect->axis(QCPAxis::atBottom);
     yAxis = axisRect->axis(QCPAxis::atLeft);
 
     // We will manually add plottables to legends per subplot
-    plot->setAutoAddPlottableToLegend(false);
+    mPlot->setAutoAddPlottableToLegend(false);
 
-    if (axisRect->insetLayout()->elements(false).contains(plot->legend)) {
+    if (axisRect->insetLayout()->elements(false).contains(mPlot->legend)) {
         // Use already existing default plot legend for this subplot (axisrect)
-        legend = plot->legend;
+        legend = mPlot->legend;
     } else {
         // Create new legend for this subplot (axisrect)
         legend = new QCPLegend();
@@ -45,15 +45,28 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
         legend->setLayer("legend");
     }
 
-    connect(plot, &QCustomPlot::mouseMove, this, &Subplot::onPlotMouseMove);
-    connect(plot, &QCustomPlot::mousePress, this, &Subplot::onPlotMousePress);
-    connect(plot, &QCustomPlot::mouseRelease, this, &Subplot::onPlotMouseRelease);
-    connect(plot, &QCustomPlot::axisDoubleClick, this, &Subplot::onAxisDoubleClick);
-    connect(plot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
+    connect(mPlot, &QCustomPlot::mouseMove, this, &Subplot::onPlotMouseMove);
+    connect(mPlot, &QCustomPlot::mousePress, this, &Subplot::onPlotMousePress);
+    connect(mPlot, &QCustomPlot::mouseRelease, this, &Subplot::onPlotMouseRelease);
+    connect(mPlot, &QCustomPlot::axisDoubleClick, this, &Subplot::onAxisDoubleClick);
+    connect(mPlot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
 
     setupCrosshairs();
     setupMenus();
     setupLink();
+}
+
+SubplotPtr Subplot::newAtBottomOfPlot(QCustomPlot *plot, QWidget *parentWidget)
+{
+    QCPAxisRect* ar = new QCPAxisRect(plot);
+    plot->plotLayout()->addElement(plot->plotLayout()->rowCount(), 0, ar);
+    SubplotPtr subplot(new Subplot(ar, parentWidget));
+    return subplot;
+}
+
+SubplotPtr Subplot::castFromPlot(PlotPtr plot)
+{
+    return qSharedPointerCast<Subplot>(plot);
 }
 
 void Subplot::setupLink()
@@ -102,11 +115,11 @@ void Subplot::onPlotMousePress(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         if (legend && legend->selectTest(event->pos(), false) >= 0) {
             legendMouse.mouseDown = true;
-            plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            mPlot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
             legendMouse.startRect = axisRect->insetLayout()->insetRect(0);
         } else if (markerPressed) {
             markerMouse.mouseDown = true;
-            plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            mPlot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
         }
     }
 }
@@ -145,7 +158,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
                                              plottable->name(), &ok);
         if (!ok) { return; }
         plottable->setName(name);
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
     menu->addAction(QIcon("://color"), "Set Color", this, [=]()
@@ -155,16 +168,16 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
         if (!color.isValid()) { return; }
         pen.setColor(color);
         plottable->setPen(pen);
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
     menu->addAction(QIcon("://delete"), "Delete", this, [=]()
     {
         removeGraph(plottableGraphMap.value(plottable));
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
-    menu->popup(plot->mapToGlobal(pos));
+    menu->popup(mPlot->mapToGlobal(pos));
 }
 
 void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
@@ -172,7 +185,7 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
     qDebug() << "Legend right-clicked";
 }
 
-void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
+void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
 {
     bool firstPlot = (axisRect->plottables().size() == 0);
 
@@ -188,7 +201,7 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
     if (xstats.monotonicallyIncreasing) {
         // Graph is more efficient but can only be used if x is monotonically
         // increasing
-        QCPGraph* qcpgraph = plot->addGraph(xAxis, yAxis);
+        QCPGraph* qcpgraph = mPlot->addGraph(xAxis, yAxis);
         graph.reset(new Graph(qcpgraph));
         qcpgraph->setData(x, y);
         qcpgraph->setPen(pen);
@@ -260,18 +273,18 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 void Subplot::setXLabel(QString xlabel)
 {
     xAxis->setLabel(xlabel);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::setYLabel(QString ylabel)
 {
     yAxis->setLabel(ylabel);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::queueReplot()
 {
-    plot->replot(QCustomPlot::rpQueuedReplot);
+    mPlot->replot(QCustomPlot::rpQueuedReplot);
 }
 
 void Subplot::syncAxisRanges(QRectF xyrange)
@@ -317,7 +330,7 @@ void Subplot::syncDataTip(int index)
     queueReplot();
 }
 
-void Subplot::resizeEvent()
+void Subplot::resized()
 {
     if (mEqualAxes) {
         setEqualAxesAndReplot(true);
@@ -612,7 +625,7 @@ void Subplot::onActionPlaceMarkerTriggered()
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::onActionMeasureTriggered()
@@ -653,7 +666,7 @@ void Subplot::onActionMeasureTriggered()
     mMeasures.append(m);
     mCurrentMeasure = m;
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::onActionEqualAxesTriggered()
@@ -801,7 +814,7 @@ bool Subplot::legendMouseMove(QMouseEvent *event)
 
 void Subplot::updateLegendPlacement()
 {
-    if (!plot->isVisible()) { return; }
+    if (!mPlot->isVisible()) { return; }
 
     QRect axisRectPixels = axisRect->rect();
     QSize legendSize = legend->minimumOuterSizeHint();
@@ -842,7 +855,7 @@ void Subplot::updateLegendPlacement()
     rect.setWidth(wNorm);
     rect.setHeight(hNorm);
     axisRect->insetLayout()->setInsetRect(0, rect);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::removeGraph(GraphPtr graph)
@@ -853,7 +866,7 @@ void Subplot::removeGraph(GraphPtr graph)
     if (legendItem) {
         legend->remove(legendItem);
     }
-    plot->removePlottable(graph->plottable());
+    mPlot->removePlottable(graph->plottable());
     graphs.removeAll(graph);
     plottableGraphMap.remove(graph->plottable());
 
@@ -881,17 +894,17 @@ void Subplot::removeGraph(GraphPtr graph)
 
 MarkerPtr Subplot::addMarker(QPointF coord)
 {
-    PlotMarkerItem* dot = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
     dot->position->setCoords(coord);
     dot->circleSize = 10;
     dot->circleFillBrush = QBrush(QColor(255, 0, 0, 100));
     dot->linePen.setStyle(Qt::DashLine);
 
-    QCPItemText* label = new QCPItemText(plot);
+    QCPItemText* label = new QCPItemText(mPlot);
     label->setClipAxisRect(axisRect);
     label->position->setAxes(xAxis, yAxis);
-    label->setFont(plot->font());
+    label->setFont(mPlot->font());
     label->setLayer("marker-labels");
     label->position->setParentAnchor(dot->anchor);
     // Pixel position is set relative to the anchor assigned above
@@ -901,7 +914,7 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     label->setBrush(QBrush(QColor("#f8fabe")));
     label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
 
-    QCPItemLine* arrow = new QCPItemLine(plot);
+    QCPItemLine* arrow = new QCPItemLine(mPlot);
     arrow->setClipAxisRect(axisRect);
     foreach (QCPItemPosition* position, arrow->positions()) {
         position->setAxes(xAxis, yAxis);
@@ -922,7 +935,7 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 
-    plot->replot();
+    mPlot->replot();
 
     return marker;
 }
@@ -940,7 +953,7 @@ bool Subplot::markerMouseDown(QMouseEvent *mouseEvent)
         // Move to start of markers list (top to bottom)
         mMarkers.removeAll(marker);
         mMarkers.prepend(marker);
-        plot->replot();
+        mPlot->replot();
 
         markerMouse.startTextPixelPos = marker->textItem->position->pixelPosition();
     }
@@ -979,7 +992,7 @@ MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
     foreach (MarkerPtr marker, mMarkers) {
         if (marker->textItem) {
             double dist = marker->textItem->selectTest(pos, false);
-            if ((dist >= 0) && (dist < plot->selectionTolerance())) {
+            if ((dist >= 0) && (dist < mPlot->selectionTolerance())) {
                 ret = marker;
                 break;
             }
@@ -1017,7 +1030,7 @@ bool Subplot::markerRightClick(QPoint pos)
         deleteMarker(m);
     });
 
-    menu->popup(plot->mapToGlobal(pos));
+    menu->popup(mPlot->mapToGlobal(pos));
 
     return true;
 }
@@ -1088,7 +1101,7 @@ void Subplot::editMarkerText(MarkerPtr marker)
 
         updateMarkerText(m);
         updateMarkerArrow(m);
-        plot->replot();
+        mPlot->replot();
     });
 }
 
@@ -1096,9 +1109,9 @@ void Subplot::deleteMarker(MarkerPtr marker)
 {
     if (!marker) { return; }
 
-    plot->removeItem(marker->arrow);
-    plot->removeItem(marker->textItem);
-    plot->removeItem(marker->plotMarker);
+    mPlot->removeItem(marker->arrow);
+    mPlot->removeItem(marker->textItem);
+    mPlot->removeItem(marker->plotMarker);
     mMarkers.removeAll(marker);
 
     // Remove related measure
@@ -1111,7 +1124,7 @@ void Subplot::deleteMarker(MarkerPtr marker)
         }
     }
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::clearCurrentMeasure()
@@ -1123,13 +1136,13 @@ void Subplot::clearCurrentMeasure()
 
 void Subplot::setupCrosshairs()
 {
-    mPlotCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mPlotCrosshair = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     mPlotCrosshair->setClipAxisRect(axisRect);
     mPlotCrosshair->setLayer("crosshairs");
     mPlotCrosshair->circleSize = 7;
     mPlotCrosshair->showVerticalLine = true;
 
-    mMouseCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mMouseCrosshair = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     mMouseCrosshair->setClipAxisRect(axisRect);
     mMouseCrosshair->setLayer("crosshairs");
     mMouseCrosshair->circleSize = 7;
@@ -1191,7 +1204,7 @@ void Subplot::onPlotMouseRelease(QMouseEvent *event)
             // Was not dragging. Trigger mouse click event
             plotLeftClicked(event->pos());
         }
-        plot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
+        mPlot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
     }
 
     legendMouse.mouseDown = false;
@@ -1235,7 +1248,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
 
     if (!used) {
         // Plot area
-        plotMenu.menu.popup(plot->mapToGlobal(pos));
+        plotMenu.menu.popup(mPlot->mapToGlobal(pos));
     }
 }
 
@@ -1287,7 +1300,7 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
                                               &ok);
         if (ok) {
             axis->setLabel(text);
-            plot->replot();
+            mPlot->replot();
         }
     }
 }

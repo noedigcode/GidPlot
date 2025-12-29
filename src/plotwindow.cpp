@@ -106,7 +106,7 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 {
     SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) {
-        subplot.reset(new Subplot(ui->plot->axisRect()));
+        subplot.reset(new Subplot(ui->plot->axisRect(), this));
         initSubplot(subplot);
     }
 
@@ -117,7 +117,7 @@ void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, 
 {
     if (!subplot) { return; }
 
-    subplot->plotData(csv, ixcol, iycol, range);
+    subplot->plot(csv, ixcol, iycol, range);
 
     setupGuiForNormalPlot();
 }
@@ -137,21 +137,8 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
     if (!mMapPlot) {
         mMapPlot.reset(new MapPlot(mMapWidget, this));
 
-        connect(mMapPlot.data(), &MapPlot::dataTipChanged,
-                this, [this, mapPlotWkPtr = mMapPlot.toWeakRef()]
-                (int linkGroup, int index)
-        {
-            MapPlotPtr mapPlot(mapPlotWkPtr);
-            if (!mapPlot) { return; }
-            onDataTipChanged(mapPlot, linkGroup, index);
-        });
-        connect(mMapPlot.data(), &MapPlot::linkSettingsTriggered,
-                this, [this, mapPlotWkPtr = mMapPlot.toWeakRef()]()
-        {
-            MapPlotPtr mapPlot(mapPlotWkPtr);
-            if (!mapPlot) { return; }
-            emit linkSettingsTriggered(mapPlot->link);
-        });
+        initPlot(mMapPlot);
+        mAllPlots.append(mMapPlot);
     }
 
     mMapPlot->plot(csv, ixcol, iycol, range);
@@ -161,7 +148,7 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
 
 SubplotPtr PlotWindow::addSubplot()
 {
-    SubplotPtr subplot = Subplot::newAtBottomOfPlot(ui->plot);
+    SubplotPtr subplot = Subplot::newAtBottomOfPlot(ui->plot, this);
     initSubplot(subplot);
     return subplot;
 }
@@ -266,11 +253,8 @@ bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 
 void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 {
-    foreach (SubplotPtr subplot, mSubplots) {
-        subplot->resizeEvent();
-    }
-    if (mMapPlot) {
-        mMapPlot->resizeEvent();
+    foreach (PlotPtr p, mAllPlots) {
+        p->resized();
     }
 }
 
@@ -281,35 +265,41 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
     }
 }
 
-void PlotWindow::initSubplot(SubplotPtr subplot)
+void PlotWindow::initPlot(PlotPtr plot)
 {
-    connect(subplot.data(), &Subplot::axisRangesChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()]
+    connect(plot.data(), &Plot::axisRangesChanged,
+            this, [this, pWkPtr = plot.toWeakRef()]
             (int linkGroup, QRectF xyrange)
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        onAxisRangesChanged(s, linkGroup, xyrange);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        onAxisRangesChanged(p, linkGroup, xyrange);
     });
 
-    connect(subplot.data(), &Subplot::dataTipChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()]
+    connect(plot.data(), &Plot::dataTipChanged,
+            this, [this, pWkPtr = plot.toWeakRef()]
             (int linkGroup, int index)
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        onDataTipChanged(s, linkGroup, index);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        onDataTipChanged(p, linkGroup, index);
     });
 
-    connect(subplot.data(), &Subplot::linkSettingsTriggered,
-            this, [this, sWkPtr = subplot.toWeakRef()]()
+    connect(plot.data(), &Plot::linkSettingsTriggered,
+            this, [this, pWkPtr = plot.toWeakRef()]()
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        emit linkSettingsTriggered(s->link);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        emit linkSettingsTriggered(p->link);
     });
+}
+
+void PlotWindow::initSubplot(SubplotPtr subplot)
+{
+    initPlot(subplot);
 
     mSubplots.append(subplot);
+    mAllPlots.append(subplot);
 
     subplot->link->tag = QString("Subplot %1").arg(mSubplots.count());
 }
@@ -331,24 +321,6 @@ void PlotWindow::restoreCrosshairsOfAllSubplots()
     }
     if (mMapPlot) {
         mMapPlot->restoreCrosshairs();
-    }
-}
-
-void PlotWindow::syncSubplotDataTips(int linkGroup, int index, SubplotPtr except)
-{
-    foreach (SubplotPtr s, mSubplots) {
-        if (s == except) { continue; }
-        if (s->link->match(linkGroup)) {
-            s->syncDataTip(index);
-        }
-    }
-}
-
-void PlotWindow::syncMapPlotDataTips(int linkGroup, int index)
-{
-    if (!mMapPlot) { return; }
-    if (mMapPlot->link->match(linkGroup)) {
-        mMapPlot->syncDataTip(index);
     }
 }
 
@@ -456,28 +428,25 @@ QCPLegend *PlotWindow::findLegendUnderPos(QPoint pos)
     return nullptr;
 }
 
-void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange)
+void PlotWindow::onAxisRangesChanged(PlotPtr plot, int linkGroup, QRectF xyrange)
 {
-    foreach (SubplotPtr s, mSubplots) {
-        if (s == subplot) { continue; }
-        if (s->link->match(linkGroup)) {
-            s->syncAxisRanges(xyrange);
+    foreach (PlotPtr p, mAllPlots) {
+        if (p == plot) { continue; }
+        if (p->link->match(linkGroup)) {
+            p->syncAxisRanges(xyrange);
         }
     }
     emit axisRangesChanged(linkGroup, xyrange);
 }
 
-void PlotWindow::onDataTipChanged(SubplotPtr subplot, int linkGroup, int index)
+void PlotWindow::onDataTipChanged(PlotPtr plot, int linkGroup, int index)
 {
-    syncSubplotDataTips(linkGroup, index, subplot);
-    syncMapPlotDataTips(linkGroup, index);
-
-    emit dataTipChanged(linkGroup, index);
-}
-
-void PlotWindow::onDataTipChanged(MapPlotPtr /*mapPlot*/, int linkGroup, int index)
-{
-    syncSubplotDataTips(linkGroup, index);
+    foreach (PlotPtr p, mAllPlots) {
+        if (p == plot) { continue; }
+        if (p->link->match(linkGroup)) {
+            p->syncDataTip(index);
+        }
+    }
 
     emit dataTipChanged(linkGroup, index);
 }

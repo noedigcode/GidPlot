@@ -17,29 +17,33 @@
 
 // ===========================================================================
 
+class MapPlot;
+typedef QSharedPointer<MapPlot> MapPlotPtr;
+
 class MapPlot : public Plot
 {
     Q_OBJECT
 public:
-    explicit MapPlot(QGVMap *mapWidget, QWidget *parentWidget = nullptr);
+    explicit MapPlot(QGVMap *mapWidget, QWidget *parentWidget);
+
+    static MapPlotPtr castFromPlot(PlotPtr plot);
 
     void plot(CsvPtr csv, int iloncol, int ilatcol, Range range);
-    void syncDataTip(int index);
 
     void setMapOSM();
     void zoomTo(double lat1, double lon1, double lat2, double lon2);
 
-    void showAll();
-
     bool saveToPng(QString path);
     QPixmap toPixmap();
 
-    bool plotCrosshairVisible();
-    void setPlotCrosshairVisible(bool visible);
     bool mouseCrosshairVisible();
     void setMouseCrosshairVisible(bool visible);
-
-    void resizeEvent();
+    bool plotCrosshairVisible();
+    void setPlotCrosshairVisible(bool visible);
+    void resized();
+    void showAll();
+    void syncAxisRanges(QRectF xyrange);
+    void syncDataTip(int index);
 
 private:
     static QNetworkAccessManager netAccMgr;
@@ -51,12 +55,6 @@ private:
     QGVLayerTiles* mTilesItem = nullptr;
 
     void setupLink();
-
-
-    double latmin = 0;
-    double latmax = 0;
-    double lonmin = 0;
-    double lonmax = 0;
 
     // -----------------------------------------------------------------------
     // Menus
@@ -77,8 +75,6 @@ private:
     CrosshairsDialog::Settings crosshairsDialogAboutToShow();
     void crosshairsDialogChanged(CrosshairsDialog::Settings s);
 
-    bool lastTrackCrosshairVisible = true;
-
     struct ClosestCoord {
         bool valid = false;
         double distance = 0;
@@ -95,6 +91,5 @@ private slots:
     void onMapMouseMove(QPointF projPos);
 };
 
-typedef QSharedPointer<MapPlot> MapPlotPtr;
 
 #endif // MAPPLOT_H
