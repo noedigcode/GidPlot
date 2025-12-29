@@ -10,8 +10,8 @@ QNetworkAccessManager MapPlot::netAccMgr;
 QNetworkDiskCache MapPlot::netCache;
 
 
-MapPlot::MapPlot(QGVMap *mapWidget, QObject *parent)
-    : QObject{parent}, mMapWidget(mapWidget)
+MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
+    : Plot{parentWidget}, mMapWidget(mapWidget)
 {
     // Set up network
     if (!QGV::getNetworkManager()) {
@@ -37,59 +37,20 @@ void MapPlot::setupLink()
     link->tag = "Map Plot";
 }
 
-QList<GraphPtr> MapPlot::getAllGraphs()
-{
-    return mTracks;
-}
-
-GraphPtr MapPlot::getDataTipGraph()
-{
-    return dataTipTrack;
-}
-
-void MapPlot::showCrosshairsDialog()
-{
-    qDebug() << "TODO showCrosshairsDialog()"; // TODO
-}
-
 void MapPlot::setupMenus()
 {
-    plotMenu.parentWidget = nullptr; qDebug() << "TODO MapPlot set plotMenu.parentWidget"; // TODO
-    plotMenu.getDataTipGraphCallback = [=]() { return getDataTipGraph(); };
-    plotMenu.getGraphsCallback = [=]() { return getAllGraphs(); };
-    plotMenu.getPlotCrosshairIndexCallback = [=]()
-    {
-        return mTrackCrosshairIndex;
-    };
-
-    connect(plotMenu.actionPlaceMarker, &QAction::triggered,
-            this, &MapPlot::onActionPlaceMarkerTriggered);
-
     // TODO
     plotMenu.actionPlaceMarker->setVisible(false);
     qDebug() << "TODO Implement place marker for map plots";
-
-    connect(plotMenu.actionMeasure, &QAction::triggered,
-            this, &MapPlot::onActionMeasureTriggered);
 
     // TODO
     plotMenu.actionMeasure->setVisible(false);
     qDebug() << "TODO Implement measure for map plots";
 
-    connect(plotMenu.actionShowAll, &QAction::triggered,
-            this, &MapPlot::showAll);
+    // Equal axes toggling not applicable for map
     plotMenu.actionEqualAxes->setVisible(false);
 
-    connect(plotMenu.actionCrosshairs, &QAction::triggered,
-            this, &MapPlot::showCrosshairsDialog);
-
-    // TODO
-    plotMenu.actionCrosshairs->setVisible(false);
-    qDebug() << "TODO Implement crosshair options fro map plots";
-
-    connect(plotMenu.actionLink, &QAction::triggered,
-            this, &MapPlot::linkSettingsTriggered);
-
+    // QGVMap displays a context menu of all actions added to it
     mMapWidget->addActions(plotMenu.actions());
 }
 
@@ -105,7 +66,7 @@ void MapPlot::onActionMeasureTriggered()
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 {
-    bool firstPlot = mTracks.isEmpty();
+    bool firstPlot = graphs.isEmpty();
 
     TrackPtr track(new Track());
     GraphPtr graph(new Graph(track));
@@ -146,9 +107,9 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
         mMapWidget->addItem(line);
     }
 
-    mTracks.append(graph);
-    if (!dataTipTrack) {
-        dataTipTrack = graph;
+    graphs.append(graph);
+    if (!dataTipGraph) {
+        dataTipGraph = graph;
         mTrackCrosshair->setVisible(true);
     }
 
@@ -158,12 +119,12 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 void MapPlot::syncDataTip(int index)
 {
     if (!mTrackCrosshair->isVisible()) { return; }
-    if (!dataTipTrack) { return; }
+    if (!dataTipGraph) { return; }
 
-    index -= dataTipTrack->range.start;
-    if ((index < 0) || (index >= dataTipTrack->dataCount())) { return; }
-    double lat = dataTipTrack->track->lats[index];
-    double lon = dataTipTrack->track->lons[index];
+    index -= dataTipGraph->range.start;
+    if ((index < 0) || (index >= dataTipGraph->dataCount())) { return; }
+    double lat = dataTipGraph->track->lats[index];
+    double lon = dataTipGraph->track->lons[index];
     mTrackCrosshair->setPosition(QGV::GeoPos(lat, lon));
 }
 
@@ -210,15 +171,25 @@ QPixmap MapPlot::toPixmap()
     return pixmap;
 }
 
-void MapPlot::storeAndDisableCrosshairs()
+bool MapPlot::plotCrosshairVisible()
 {
-    lastTrackCrosshairVisible = mTrackCrosshair->isVisible();
-    mTrackCrosshair->setVisible(false);
+    return mTrackCrosshair->isVisible();
 }
 
-void MapPlot::restoreCrosshairs()
+void MapPlot::setPlotCrosshairVisible(bool visible)
 {
-    mTrackCrosshair->setVisible(lastTrackCrosshairVisible);
+    mTrackCrosshair->setVisible(visible);
+}
+
+bool MapPlot::mouseCrosshairVisible()
+{
+    // TODO Mouse crosshair
+    return false;
+}
+
+void MapPlot::setMouseCrosshairVisible(bool /*visible*/)
+{
+    // TODO Mouse crosshair
 }
 
 void MapPlot::resizeEvent()
@@ -233,6 +204,26 @@ void MapPlot::setupCrosshairs()
     mTrackCrosshair->setVisible(false);
     mTrackCrosshair->bringToFront();
     mMapWidget->addItem(mTrackCrosshair);
+}
+
+CrosshairsDialog::Settings MapPlot::crosshairsDialogAboutToShow()
+{
+    CrosshairsDialog::Settings s;
+    s.plotCrosshair = mTrackCrosshair->isVisible();
+    // TODO: Sub-parts of crosshair
+    s.plotDot = true;
+
+    // TODO: Mouse crosshair settings
+
+    return s;
+}
+
+void MapPlot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
+{
+    mTrackCrosshair->setVisible(s.plotCrosshair);
+    // TODO: Sub-parts of crosshair
+
+    // TODO: Mouse crosshair
 }
 
 MapPlot::ClosestCoord MapPlot::findClosestCoord(QGV::GeoPos pos, GraphPtr graph)
@@ -285,14 +276,19 @@ void MapPlot::removeTiles()
 void MapPlot::onMapMouseMove(QPointF projPos)
 {
     QGV::GeoPos pos = mMapWidget->getProjection()->projToGeo(projPos);
-    if (mTrackCrosshair->isVisible() && dataTipTrack) {
-        ClosestCoord closest = findClosestCoord(pos, dataTipTrack);
+    if (mTrackCrosshair->isVisible() && dataTipGraph) {
+        ClosestCoord closest = findClosestCoord(pos, dataTipGraph);
         if (closest.valid) {
             QGV::GeoPos closestPos(closest.lat, closest.lon);
             mTrackCrosshair->setPosition(closestPos);
             emit dataTipChanged(link->group,
-                                closest.dataIndex + dataTipTrack->range.start);
-            mTrackCrosshairIndex = closest.dataIndex;
+                                closest.dataIndex + dataTipGraph->range.start);
+            mPlotCrosshairIndex = closest.dataIndex;
         }
     }
+}
+
+void MapPlot::onActionEqualAxesTriggered()
+{
+    // Not applicable for map
 }

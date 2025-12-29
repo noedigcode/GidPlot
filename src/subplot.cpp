@@ -24,7 +24,7 @@
 
 
 Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
-    : QObject{parentWidget}, parentWidget(parentWidget), axisRect(axisRect)
+    : Plot{parentWidget}, axisRect(axisRect)
 {
     plot = axisRect->parentPlot();
     xAxis = axisRect->axis(QCPAxis::atBottom);
@@ -52,7 +52,6 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     connect(plot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
 
     setupCrosshairs();
-    setupCrosshairsDialog();
     setupMenus();
     setupLink();
 }
@@ -141,7 +140,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
     menu->addAction(QIcon("://edit"), "Rename", this, [=]()
     {
         bool ok;
-        QString name = QInputDialog::getText(parentWidget, "Curve Name", "Name",
+        QString name = QInputDialog::getText(mParentWidget, "Curve Name", "Name",
                                              QLineEdit::Normal,
                                              plottable->name(), &ok);
         if (!ok) { return; }
@@ -152,7 +151,7 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
     menu->addAction(QIcon("://color"), "Set Color", this, [=]()
     {
         QPen pen = plottable->pen();
-        QColor color = QColorDialog::getColor(pen.color(), parentWidget);
+        QColor color = QColorDialog::getColor(pen.color(), mParentWidget);
         if (!color.isValid()) { return; }
         pen.setColor(color);
         plottable->setPen(pen);
@@ -366,6 +365,28 @@ void Subplot::keyEvent(QEvent *event)
     }
 }
 
+bool Subplot::plotCrosshairVisible()
+{
+    return mPlotCrosshair->visible();
+}
+
+void Subplot::setPlotCrosshairVisible(bool visible)
+{
+    mPlotCrosshair->setVisible(visible);
+    updateGuiForCrosshairOptions();
+}
+
+bool Subplot::mouseCrosshairVisible()
+{
+    return mMouseCrosshair->visible();
+}
+
+void Subplot::setMouseCrosshairVisible(bool visible)
+{
+    mMouseCrosshair->setVisible(visible);
+    updateGuiForCrosshairOptions();
+}
+
 void Subplot::showAll()
 {
     QRectF rect(xmin, ymin, xmax - xmin, ymax - ymin);
@@ -535,15 +556,10 @@ bool Subplot::plotMouseRightDragZoom(QMouseEvent *event)
     return true;
 }
 
-void Subplot::setupCrosshairsDialog()
-{
-    connect(&mCrosshairsDialog, &CrosshairsDialog::settingsChanged,
-            this, &Subplot::onCrosshairsDialogChanged);
-}
-
-void Subplot::showCrosshairsDialog()
+CrosshairsDialog::Settings Subplot::crosshairsDialogAboutToShow()
 {
     CrosshairsDialog::Settings s;
+
     s.plotCrosshair = mPlotCrosshair->visible();
     s.plotHline = mPlotCrosshair->showHorizontalLine;
     s.plotVline = mPlotCrosshair->showVerticalLine;
@@ -553,10 +569,10 @@ void Subplot::showCrosshairsDialog()
     s.mouseVline = mMouseCrosshair->showVerticalLine;
     s.mouseDot = mMouseCrosshair->showCircle;
 
-    mCrosshairsDialog.show(s);
+    return s;
 }
 
-void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
+void Subplot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
 {
     if (s.plotCrosshair != mPlotCrosshair->visible()) {
         mPlotCrosshairVisibilityChangedByUser = true;
@@ -575,26 +591,7 @@ void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
 
 void Subplot::setupMenus()
 {
-    plotMenu.parentWidget = parentWidget;
-    plotMenu.getDataTipGraphCallback = [=]() { return getDataTipGraph(); };
-    plotMenu.getGraphsCallback = [=]() { return getAllGraphs(); };
-    plotMenu.getPlotCrosshairIndexCallback = [=]()
-    {
-        return mPlotCrosshairIndex;
-    };
 
-    connect(plotMenu.actionPlaceMarker, &QAction::triggered,
-            this, &Subplot::onActionPlaceMarkerTriggered);
-    connect(plotMenu.actionMeasure, &QAction::triggered,
-            this, &Subplot::onActionMeasureTriggered);
-    connect(plotMenu.actionShowAll, &QAction::triggered,
-            this, &Subplot::showAll);
-    connect(plotMenu.actionEqualAxes, &QAction::triggered,
-            this, &Subplot::onActionEqualAxesTriggered);
-    connect(plotMenu.actionCrosshairs, &QAction::triggered,
-            this, &Subplot::showCrosshairsDialog);
-    connect(plotMenu.actionLink, &QAction::triggered,
-            this, &Subplot::linkSettingsTriggered);
 }
 
 void Subplot::onActionPlaceMarkerTriggered()
@@ -1148,20 +1145,6 @@ void Subplot::updateGuiForCrosshairOptions()
     queueReplot();
 }
 
-void Subplot::storeAndDisableCrosshairs()
-{
-    lastPlotCrosshairVisible = mPlotCrosshair->visible();
-    mPlotCrosshair->setVisible(false);
-    lastMouseCrosshairVisible = mMouseCrosshair->visible();
-    mMouseCrosshair->setVisible(false);
-}
-
-void Subplot::restoreCrosshairs()
-{
-    mPlotCrosshair->setVisible(lastPlotCrosshairVisible);
-    mMouseCrosshair->setVisible(lastMouseCrosshairVisible);
-}
-
 void Subplot::onPlotMouseMove(QMouseEvent *event)
 {
     // Note: Do not limit to axisRect as mouse may be outside of window but
@@ -1298,7 +1281,7 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
 
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
-        QString text = QInputDialog::getText(parentWidget, "Axis Label", "Label",
+        QString text = QInputDialog::getText(mParentWidget, "Axis Label", "Label",
                                               QLineEdit::Normal,
                                               axis->label(),
                                               &ok);

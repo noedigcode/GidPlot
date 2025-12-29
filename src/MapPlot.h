@@ -3,7 +3,7 @@
 
 #include "csv.h"
 #include "graph.h"
-#include "link.h"
+#include "plot.h"
 #include "mapline.h"
 #include "mapMarker.h"
 
@@ -17,13 +17,11 @@
 
 // ===========================================================================
 
-class MapPlot : public QObject
+class MapPlot : public Plot
 {
     Q_OBJECT
 public:
-    explicit MapPlot(QGVMap *mapWidget, QObject *parent = nullptr);
-
-    LinkPtr link {new Link()};
+    explicit MapPlot(QGVMap *mapWidget, QWidget *parentWidget = nullptr);
 
     void plot(CsvPtr csv, int iloncol, int ilatcol, Range range);
     void syncDataTip(int index);
@@ -36,14 +34,12 @@ public:
     bool saveToPng(QString path);
     QPixmap toPixmap();
 
-    void storeAndDisableCrosshairs();
-    void restoreCrosshairs();
+    bool plotCrosshairVisible();
+    void setPlotCrosshairVisible(bool visible);
+    bool mouseCrosshairVisible();
+    void setMouseCrosshairVisible(bool visible);
 
     void resizeEvent();
-
-signals:
-    void dataTipChanged(int linkGroup, int index);
-    void linkSettingsTriggered();
 
 private:
     static QNetworkAccessManager netAccMgr;
@@ -56,33 +52,31 @@ private:
 
     void setupLink();
 
-    QList<GraphPtr> mTracks;
-    QList<GraphPtr> getAllGraphs();
-    GraphPtr dataTipTrack;
-    GraphPtr getDataTipGraph();
 
     double latmin = 0;
     double latmax = 0;
     double lonmin = 0;
     double lonmax = 0;
 
-    void showCrosshairsDialog();
-
     // -----------------------------------------------------------------------
     // Menus
 private:
-    PlotMenu plotMenu;
     void setupMenus();
 private slots:
     void onActionPlaceMarkerTriggered();
     void onActionMeasureTriggered();
+    void onActionEqualAxesTriggered();
 
     // -----------------------------------------------------------------------
     // Crosshairs
 private:
     void setupCrosshairs();
     MapMarker* mTrackCrosshair = nullptr;
-    int mTrackCrosshairIndex = 0;
+    // TODO: Mouse crosshair
+
+    CrosshairsDialog::Settings crosshairsDialogAboutToShow();
+    void crosshairsDialogChanged(CrosshairsDialog::Settings s);
+
     bool lastTrackCrosshairVisible = true;
 
     struct ClosestCoord {

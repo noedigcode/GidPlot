@@ -23,10 +23,9 @@
 
 #include "csv.h"
 #include "graph.h"
-#include "link.h"
+#include "plot.h"
 #include "PlotMarkerItem.h"
 #include "MarkerEditDialog.h"
-#include "CrosshairsDialog.h"
 
 #include "QCustomPlot/qcustomplot.h"
 
@@ -59,21 +58,34 @@ typedef QSharedPointer<Measure> MeasurePtr;
 
 // ===========================================================================
 
-class Subplot : public QObject
+class Subplot;
+typedef QSharedPointer<Subplot> SubplotPtr;
+
+class Subplot : public Plot
 {
     Q_OBJECT
 public:
     explicit Subplot(QCPAxisRect* axisRect, QWidget *parentWidget = nullptr);
 
-    QWidget* parentWidget = nullptr;
+    static SubplotPtr newAtBottomOfPlot(QCustomPlot* plot)
+    {
+        QCPAxisRect* ar = new QCPAxisRect(plot);
+        plot->plotLayout()->addElement(plot->plotLayout()->rowCount(), 0, ar);
+        SubplotPtr subplot(new Subplot(ar));
+        return subplot;
+    }
+
+    static SubplotPtr castFromPlot(PlotPtr plot)
+    {
+        return qSharedPointerCast<Subplot>(plot);
+    }
+
     QCustomPlot* plot = nullptr;
     QCPAxisRect* axisRect = nullptr;
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QCPLegend* legend = nullptr;
 
-    void setupLink();
-    LinkPtr link {new Link()};
 
     static QCPLegend* findLegend(QCPAxisRect* axisRect);
 
@@ -94,15 +106,14 @@ public:
     void showEvent();
     void keyEvent(QEvent* event);
 
-    void storeAndDisableCrosshairs();
-    void restoreCrosshairs();
-
-signals:
-    void axisRangesChanged(int linkGroup, QRectF xyrange);
-    void dataTipChanged(int linkGroup, int index);
-    void linkSettingsTriggered();
+    bool plotCrosshairVisible();
+    void setPlotCrosshairVisible(bool visible);
+    bool mouseCrosshairVisible();
+    void setMouseCrosshairVisible(bool visible);
 
 private:
+    void setupLink();
+
     // Keep count of current pen index when adding new plots instead of simply
     // using (plottables.count % pens.count), so when a plottable has been
     // removed and a new one is added, it doesn't get the same colour as an
@@ -123,23 +134,20 @@ private:
     bool mRangesSyncedFromOutside = false;
 
     MarkerEditDialog mMarkerEditDialog;
-    CrosshairsDialog mCrosshairsDialog;
-    void setupCrosshairsDialog();
-    void showCrosshairsDialog();
-private slots:
-    void onCrosshairsDialogChanged(CrosshairsDialog::Settings settings);
 
-    // -------------------------------------------------------------------------
+    CrosshairsDialog::Settings crosshairsDialogAboutToShow();
+    void crosshairsDialogChanged(CrosshairsDialog::Settings settings);
+
+    // -----------------------------------------------------------------------
     // Menus
 private:
-    PlotMenu plotMenu;
     void setupMenus();
 private slots:
     void onActionPlaceMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
 
-    // -------------------------------------------------------------------------
+    // -----------------------------------------------------------------------
     // Mouse drag zoom
 private:
 
@@ -170,16 +178,6 @@ private:
     // -------------------------------------------------------------------------
     // Graphs / plottables
 
-    GraphPtr dataTipGraph;
-    GraphPtr getDataTipGraph()
-    {
-        return dataTipGraph;
-    }
-    QList<GraphPtr> graphs;
-    QList<GraphPtr> getAllGraphs()
-    {
-        return graphs;
-    }
     QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
     void removeGraph(GraphPtr graph);
 
@@ -222,7 +220,7 @@ private:
     void setupCrosshairs();
     enum CrosshairSnap { SnapXOnly, SnapToClosest } mPlotCrosshairSnap = SnapXOnly;
     PlotMarkerItem* mPlotCrosshair = nullptr;
-    int mPlotCrosshairIndex = 0;
+
     bool mPlotCrosshairVisibilityChangedByUser = false;
     PlotMarkerItem* mMouseCrosshair = nullptr;
     void updateGuiForCrosshairOptions();
@@ -252,8 +250,6 @@ private slots:
     void onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
                                   const QPoint &pos);
     void onLegendRightClicked(QCPLegend* legend, const QPoint& pos);
-
 };
-typedef QSharedPointer<Subplot> SubplotPtr;
 
 #endif // SUBPLOT_H

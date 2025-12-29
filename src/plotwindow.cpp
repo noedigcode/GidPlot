@@ -161,9 +161,7 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
 
 SubplotPtr PlotWindow::addSubplot()
 {
-    QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);
-    ui->plot->plotLayout()->addElement(ui->plot->plotLayout()->rowCount(), 0, bottomAxisRect);
-    SubplotPtr subplot(new Subplot(bottomAxisRect));
+    SubplotPtr subplot = Subplot::newAtBottomOfPlot(ui->plot);
     initSubplot(subplot);
     return subplot;
 }
@@ -253,6 +251,7 @@ void PlotWindow::setupGuiForMap()
 
 bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 {
+    // TODO: consider implementing in Subplot
     bool keyPressOrRelease =    (event->type() == QEvent::KeyPress)
                              || (event->type() == QEvent::KeyRelease);
 

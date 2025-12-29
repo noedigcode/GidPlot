@@ -48,6 +48,7 @@ SOURCES += \
     src/QCustomPlot/qcustomplot.cpp \
     src/mapMarker.cpp \
     src/mapline.cpp \
+    src/plot.cpp \
     src/plotwindow.cpp \
     src/subplot.cpp \
     src/tablewidget.cpp \
@@ -74,6 +75,7 @@ HEADERS += \
     src/QCustomPlot/qcustomplot.h \
     src/mapMarker.h \
     src/mapline.h \
+    src/plot.h \
     src/plotwindow.h \
     src/subplot.h \
     src/tablewidget.h \
