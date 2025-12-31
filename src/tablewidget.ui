@@ -43,7 +43,7 @@
          </property>
          <column>
           <property name="text">
-           <string>X-axis</string>
+           <string>X-axis (or Longitude)</string>
           </property>
          </column>
         </widget>
@@ -140,7 +140,7 @@
          </property>
          <column>
           <property name="text">
-           <string notr="true">Y-axis</string>
+           <string notr="true">Y-axis (or Latitude)</string>
           </property>
          </column>
         </widget>
