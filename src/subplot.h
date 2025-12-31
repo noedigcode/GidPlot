@@ -30,6 +30,7 @@
 #include "QCustomPlot/qcustomplot.h"
 
 #include <QObject>
+#include <QMultiMap>
 
 // ===========================================================================
 
@@ -200,12 +201,155 @@ private:
     // Crosshairs
 
     void setupCrosshairs();
-    enum CrosshairSnap { SnapXOnly, SnapToClosest } mPlotCrosshairSnap = SnapXOnly;
+    enum ClosestOption { ClosestXOnly, ClosestXY } mPlotCrosshairSnap = ClosestXOnly;
     PlotMarkerItem* mPlotCrosshair = nullptr;
 
     bool mPlotCrosshairVisibilityChangedByUser = false;
     PlotMarkerItem* mMouseCrosshair = nullptr;
     void updateGuiForCrosshairOptions();
+
+    // TODO TESTING
+    struct Grid
+    {
+        QRectF bounds;
+        int n = 100;
+
+        int maxcolrow()
+        {
+            return n - 1;
+        }
+
+        struct Data
+        {
+            QPointF coord;
+            int index = 0;
+        };
+
+        QMultiMap<int, Data> map;
+
+        int hash(QPoint point)
+        {
+            return (point.x() + 1) * n + point.y();
+        }
+
+        QPoint colrow(QPointF coord)
+        {
+            double max = qMax(bounds.width(), bounds.height());
+
+            int col = (coord.x() - bounds.left()) / max * n;
+            int row = (coord.y() - bounds.top()) / max * n;
+
+            return QPoint(col, row);
+        }
+
+        int clipcolrow(int value)
+        {
+            return (qMax(qMin(value, maxcolrow()), 0));
+        }
+
+        void insert(QPointF coord, int index)
+        {
+            QPoint point = colrow(coord);
+
+            point.setX(clipcolrow(point.x()));
+            point.setY(clipcolrow(point.y()));
+
+            map.insert(hash(point), Data{coord, index});
+        }
+
+        struct Result
+        {
+            QList<Data> data;
+            bool maxedOut = false;
+        };
+
+        Result get(QRectF rect, ClosestOption option)
+        {
+            Result ret;
+
+            QPoint start = colrow(rect.topLeft());
+            QPoint end = colrow(rect.bottomRight());
+
+            int colstart = clipcolrow(start.x());
+            int colend = clipcolrow(end.x());
+            int rowstart;
+            int rowend;
+            if (option == ClosestXOnly) {
+                rowstart = 0;
+                rowend = maxcolrow();
+            } else {
+                rowstart = clipcolrow(start.y());
+                rowend = clipcolrow(end.y());
+            }
+
+            for (int col = colstart; col <= colend; col++) {
+                for (int row = rowstart; row <= rowend; row++) {
+                    QList<Data> vals = map.values(hash(QPoint(col, row)));
+                    ret.data.append(vals);
+                }
+            }
+
+            bool atmax = true;
+            atmax &= (colstart == 0);
+            atmax &= (colend == maxcolrow());
+            atmax &= (rowstart == 0);
+            atmax &= (rowend == maxcolrow());
+            ret.maxedOut = atmax;
+
+            return ret;
+        }
+
+        QList<Data> get(QPointF coord)
+        {
+            QPoint point = colrow(coord);
+            int colstart = clipcolrow(point.x() - 1);
+            int colend = clipcolrow(point.x() + 1);
+            int rowstart = clipcolrow(point.y() - 1);
+            int rowend = clipcolrow(point.y() + 1);
+
+            //qDebug() << "Get" << coord ;
+
+            QList<Data> ret;
+
+            while (ret.isEmpty()) {
+
+                //qDebug() << "    Trying (" << colstart << "," << rowstart << ") to (" << colend << "," << rowend <<")";
+
+                for (int col = colstart; col <= colend; col++) {
+                    for (int row = rowstart; row <= rowend; row++) {
+                        QList<Data> vals = map.values(hash(QPoint(col, row)));
+                        //qDebug() << "    Got" << vals.count() << "values in cell" << col << row;
+                        ret.append(vals);
+                    }
+                }
+
+                if (!ret.isEmpty()) { break; }
+
+                // Expand outwards
+
+                bool atmax = true;
+                atmax &= (colstart == 0);
+                atmax &= (colend == n - 1);
+                atmax &= (rowstart == 0);
+                atmax &= (rowend == n - 1);
+                if (atmax) {
+                    //qDebug() << "    Expanded to max. Stopping.";
+                    break;
+                }
+
+                //qDebug() << "    Expanding";
+                colstart = clipcolrow(colstart - 1);
+                colend = clipcolrow(colend + 1);
+                rowstart = clipcolrow(rowstart - 1);
+                rowend = clipcolrow(rowend + 1);
+
+            }
+
+            //qDebug() << "    Total" << ret.count() << "values around point";
+
+            return ret;
+        }
+    } grid;
 
     struct ClosestCoord {
         bool valid = false;
@@ -214,7 +358,18 @@ private:
         double yCoord = 0;
         int dataIndex = 0;
     };
-    ClosestCoord findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap);
+    ClosestCoord findClosestCoord(QPoint pos, GraphPtr graph,
+                                  ClosestOption closestOption);
+    QPointF pixelPosToCoord(QPoint pos)
+    {
+        return QPointF(xAxis->pixelToCoord(pos.x()),
+                       yAxis->pixelToCoord(pos.y()));
+    }
+    QPoint coordToPixelPos(QPointF coord)
+    {
+        return QPoint(xAxis->coordToPixel(coord.x()),
+                      yAxis->coordToPixel(coord.y()));
+    }
 
     bool lastPlotCrosshairVisible = false;
     bool lastMouseCrosshairVisible = false;

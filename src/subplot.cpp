@@ -206,7 +206,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         qcpgraph->setData(x, y);
         qcpgraph->setPen(pen);
         qcpgraph->setName(csv->matrix->heading(iycol));
-        mPlotCrosshairSnap = SnapXOnly;
+        mPlotCrosshairSnap = ClosestXOnly;
         mPlotCrosshair->showHorizontalLine = false;
         updateGuiForCrosshairOptions();
     } else {
@@ -216,7 +216,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         qcpcurve->setData(x, y);
         qcpcurve->setPen(pen);
         qcpcurve->setName(csv->matrix->heading(iycol));
-        mPlotCrosshairSnap = SnapToClosest;
+        mPlotCrosshairSnap = ClosestXY;
         setEqualAxesButDontReplot(true);
     }
     graph->csv = csv;
@@ -237,6 +237,11 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         xmax = qMax(xmax, xstats.max);
         ymin = qMin(ymin, ystats.min);
         ymax = qMax(ymax, ystats.max);
+    }
+
+    grid.bounds = QRectF(xmin, ymin, (xmax - xmin), (ymax - ymin));
+    for (int i = 0; i < x.count(); i++) {
+        grid.insert(QPointF(x[i], y[i]), i);
     }
 
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
@@ -1305,7 +1310,8 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
     }
 }
 
-Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap)
+Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph,
+                                                ClosestOption closestOption)
 {
     ClosestCoord closest;
 
@@ -1314,34 +1320,86 @@ Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, Cros
         return closest;
     }
 
-    for (int i = 0; i < graph->dataCount(); ++i) {
+    if (findClosestMode == 1) {
 
-        double xCrd = graph->datax(i);
-        int xPixel = xAxis->coordToPixel(xCrd);
-        double yCrd = graph->datay(i);
+        int px = 50;
 
-        int dist = 0;
 
-        if (snap == SnapXOnly) {
-            dist = qAbs(pos.x() - xPixel);
-        } else if (snap == SnapToClosest) {
-            int yPixel = yAxis->coordToPixel(yCrd);
-            // Calculate distance in pixels to account for zooms
-            dist = qSqrt( qPow(pos.x() - xPixel, 2)
-                          + qPow(pos.y() - yPixel, 2) );
+        while (!closest.valid) {
+
+            QRect mouseRect(QPoint(), QSize(px, px));
+            mouseRect.moveCenter(pos);
+
+
+            QPolygonF searchPoly({
+                                     pixelPosToCoord(mouseRect.topLeft()),
+                                     pixelPosToCoord(mouseRect.topRight()),
+                                     pixelPosToCoord(mouseRect.bottomRight()),
+                                     pixelPosToCoord(mouseRect.bottomLeft())
+                                 });
+            QRectF searchRect = searchPoly.boundingRect();
+
+            Grid::Result r = grid.get(searchRect, closestOption);
+            double limitDistSqr = px*px;
+            double closestDistSqr = 0;
+            bool first = true;
+            foreach (Grid::Data d, r.data) {
+                QPoint p = coordToPixelPos(d.coord);
+                double distSqr;
+                if (closestOption == ClosestXY) {
+                    distSqr = qPow(pos.x() - p.x(), 2)
+                            + qPow(pos.y() - p.y(), 2);
+                } else {
+                    distSqr = qPow(pos.x() - p.x(), 2);
+                }
+                if ( (first || (distSqr < closestDistSqr)) && (distSqr <= limitDistSqr) ) {
+                    first = false;
+                    closestDistSqr = distSqr;
+                    closest.xCoord = d.coord.x();
+                    closest.yCoord = d.coord.y();
+                    closest.dataIndex = d.index;
+                    closest.valid = true;
+                }
+            }
+
+            if (r.maxedOut) { break; }
+
+            // Next iteration, if no coord found, try again with larger area
+            px *= 2;
         }
 
-        if ((i == 0) || (dist < closest.distancePixels)) {
-            closest.valid = true;
-            closest.distancePixels = dist;
-            closest.xCoord = xCrd;
-            closest.yCoord = yCrd;
-            closest.dataIndex = i;
-            if (dist == 0) {
-                // We're not gonna find anything closer
-                break;
+    } else {
+
+        for (int i = 0; i < graph->dataCount(); ++i) {
+
+            double xCrd = graph->datax(i);
+            int xPixel = xAxis->coordToPixel(xCrd);
+            double yCrd = graph->datay(i);
+
+            int dist = 0;
+
+            if (closestOption == ClosestXOnly) {
+                dist = qAbs(pos.x() - xPixel);
+            } else if (closestOption == ClosestXY) {
+                int yPixel = yAxis->coordToPixel(yCrd);
+                // Calculate distance in pixels to account for zooms
+                dist = qSqrt( qPow(pos.x() - xPixel, 2)
+                              + qPow(pos.y() - yPixel, 2) );
+            }
+
+            if ((i == 0) || (dist < closest.distancePixels)) {
+                closest.valid = true;
+                closest.distancePixels = dist;
+                closest.xCoord = xCrd;
+                closest.yCoord = yCrd;
+                closest.dataIndex = i;
+                if (dist == 0) {
+                    // We're not gonna find anything closer
+                    break;
+                }
             }
         }
+
     }
 
     return closest;

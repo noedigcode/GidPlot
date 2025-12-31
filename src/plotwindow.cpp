@@ -610,3 +610,18 @@ void PlotWindow::on_action_Save_as_SVG_triggered()
     }
 }
 
+void PlotWindow::on_actionfindClosest_mode_1_triggered()
+{
+    foreach (PlotPtr p, mAllPlots) {
+        p->findClosestMode = 1;
+    }
+}
+
+
+void PlotWindow::on_actionfindClosest_mode_2_triggered()
+{
+    foreach (PlotPtr p, mAllPlots) {
+        p->findClosestMode = 2;
+    }
+}
+
