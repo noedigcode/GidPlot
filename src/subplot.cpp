@@ -227,21 +227,11 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
     plottableGraphMap.insert(graph->plottable(), graph);
 
     // Record min/max for all graphs
-    if (firstPlot) {
-        xmin = xstats.min;
-        xmax = xstats.max;
-        ymin = ystats.min;
-        ymax = ystats.max;
-    } else {
-        xmin = qMin(xmin, xstats.min);
-        xmax = qMax(xmax, xstats.max);
-        ymin = qMin(ymin, ystats.min);
-        ymax = qMax(ymax, ystats.max);
-    }
+    expandBounds(graph->dataBounds());
 
-    grid.bounds = QRectF(xmin, ymin, (xmax - xmin), (ymax - ymin));
+    graph->grid.bounds = graph->dataBounds();
     for (int i = 0; i < x.count(); i++) {
-        grid.insert(QPointF(x[i], y[i]), i);
+        graph->grid.insert(QPointF(x[i], y[i]), i);
     }
 
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
@@ -407,39 +397,37 @@ void Subplot::setMouseCrosshairVisible(bool visible)
 
 void Subplot::showAll()
 {
-    QRectF rect(xmin, ymin, xmax - xmin, ymax - ymin);
-
     // If the plot is a constant horizontal Y line, adjust y axis to display it better.
-    if (rect.height() == 0) {
-        if (rect.top() == 0) {
+    if (bounds.height() == 0) {
+        if (bounds.top() == 0) {
             // Y = constant zero. Make y axis 1- to 1.
-            rect.setTop(1);
-            rect.setBottom(-1);
-        } else if (rect.top() > 0) {
+            bounds.setTop(1);
+            bounds.setBottom(-1);
+        } else if (bounds.top() > 0) {
             // Y = positive constant. Make y axis 0 to y.
-            rect.setBottom(0);
+            bounds.setBottom(0);
         } else {
             // Y = negative constant. Make y axis y to 0.
-            rect.setTop(0);
+            bounds.setTop(0);
         }
     }
 
     // Calculate a padding so lines at the edges of the axis ranges can be seen,
     // e.g. line on x axis (y = 0), or initial line on y axis (x = 0).
     double paddingPx = 2;
-    double ypad = rect.height() / axisRect->height() * paddingPx;
-    double xpad = rect.width() / axisRect->width() * paddingPx;
+    double ypad = bounds.height() / axisRect->height() * paddingPx;
+    double xpad = bounds.width() / axisRect->width() * paddingPx;
 
-    rect.setLeft(rect.left() - xpad);
-    rect.setRight(rect.right() + xpad);
-    rect.setTop(rect.top() - ypad);
-    rect.setBottom(rect.bottom() + ypad);
+    bounds.setLeft(bounds.left() - xpad);
+    bounds.setRight(bounds.right() + xpad);
+    bounds.setTop(bounds.top() - ypad);
+    bounds.setBottom(bounds.bottom() + ypad);
 
     if (mEqualAxes) {
-        updatePlotForEqualAxes(rect);
+        updatePlotForEqualAxes(bounds);
     } else {
-        xAxis->setRange(rect.left(), rect.right());
-        yAxis->setRange(rect.top(), rect.bottom());
+        xAxis->setRange(bounds.left(), bounds.right());
+        yAxis->setRange(bounds.top(), bounds.bottom());
         queueReplot();
     }
 }
@@ -447,6 +435,7 @@ void Subplot::showAll()
 void Subplot::setEqualAxesButDontReplot(bool fixed)
 {
     mEqualAxes = fixed;
+    plotMenu.actionEqualAxes->setChecked(fixed);
 
     if (fixed) {
         axisRect->setRangeZoom(Qt::Vertical | Qt::Horizontal);
@@ -622,7 +611,7 @@ void Subplot::onActionPlaceMarkerTriggered()
     ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
     if (!closest.valid) { return; }
 
-    MarkerPtr marker = addMarker(QPointF(closest.xCoord, closest.yCoord));
+    MarkerPtr marker = addMarker(closest.coord);
 
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
@@ -711,8 +700,6 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
         if (event->buttons() == Qt::NoButton) {
 
-            QString text;
-
             if (mPlotCrosshair->visible() && dataTipGraph) {
 
                 QElapsedTimer timer;
@@ -730,15 +717,11 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                     mPlotCrosshair->setVisible(false);
                     updateGuiForCrosshairOptions();
                 } else if (closest.valid) {
-                    mPlotCrosshair->position->setCoords(closest.xCoord, closest.yCoord);
+                    mPlotCrosshair->position->setCoords(closest.coord);
                     mPlotCrosshair->text = QString("%1, %2 [%3]")
-                            .arg(closest.xCoord)
-                            .arg(closest.yCoord)
+                            .arg(closest.coord.x())
+                            .arg(closest.coord.y())
                             .arg(closest.dataIndex);
-                    text = QString("Plot: [%1] (%2, %3)")
-                            .arg(closest.dataIndex)
-                            .arg(closest.xCoord)
-                            .arg(closest.yCoord);
                     emit dataTipChanged(link->group,
                                 closest.dataIndex + dataTipGraph->range.start);
                     replot = true;
@@ -880,20 +863,9 @@ void Subplot::removeGraph(GraphPtr graph)
     }
 
     // Recalculate overall min/max for remaining graphs
-    bool first = true;
+    bounds = QRectF();
     foreach (GraphPtr graph, graphs) {
-        if (first) {
-            first = false;
-            xmin = graph->xstats.min;
-            xmax = graph->xstats.max;
-            ymin = graph->ystats.min;
-            ymax = graph->ystats.max;
-        } else {
-            xmin = qMin(xmin, graph->xstats.min);
-            xmax = qMax(xmax, graph->xstats.max);
-            ymin = qMin(ymin, graph->ystats.min);
-            ymax = qMax(ymax, graph->ystats.max);
-        }
+        expandBounds(graph->dataBounds());
     }
 }
 
@@ -1163,6 +1135,18 @@ void Subplot::updateGuiForCrosshairOptions()
     queueReplot();
 }
 
+QPointF Subplot::pixelPosToCoord(QPoint pos)
+{
+    return QPointF(xAxis->pixelToCoord(pos.x()),
+                   yAxis->pixelToCoord(pos.y()));
+}
+
+QPoint Subplot::coordToPixelPos(QPointF coord)
+{
+    return QPoint(xAxis->coordToPixel(coord.x()),
+                  yAxis->coordToPixel(coord.y()));
+}
+
 void Subplot::onPlotMouseMove(QMouseEvent *event)
 {
     // Note: Do not limit to axisRect as mouse may be outside of window but
@@ -1308,101 +1292,6 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
             mPlot->replot();
         }
     }
-}
-
-Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph,
-                                                ClosestOption closestOption)
-{
-    ClosestCoord closest;
-
-    if (!graph || !xAxis || !yAxis) {
-        closest.valid = false;
-        return closest;
-    }
-
-    if (findClosestMode == 1) {
-
-        int px = 50;
-
-
-        while (!closest.valid) {
-
-            QRect mouseRect(QPoint(), QSize(px, px));
-            mouseRect.moveCenter(pos);
-
-
-            QPolygonF searchPoly({
-                                     pixelPosToCoord(mouseRect.topLeft()),
-                                     pixelPosToCoord(mouseRect.topRight()),
-                                     pixelPosToCoord(mouseRect.bottomRight()),
-                                     pixelPosToCoord(mouseRect.bottomLeft())
-                                 });
-            QRectF searchRect = searchPoly.boundingRect();
-
-            Grid::Result r = grid.get(searchRect, closestOption);
-            double limitDistSqr = px*px;
-            double closestDistSqr = 0;
-            bool first = true;
-            foreach (Grid::Data d, r.data) {
-                QPoint p = coordToPixelPos(d.coord);
-                double distSqr;
-                if (closestOption == ClosestXY) {
-                    distSqr = qPow(pos.x() - p.x(), 2)
-                            + qPow(pos.y() - p.y(), 2);
-                } else {
-                    distSqr = qPow(pos.x() - p.x(), 2);
-                }
-                if ( (first || (distSqr < closestDistSqr)) && (distSqr <= limitDistSqr) ) {
-                    first = false;
-                    closestDistSqr = distSqr;
-                    closest.xCoord = d.coord.x();
-                    closest.yCoord = d.coord.y();
-                    closest.dataIndex = d.index;
-                    closest.valid = true;
-                }
-            }
-
-            if (r.maxedOut) { break; }
-
-            // Next iteration, if no coord found, try again with larger area
-            px *= 2;
-        }
-
-    } else {
-
-        for (int i = 0; i < graph->dataCount(); ++i) {
-
-            double xCrd = graph->datax(i);
-            int xPixel = xAxis->coordToPixel(xCrd);
-            double yCrd = graph->datay(i);
-
-            int dist = 0;
-
-            if (closestOption == ClosestXOnly) {
-                dist = qAbs(pos.x() - xPixel);
-            } else if (closestOption == ClosestXY) {
-                int yPixel = yAxis->coordToPixel(yCrd);
-                // Calculate distance in pixels to account for zooms
-                dist = qSqrt( qPow(pos.x() - xPixel, 2)
-                              + qPow(pos.y() - yPixel, 2) );
-            }
-
-            if ((i == 0) || (dist < closest.distancePixels)) {
-                closest.valid = true;
-                closest.distancePixels = dist;
-                closest.xCoord = xCrd;
-                closest.yCoord = yCrd;
-                closest.dataIndex = i;
-                if (dist == 0) {
-                    // We're not gonna find anything closer
-                    break;
-                }
-            }
-        }
-
-    }
-
-    return closest;
 }
 
 

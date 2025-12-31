@@ -12,6 +12,12 @@ QCPAbstractPlottable *Graph::plottable()
     return ret;
 }
 
+QRectF Graph::dataBounds()
+{
+    return QRectF(QPointF(xstats.min, ystats.min),
+                  QPointF(xstats.max, ystats.max));
+}
+
 bool Graph::isCurve()
 {
     return (curve != nullptr);
@@ -260,4 +266,75 @@ void PlotMenu::onRangeMenuAboutToShow()
             });
         }
     }
+}
+
+int GridHash::maxcolrow()
+{
+    return n - 1;
+}
+
+int GridHash::hash(QPoint point)
+{
+    return (point.x() + 1) * n + point.y();
+}
+
+QPoint GridHash::colrow(QPointF coord)
+{
+    double max = qMax(bounds.width(), bounds.height());
+
+    int col = (coord.x() - bounds.left()) / max * n;
+    int row = (coord.y() - bounds.top()) / max * n;
+
+    return QPoint(col, row);
+}
+
+int GridHash::clipcolrow(int value)
+{
+    return (qMax(qMin(value, maxcolrow()), 0));
+}
+
+void GridHash::insert(QPointF coord, int index)
+{
+    QPoint point = colrow(coord);
+
+    point.setX(clipcolrow(point.x()));
+    point.setY(clipcolrow(point.y()));
+
+    map.insert(hash(point), Data{coord, index});
+}
+
+GridHash::Result GridHash::get(QRectF rect, ClosestOption option)
+{
+    Result ret;
+
+    QPoint start = colrow(rect.topLeft());
+    QPoint end = colrow(rect.bottomRight());
+
+    int colstart = clipcolrow(start.x());
+    int colend = clipcolrow(end.x());
+    int rowstart;
+    int rowend;
+    if (option == ClosestXOnly) {
+        rowstart = 0;
+        rowend = maxcolrow();
+    } else {
+        rowstart = clipcolrow(start.y());
+        rowend = clipcolrow(end.y());
+    }
+
+    for (int col = colstart; col <= colend; col++) {
+        for (int row = rowstart; row <= rowend; row++) {
+            QList<Data> vals = map.values(hash(QPoint(col, row)));
+            ret.data.append(vals);
+        }
+    }
+
+    bool atmax = true;
+    atmax &= (colstart == 0);
+    atmax &= (colend == maxcolrow());
+    atmax &= (rowstart == 0);
+    atmax &= (rowend == maxcolrow());
+    ret.maxedOut = atmax;
+
+    return ret;
 }

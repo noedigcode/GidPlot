@@ -71,8 +71,6 @@ void MapPlot::onActionMeasureTriggered()
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 {
-    bool firstPlot = graphs.isEmpty();
-
     TrackPtr track(new Track());
     GraphPtr graph(new Graph(track));
     graph->csv = csv;
@@ -89,16 +87,19 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     graph->xstats = Matrix::vstats(track->lons);
 
     // Combine track mins/maxes with overall of all tracks
-    if (firstPlot) {
-        ymin = graph->ystats.min;
-        ymax = graph->ystats.max;
-        xmin = graph->xstats.min;
-        xmax = graph->xstats.max;
-    } else {
-        ymin = qMin(ymin, graph->ystats.min);
-        ymax = qMax(ymax, graph->ystats.max);
-        xmin = qMin(xmin, graph->xstats.min);
-        xmax = qMax(xmax, graph->xstats.max);
+
+    expandBounds(graph->dataBounds());
+
+    // Note: we build the grid hash from projected coordinates, as drawn on
+    // screen, not geo coordinates, since the grid assumes a flat plane.
+    QRectF r = graph->dataBounds();
+    QGV::GeoRect gr(pointToGeo(r.topLeft()), pointToGeo(r.bottomRight()));
+    QRectF projBounds = mMapWidget->getProjection()->geoToProj(gr);
+    graph->grid.bounds = projBounds;
+    for (int i = 0; i < track->lats.count(); i++) {
+        QPointF projPoint = mMapWidget->getProjection()->geoToProj(
+                    QGV::GeoPos(track->lats[i], track->lons[i]));
+        graph->grid.insert(projPoint, i);
     }
 
     // Create track on map
@@ -145,16 +146,22 @@ void MapPlot::setMapOSM()
 
 void MapPlot::zoomTo(double lat1, double lon1, double lat2, double lon2)
 {
+    zoomTo(QGV::GeoRect(lat1, lon1, lat2, lon2));
+}
+
+void MapPlot::zoomTo(QGV::GeoRect geoRect)
+{
     QMetaObject::invokeMethod(this, [=]()
     {
-        QGV::GeoRect target(lat1, lon1, lat2, lon2);
-        mMapWidget->cameraTo(QGVCameraActions(mMapWidget).scaleTo(target));
+        mMapWidget->cameraTo(QGVCameraActions(mMapWidget).scaleTo(geoRect));
     }, Qt::QueuedConnection);
 }
 
 void MapPlot::showAll()
 {
-    zoomTo(ymin, xmin, ymax, xmax);
+    zoomTo(QGV::GeoRect(
+               pointToGeo(bounds.topLeft()),
+               pointToGeo(bounds.bottomRight()) ));
 }
 
 bool MapPlot::saveToPng(QString path)
@@ -236,36 +243,32 @@ void MapPlot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
     // TODO: Mouse crosshair
 }
 
-MapPlot::ClosestCoord MapPlot::findClosestCoord(QGV::GeoPos pos, GraphPtr graph)
+QPointF MapPlot::pixelPosToCoord(QPoint pos)
 {
-    ClosestCoord closest;
+    // Map pixel position to projection as seen on screen (not geo coordinates)
+    return mMapWidget->mapToProj(pos);
+}
 
-    if (!graph) {
-        closest.valid = false;
-        return closest;
-    }
+QPoint MapPlot::coordToPixelPos(QPointF coord)
+{
+    // Map projected coordinate as drawn on screen (not geo coordinate) to
+    // pixel position
+    return mMapWidget->mapFromProj(coord);
+}
 
-    for (int i = 0; i < graph->dataCount(); i++) {
+QPointF MapPlot::latLonToPoint(double lat, double lon)
+{
+    return QPointF(lon, lat);
+}
 
-        double lat = graph->track->lats[i];
-        double lon = graph->track->lons[i];
-        double dist = qSqrt( qPow(pos.latitude() - lat, 2)
-                             + qPow(pos.longitude() - lon, 2) );
+QGV::GeoPos MapPlot::pointToGeo(QPointF pos)
+{
+    return QGV::GeoPos(pos.y(), pos.x());
+}
 
-        if ((i == 0) || (dist < closest.distance)) {
-            closest.valid = true;
-            closest.distance = dist;
-            closest.lat = lat;
-            closest.lon = lon;
-            closest.dataIndex = i;
-            if (dist == 0) {
-                break;
-            }
-        }
-
-    }
-
-    return closest;
+QPointF MapPlot::geoToPoint(QGV::GeoPos pos)
+{
+    return latLonToPoint(pos.latitude(), pos.longitude());
 }
 
 void MapPlot::setMapTiles(QGVLayerTiles *tiles)
@@ -285,11 +288,13 @@ void MapPlot::removeTiles()
 
 void MapPlot::onMapMouseMove(QPointF projPos)
 {
-    QGV::GeoPos pos = mMapWidget->getProjection()->projToGeo(projPos);
+    QPoint pixelPos = mMapWidget->mapFromProj(projPos);
     if (mTrackCrosshair->isVisible() && dataTipGraph) {
-        ClosestCoord closest = findClosestCoord(pos, dataTipGraph);
+        ClosestCoord closest = findClosestCoord(
+                    pixelPos, dataTipGraph,
+                    ClosestXY);
         if (closest.valid) {
-            QGV::GeoPos closestPos(closest.lat, closest.lon);
+            QGV::GeoPos closestPos = mMapWidget->getProjection()->projToGeo(closest.coord);
             mTrackCrosshair->setPosition(closestPos);
             emit dataTipChanged(link->group,
                                 closest.dataIndex + dataTipGraph->range.start);

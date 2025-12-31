@@ -40,10 +40,8 @@ signals:
 protected:
     QWidget* mParentWidget = nullptr;
 
-    double xmin = 0;
-    double xmax = 0;
-    double ymin = 0;
-    double ymax = 0;
+    QRectF bounds;
+    void expandBounds(QRectF otherDataBounds);
 
     // -----------------------------------------------------------------------
     // Menus
@@ -59,6 +57,7 @@ protected slots:
 protected:
     CrosshairsDialog mCrosshairsDialog;
     int mPlotCrosshairIndex = 0;
+    ClosestOption mPlotCrosshairSnap = ClosestXOnly;
     void showCrosshairsDialog();
     virtual CrosshairsDialog::Settings crosshairsDialogAboutToShow() = 0;
     virtual void crosshairsDialogChanged(CrosshairsDialog::Settings s) = 0;
@@ -74,8 +73,23 @@ protected:
     GraphPtr dataTipGraph;
     QList<GraphPtr> graphs;
 
+    virtual QPointF pixelPosToCoord(QPoint pos) = 0;
+    virtual QPoint coordToPixelPos(QPointF coord) = 0;
+
+    struct ClosestCoord {
+        bool valid = false;
+        QPointF coord;
+        int dataIndex = 0;
+    };
+
+    int mClosestCoordStartSizePx = 50;
+    ClosestCoord findClosestCoord(QPoint mousePos, GraphPtr graph,
+                                  ClosestOption closestOption);
+
 private:
     void setupPlotMenu();
+private slots:
+    void onActionDataTipGraphSelected(GraphPtr graph);
 };
 
 typedef QSharedPointer<Plot> PlotPtr;

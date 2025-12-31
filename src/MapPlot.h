@@ -32,6 +32,7 @@ public:
 
     void setMapOSM();
     void zoomTo(double lat1, double lon1, double lat2, double lon2);
+    void zoomTo(QGV::GeoRect geoRect);
 
     bool saveToPng(QString path);
     QPixmap toPixmap();
@@ -75,14 +76,12 @@ private:
     CrosshairsDialog::Settings crosshairsDialogAboutToShow();
     void crosshairsDialogChanged(CrosshairsDialog::Settings s);
 
-    struct ClosestCoord {
-        bool valid = false;
-        double distance = 0;
-        double lat = 0;
-        double lon = 0;
-        int dataIndex;
-    };
-    ClosestCoord findClosestCoord(QGV::GeoPos pos, GraphPtr graph);
+    QPointF pixelPosToCoord(QPoint pos);
+    QPoint coordToPixelPos(QPointF coord);
+
+    QPointF latLonToPoint(double lat, double lon);
+    QGV::GeoPos pointToGeo(QPointF pos);
+    QPointF geoToPoint(QGV::GeoPos pos);
 
     void setMapTiles(QGVLayerTiles* tiles);
     void removeTiles();

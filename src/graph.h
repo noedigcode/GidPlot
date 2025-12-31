@@ -17,6 +17,12 @@
  * depending on whether it is monotonically increasing (QCPGraph) or not
  * (QCPCurve). A Track is plotted on a QGeoView map. */
 
+// ===========================================================================
+
+enum ClosestOption { ClosestXOnly, ClosestXY };
+
+// ===========================================================================
+
 struct Track
 {
     QVector<double> lats;
@@ -29,6 +35,37 @@ struct Track
 
 };
 typedef QSharedPointer<Track> TrackPtr;
+
+// ===========================================================================
+
+struct GridHash
+{
+    QRectF bounds;
+    int n = 100;
+
+    int maxcolrow();
+
+    struct Data
+    {
+        QPointF coord;
+        int index = 0;
+    };
+
+    QMultiMap<int, Data> map;
+
+    int hash(QPoint point);
+    QPoint colrow(QPointF coord);
+    int clipcolrow(int value);
+    void insert(QPointF coord, int index);
+
+    struct Result
+    {
+        QList<Data> data;
+        bool maxedOut = false;
+    };
+
+    Result get(QRectF rect, ClosestOption option);
+};
 
 // ===========================================================================
 
@@ -52,6 +89,9 @@ public:
 
     Matrix::VStats xstats;
     Matrix::VStats ystats;
+    QRectF dataBounds();
+
+    GridHash grid;
 
     bool isCurve();
     bool isGraph();
