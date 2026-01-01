@@ -168,8 +168,6 @@ private slots:
     void on_action_Copy_SVG_triggered();
     void on_action_Save_as_PNG_triggered();
     void on_action_Save_as_SVG_triggered();
-    void on_actionfindClosest_mode_1_triggered();
-    void on_actionfindClosest_mode_2_triggered();
 };
 
 #endif // PLOTWINDOW_H

@@ -283,7 +283,8 @@ void MainWindow::onTableMapPlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol, in
         p->plotMap(csv, ixcol, iycol, range);
 
     } else {
-        // TODO handle if not new plot
+        // Note: non-new (adding to existing) plot for map plots is handled
+        // with other plot types in onTablePlot().
     }
 }
 

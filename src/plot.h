@@ -29,9 +29,6 @@ public:
     void storeAndDisableCrosshairs();
     void restoreCrosshairs();
 
-    // TODO Testing
-    int findClosestMode = 1;
-
 signals:
     void axisRangesChanged(int linkGroup, QRectF xyrange);
     void dataTipChanged(int linkGroup, int index);
