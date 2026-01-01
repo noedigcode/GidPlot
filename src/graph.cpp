@@ -222,14 +222,14 @@ void PlotMenu::onRangeMenuAboutToShow()
                         parentWidget, "New Range", "Name",
                         QLineEdit::Normal,
                         QString("Range %1")
-                        .arg(dataTipGraph->csv->ranges.count() + 1));
+                        .arg(dataTipGraph->csv->ranges().count() + 1));
             if (name.isEmpty()) { return; }
             RangePtr range(new Range());
             range->name = name;
             // Take start of graph range into account
             range->start = plotCrosshairIndex() + dataTipGraph->range.start;
             range->end = dataTipGraph->range.end + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
+            dataTipGraph->csv->addRange(range);
         });
         newRangeMenu->addAction("Set end of new range", this, [=]()
         {
@@ -237,17 +237,17 @@ void PlotMenu::onRangeMenuAboutToShow()
                         parentWidget, "New Range", "Name",
                         QLineEdit::Normal,
                         QString("Range %1")
-                        .arg(dataTipGraph->csv->ranges.count() + 1));
+                        .arg(dataTipGraph->csv->ranges().count() + 1));
             if (name.isEmpty()) { return; }
             RangePtr range(new Range());
             range->name = name;
             // Take start of graph range into account
             range->start = 0 + dataTipGraph->range.start;
             range->end = plotCrosshairIndex() + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
+            dataTipGraph->csv->addRange(range);
         });
 
-        foreach (RangePtr range, dataTipGraph->csv->ranges) {
+        foreach (RangePtr range, dataTipGraph->csv->ranges()) {
             QMenu* rangeXMenu = rangeMenu.addMenu(range->name);
             RangeWeakPtr rangeWkPtr(range);
             rangeXMenu->addAction("Set start", this, [this, rangeWkPtr]()

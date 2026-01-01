@@ -55,8 +55,6 @@ void TableWidget::setData(CsvPtr csv)
     }
     selectDefaultColumns();
 
-    setRangeToAll();
-
     // Create table widget
     QTableWidget* w = ui->tableWidget;
     connect(w->verticalScrollBar(), &QScrollBar::valueChanged,
@@ -91,6 +89,8 @@ void TableWidget::setData(CsvPtr csv)
                                          .arg(mat->excessColsErrorCount));
     ui->label_errors_insufCols->setText(QString("%1 insufficient column errors")
                                         .arg(mat->insufficientColsErrorCount));
+
+    setupRangeComboBox();
 }
 
 void TableWidget::setAddToPlotButtonEnabled(bool enabled)
@@ -99,11 +99,9 @@ void TableWidget::setAddToPlotButtonEnabled(bool enabled)
     updateButtonsEnabled();
 }
 
-void TableWidget::setRangeToAll()
+void TableWidget::onRangeAdded(RangePtr range)
 {
-    if (!mCsv) { return; }
-    ui->lineEdit_range->setText(
-        Range("All", 0, mCsv->matrix->rowCount()).toString());
+    addRangeToComboBoxAndMap(range);
 }
 
 void TableWidget::loadVisibleRows()
@@ -296,7 +294,7 @@ void TableWidget::updateButtonsEnabled()
 
 void TableWidget::setRange(RangePtr range)
 {
-    ui->lineEdit_range->setText(range->toString());
+    ui->lineEdit_range->setText(range->toRangeString());
 }
 
 void TableWidget::emitPlot(bool newPlot)
@@ -306,8 +304,8 @@ void TableWidget::emitPlot(bool newPlot)
     if (selection.xcols.isEmpty()) { return; }
     if (selection.ycols.isEmpty()) { return; }
 
-    Range range;
-    if (!range.fromString(ui->lineEdit_range->text())) { return; }
+    Range range = getRange();
+    if (range.size() == 0) { return; }
 
     emit plot(newPlot, selection.xcols.value(0), selection.ycols, range);
 }
@@ -316,8 +314,8 @@ void TableWidget::emitMapPlot(bool newPlot)
 {
     ColSelection selection = getColumnsSelection();
 
-    Range range;
-    if (!range.fromString(ui->lineEdit_range->text())) { return; }
+    Range range = getRange();
+    if (range.size() == 0) { return; }
 
     emit mapPlot(newPlot, selection.xcols.value(0), selection.ycols.value(0), range);
 }
@@ -327,6 +325,45 @@ void TableWidget::resizeEvent(QResizeEvent* event)
     QWidget::resizeEvent(event);
 
     loadVisibleRows();
+}
+
+void TableWidget::setupRangeComboBox()
+{
+    connect(mCsv.data(), &Csv::rangeAdded, this, &TableWidget::onRangeAdded);
+
+    // Special "All" item
+    allRange = mCsv->allRange();
+    comboBoxAllIndex = ui->comboBox_range->count();
+    ui->comboBox_range->addItem("All");
+
+    // Special "Custom" item
+    comboBoxCustomIndex = ui->comboBox_range->count();
+    ui->comboBox_range->addItem("Custom");
+
+    ui->comboBox_range->setCurrentIndex(comboBoxAllIndex);
+}
+
+void TableWidget::addRangeToComboBoxAndMap(RangePtr range)
+{
+    int index = ui->comboBox_range->count();
+    comboBoxRangeMap.insert(index, range);
+    ui->comboBox_range->addItem(range->name);
+}
+
+Range TableWidget::getRange()
+{
+    int index = ui->comboBox_range->currentIndex();
+
+    if (index == comboBoxAllIndex) {
+        return allRange;
+    } else if (index == comboBoxCustomIndex) {
+        Range range;
+        range.fromRangeString(ui->lineEdit_range->text());
+        range.name = ui->lineEdit_range->text();
+        return range;
+    } else {
+        return *(comboBoxRangeMap.value(index).data());
+    }
 }
 
 void TableWidget::on_toolButton_errors_value_prev_clicked()
@@ -384,26 +421,6 @@ void TableWidget::on_treeWidget_cols_y_itemSelectionChanged()
     updateWidgetsOnColumnSelectionChange();
 }
 
-void TableWidget::on_toolButton_range_clicked()
-{
-    QMenu* menu = new QMenu();
-    connect(menu, &QMenu::aboutToHide, this, [=]()
-    {
-        menu->deleteLater();
-    });
-    menu->addAction("All", this, &TableWidget::setRangeToAll);
-    if (!mCsv) { return; }
-    foreach (RangePtr range, mCsv->ranges) {
-        menu->addAction(range->name, this, [this, rangeWkPtr = range.toWeakRef()]()
-        {
-            RangePtr range(rangeWkPtr);
-            if (!range) { return; }
-            setRange(range);
-        });
-    }
-    menu->popup(QCursor::pos());
-}
-
 void TableWidget::on_pushButton_newPlot_clicked()
 {
     emitPlot(true);
@@ -412,5 +429,41 @@ void TableWidget::on_pushButton_newPlot_clicked()
 void TableWidget::on_pushButton_newMapPlot_clicked()
 {
     emitMapPlot(true);
+}
+
+void TableWidget::on_comboBox_range_currentIndexChanged(int index)
+{
+    QString text;
+    bool changeText = false;
+
+    if (index == comboBoxAllIndex) {
+        // Special item "All"
+        changeText = true;
+        text = allRange.toRangeString();
+    } else if (index == comboBoxCustomIndex) {
+        // Special item "Custom"
+        // Enable range line edit, keeping its previous text to be edited
+        changeText = false;
+    } else {
+        changeText = true;
+        RangePtr range = comboBoxRangeMap.value(index);
+        if (range) {
+            text = range->toRangeString();
+        } else {
+            text = "Error: No such range in map";
+        }
+    }
+
+    if (changeText) {
+        ui->lineEdit_range->setText(text);
+    }
+}
+
+void TableWidget::on_lineEdit_range_textEdited(const QString& /*arg1*/)
+{
+    // When the user edits the range text box, change the combo box to "Custom".
+    if (ui->comboBox_range->currentIndex() != comboBoxCustomIndex) {
+        ui->comboBox_range->setCurrentIndex(comboBoxCustomIndex);
+    }
 }
 

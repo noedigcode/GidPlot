@@ -188,70 +188,76 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
         foreach (PlotWindow* p, mPlots) {
             QMenu* submenu = new QMenu();
             submenu->setTitle(p->windowTitle());
-            int i = 0;
-            QList<SubplotPtr> subplots = p->subplots();
-            foreach (SubplotPtr s, subplots) {
-                i += 1;
-                QString name = p->windowTitle();
-                if (subplots.count() > 1) {
-                    name += QString(" Subplot %1").arg(i);
-                }
-                submenu->addAction(name, this,
-                                [this, csvWkPtr, ixcol, iycols, range, p,
-                                 subplotWkPtr = s.toWeakRef()]()
+
+            MapPlotPtr mapPlot = p->mapPlot();
+            if (mapPlot) {
+
+                submenu->addAction("Map Plot", this,
+                                   [this, csvWkPtr, ixcol, iycols, range, p,
+                                    mapPlotWkPtr = mapPlot.toWeakRef()]()
                 {
                     CsvPtr csv(csvWkPtr);
                     if (!csv) { return; }
 
-                    SubplotPtr subplot(subplotWkPtr);
-                    if (!subplot) { return; }
+                    MapPlotPtr mapPlot(mapPlotWkPtr);
+                    if (!mapPlot) { return; }
+
+                    mapPlot->plot(csv, ixcol, iycols.value(0), range);
+                    focusPlot(p);
+                });
+
+            } else {
+
+                int iSubplot = 0;
+                QList<SubplotPtr> subplots = p->subplots();
+                foreach (SubplotPtr s, subplots) {
+                    iSubplot += 1;
+                    QString name = p->windowTitle();
+                    if (subplots.count() > 1) {
+                        name += QString(" Subplot %1").arg(iSubplot);
+                    }
+                    submenu->addAction(name, this,
+                                    [this, csvWkPtr, ixcol, iycols, range, p,
+                                     subplotWkPtr = s.toWeakRef()]()
+                    {
+                        CsvPtr csv(csvWkPtr);
+                        if (!csv) { return; }
+
+                        SubplotPtr subplot(subplotWkPtr);
+                        if (!subplot) { return; }
+
+                        foreach (int iycol, iycols) {
+                            p->plotData(subplot, csv, ixcol, iycol, range);
+                            focusPlot(p);
+                        }
+                    });
+                }
+                submenu->addAction("New Subplot", this,
+                                   [this, csvWkPtr, ixcol, iycols, range, p]()
+                {
+                    CsvPtr csv(csvWkPtr);
+                    if (!csv) { return; }
+
+                    SubplotPtr subplot = p->addSubplot();
 
                     foreach (int iycol, iycols) {
                         p->plotData(subplot, csv, ixcol, iycol, range);
-                        if (!ui->tabWidget->isPoppedOut(p)) {
-                            ui->tabWidget->setCurrentWidget(p);
-                        } else {
-                            QMainWindow* mw = ui->tabWidget->tabWindow(p);
-                            if (mw) {
-                                mw->raise();
-                                mw->activateWindow();
-                            }
-                        }
+                        focusPlot(p);
                     }
+
+                    // Prepare and set x and y axis labels
+                    MatrixPtr mat = csv->matrix;
+                    QStringList ylabels;
+                    foreach (int iycol, iycols) {
+                        ylabels.append(mat->heading(iycol));
+                    }
+                    QString ytext = Utils::elidedText(ylabels.join(","), 20);
+                    QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
+                    subplot->setXLabel(xtext);
+                    subplot->setYLabel(ytext);
                 });
+
             }
-            submenu->addAction("New Subplot", this,
-                               [this, csvWkPtr, ixcol, iycols, range, p]()
-            {
-                CsvPtr csv(csvWkPtr);
-                if (!csv) { return; }
-
-                SubplotPtr subplot = p->addSubplot();
-
-                foreach (int iycol, iycols) {
-                    p->plotData(subplot, csv, ixcol, iycol, range);
-                    if (!ui->tabWidget->isPoppedOut(p)) {
-                        ui->tabWidget->setCurrentWidget(p);
-                    } else {
-                        QMainWindow* mw = ui->tabWidget->tabWindow(p);
-                        if (mw) {
-                            mw->raise();
-                            mw->activateWindow();
-                        }
-                    }
-                }
-
-                // Prepare and set x and y axis labels
-                MatrixPtr mat = csv->matrix;
-                QStringList ylabels;
-                foreach (int iycol, iycols) {
-                    ylabels.append(mat->heading(iycol));
-                }
-                QString ytext = Utils::elidedText(ylabels.join(","), 20);
-                QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
-                subplot->setXLabel(xtext);
-                subplot->setYLabel(ytext);
-            });
 
             menu->addMenu(submenu);
         }
@@ -527,5 +533,18 @@ void MainWindow::updatePlotWindowTitle(PlotWindow* p, QString title)
     // Also set PlotWindow window title, as this is used in the menu when
     // selecting plots
     p->setWindowTitle(title);
+}
+
+void MainWindow::focusPlot(PlotWindow *p)
+{
+    if (!ui->tabWidget->isPoppedOut(p)) {
+        ui->tabWidget->setCurrentWidget(p);
+    } else {
+        QMainWindow* mw = ui->tabWidget->tabWindow(p);
+        if (mw) {
+            mw->raise();
+            mw->activateWindow();
+        }
+    }
 }
 

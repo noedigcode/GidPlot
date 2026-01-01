@@ -41,6 +41,7 @@ SOURCES += \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
+    src/csv.cpp \
     src/graph.cpp \
     src/link.cpp \
     src/main.cpp \

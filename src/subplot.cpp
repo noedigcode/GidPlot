@@ -197,6 +197,12 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
 
     QPen pen = Graph::nextPen(mPenIndex++);
 
+    QString name = csv->matrix->heading(iycol);
+    // If range is not all, show range name
+    if (!range.sameAs(csv->allRange())) {
+        name = QString("%1 (%2)").arg(name).arg(range.name);
+    }
+
     GraphPtr graph;
     if (xstats.monotonicallyIncreasing) {
         // Graph is more efficient but can only be used if x is monotonically
@@ -205,7 +211,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         graph.reset(new Graph(qcpgraph));
         qcpgraph->setData(x, y);
         qcpgraph->setPen(pen);
-        qcpgraph->setName(csv->matrix->heading(iycol));
+        qcpgraph->setName(name);
         mPlotCrosshairSnap = ClosestXOnly;
         mPlotCrosshair->showHorizontalLine = false;
         updateGuiForCrosshairOptions();
@@ -215,7 +221,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         graph.reset(new Graph(qcpcurve));
         qcpcurve->setData(x, y);
         qcpcurve->setPen(pen);
-        qcpcurve->setName(csv->matrix->heading(iycol));
+        qcpcurve->setName(name);
         mPlotCrosshairSnap = ClosestXY;
         setEqualAxesButDontReplot(true);
     }

@@ -95,6 +95,7 @@ private:
     QList<PlotWindow*> mPlots;
     int mPlotCounter = 0;
     void updatePlotWindowTitle(PlotWindow* p, QString title);
+    void focusPlot(PlotWindow* p);
 
     QList<TableWidget*> mTables;
 

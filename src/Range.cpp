@@ -36,17 +36,33 @@ Range::Range(QString name, int start, int end) :
 
 }
 
-int Range::size() const
+int Range::min() const
 {
-    return end - start;
+    return qMin(start, end);
 }
 
-QString Range::toString() const
+int Range::max() const
+{
+    return qMax(start, end);
+}
+
+int Range::size() const
+{
+    return max() - min();
+}
+
+bool Range::sameAs(const Range otherRange)
+{
+    return (min() == otherRange.min())
+            && (max() == otherRange.max());
+}
+
+QString Range::toRangeString() const
 {
     return QString("%1 - %2").arg(start).arg(end);
 }
 
-bool Range::fromString(QString s)
+bool Range::fromRangeString(QString s)
 {
     static QByteArray allowed {"-,; "};
     s = s.trimmed().simplified();

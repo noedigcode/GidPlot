@@ -56,6 +56,7 @@ public:
     int tag();
     QList<LinkPtr> links();
     QList<SubplotPtr> subplots();
+    MapPlotPtr mapPlot();
     QSize plotWidgetSize();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
     void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);

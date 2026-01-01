@@ -93,6 +93,11 @@ QList<SubplotPtr> PlotWindow::subplots()
     return mSubplots;
 }
 
+MapPlotPtr PlotWindow::mapPlot()
+{
+    return mMapPlot;
+}
+
 QSize PlotWindow::plotWidgetSize()
 {
     if (mMapWidget) {

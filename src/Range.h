@@ -35,11 +35,15 @@ struct Range
     int start = 0;
     int end = 0;
 
+    int min() const;
+    int max() const;
     int size() const;
+    bool sameAs(const Range otherRange);
 
-    QString toString() const;
-    bool fromString(QString s);
+    QString toRangeString() const;
+    bool fromRangeString(QString s);
 };
+
 typedef QSharedPointer<Range> RangePtr;
 typedef QWeakPointer<Range> RangeWeakPtr;
 

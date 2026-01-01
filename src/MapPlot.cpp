@@ -79,9 +79,13 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     graph->range = range;
     track->lats = csv->matrix->data[ilatcol].mid(range.start, range.size());
     track->lons = csv->matrix->data[iloncol].mid(range.start, range.size());
+
     track->name = QString("%1, %2")
             .arg(csv->matrix->heading(ilatcol))
             .arg(csv->matrix->heading(iloncol));
+    if (range.size() != csv->matrix->rowCount()) {
+        track->name = QString("%1 (%2)").arg(track->name).arg(range.name);
+    }
 
     graph->ystats = Matrix::vstats(track->lats);
     graph->xstats = Matrix::vstats(track->lons);
