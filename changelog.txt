@@ -1,6 +1,30 @@
 Gid~Plot Changelog
 ==================
 
+[0.1.0] - 2026-01-01
+--------------------
+
+Added
+
+- Plotting latitude/longitude data on a map! An actual map! Map tiles are
+  obtained on the fly from OpenStreetMap. The QGeoView library is used.
+
+Changed
+
+- Calculating the closest plot data point to the mouse cursor now uses a
+  smarter algorithm which is faster - especially noticeable for large data
+  sets.
+- Improve range select/edit UI.
+- Add range name to plot name (i.e. as shown in legend) if the range is not
+  the full data range.
+- When saving as image, use plot title as default filename.
+
+Fixed
+
+- When removing a curve from a plot, recalculate mins and maxes so show all
+  works properly with remaining curves.
+
+
 [0.0.4] - 2025-12-07
 --------------------
 
