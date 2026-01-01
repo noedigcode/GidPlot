@@ -14,17 +14,17 @@ create sub-ranges to plot, snap windows to screen edges and a bit more.
 
 Plus, plot latitude/longitude data on a map. Yes, an actual map!
 
-[QCustomPlot](https://www.qcustomplot.com/) is used for plotting.
-[QGeoView](https://github.com/AmonRaNet/QGeoView) is used for map plotting.
-Map tiles are retrieve on the fly from [OpenStreetMap](https://www.openstreetmap.org/).
+- [QCustomPlot](https://www.qcustomplot.com/) is used for plotting.
+- [QGeoView](https://github.com/AmonRaNet/QGeoView) is used for map plotting.
+- Map tiles are retrieve on the fly from [OpenStreetMap](https://www.openstreetmap.org/).
 
 
 Requirements:
 -------------
 
-* Qt 5
-* Windows or Linux (and probably Mac too)
-* OpenSSL for retrieving map tiles over https.
+- Qt 5
+- Windows or Linux (and probably Mac too)
+- OpenSSL for retrieving map tiles over https.
   - On Windows, you need the `libcrypto-1_1-x64.dll` and `libssl-1_1-x64.dll` files
     which are not provided by Qt. You need to build these yourself or find them
     bundled with some application.
