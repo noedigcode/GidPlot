@@ -26,8 +26,11 @@
 #include "csv.h"
 #include "utils.h"
 #include "subplot.h"
+#include "MapPlot.h"
 
 #include "QCustomPlot/qcustomplot.h"
+
+#include "QGeoView/QGVMap.h"
 
 #include <QMainWindow>
 
@@ -51,10 +54,13 @@ public:
     };
 
     int tag();
+    QList<LinkPtr> links();
     QList<SubplotPtr> subplots();
-    QCustomPlot* plotWidget();
+    MapPlotPtr mapPlot();
+    QSize plotWidgetSize();
     void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
     void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
+    void plotMap(CsvPtr csv, int ixcol, int iycol, Range range);
     SubplotPtr addSubplot();
     void setTitle(QString title);
     void setXLabel(QString xlabel);
@@ -63,13 +69,16 @@ public:
     void syncAxisRanges(int linkGroup, QRectF xyrange);
     void syncDataTip(int linkGroup, int index);
 
+    void setupGuiForNormalPlot();
+    void setupGuiForMap();
+
 signals:
     void axisRangesChanged(int linkGroup, QRectF xyrange);
     void dataTipChanged(int linkGroup, int index);
     void requestWindowDock(Dock location);
     void requestWindowResize(int width, int height);
     void titleSet(QString title);
-    void linkSettingsTriggered(SubplotPtr subplot);
+    void linkSettingsTriggered(LinkPtr link);
 
 private slots:
     void plottableClick(QCPAbstractPlottable *plottable, int dataIndex, QMouseEvent *event);
@@ -82,8 +91,8 @@ private slots:
 
     void onPlotMouseRelease(QMouseEvent* event);
 
-    void onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange);
-    void onDataTipChanged(SubplotPtr subplot, int linkGroup, int index);
+    void onAxisRangesChanged(PlotPtr plot, int linkGroup, QRectF xyrange);
+    void onDataTipChanged(PlotPtr plot, int linkGroup, int index);
 
     void on_action_Dock_to_Screen_Top_triggered();
     void on_action_Dock_to_Screen_Bottom_triggered();
@@ -96,6 +105,7 @@ private slots:
 
 private:
     Ui::PlotWindow *ui;
+    QGVMap* mMapWidget = nullptr;
 
     int mTag = 0;
     QFont mPlotFont;
@@ -139,12 +149,18 @@ private:
     void showEvent(QShowEvent* event) override;
 
     // -------------------------------------------------------------------------
-    // Subplots
+    // Plots
+
+    void initPlot(PlotPtr plot);
+
+    QList<PlotPtr> mAllPlots;
 
     QList<SubplotPtr> mSubplots;
     void initSubplot(SubplotPtr subplot);
     void storeAndDisableCrosshairsOfAllSubplots();
     void restoreCrosshairsOfAllSubplots();
+
+    MapPlotPtr mMapPlot;
 
 private slots:
     void on_action_Save_as_PDF_triggered();

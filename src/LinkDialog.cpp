@@ -35,7 +35,7 @@ LinkDialog::~LinkDialog()
     delete ui;
 }
 
-void LinkDialog::show(QList<PlotWindow *> plotWindows, SubplotPtr selectSubplot)
+void LinkDialog::show(QList<PlotWindow *> plotWindows, LinkPtr selectLink)
 {
     ui->treeWidget->clear();
 
@@ -45,72 +45,79 @@ void LinkDialog::show(QList<PlotWindow *> plotWindows, SubplotPtr selectSubplot)
         QTreeWidgetItem* parentItem = new QTreeWidgetItem();
         parentItem->setText(0, pw->windowTitle());
 
-        foreach (SubplotPtr subplot, pw->subplots()) {
+        foreach (LinkPtr link, pw->links()) {
+
             QTreeWidgetItem* child = new QTreeWidgetItem();
-            if (subplot == selectSubplot) {
+            if (link == selectLink) {
                 itemToSelect = child;
             }
-            child->setText(0, subplot->tag);
+            child->setText(0, link->tag);
             parentItem->addChild(child);
 
             QComboBox* cbGroup = new QComboBox();
             cbGroup->addItems(QStringList({"None", "1", "2", "3"}));
-            cbGroup->setCurrentIndex(subplot->linkGroup);
+            cbGroup->setCurrentIndex(link->group);
             connect(cbGroup, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                    this, [sbWkPtr = subplot.toWeakRef()](int index)
+                    this, [linkWkPtr = link.toWeakRef()](int index)
             {
-                SubplotPtr s(sbWkPtr);
-                if (!s) { return; }
-                s->linkGroup = index;
+                LinkPtr link(linkWkPtr);
+                if (!link) { return; }
+                link->group = index;
             });
             ui->treeWidget->setItemWidget(child, 1, cbGroup);
 
-            QCheckBox* cbXpos = new QCheckBox();
-            cbXpos->setChecked(subplot->linkXpos);
-            connect(cbXpos, &QCheckBox::toggled,
-                    this, [sbWkPtr = subplot.toWeakRef()](int checked)
-            {
-                SubplotPtr s(sbWkPtr);
-                if (!s) { return; }
-                s->linkXpos = checked;
-            });
-            ui->treeWidget->setItemWidget(child, 2, cbXpos);
+            if (link->supportPosZoom) {
 
-            QCheckBox* cbYpos = new QCheckBox();
-            cbYpos->setChecked(subplot->linkYpos);
-            connect(cbYpos, &QCheckBox::toggled,
-                    this, [sbWkPtr = subplot.toWeakRef()](int checked)
-            {
-                SubplotPtr s(sbWkPtr);
-                if (!s) { return; }
-                s->linkYpos = checked;
-            });
-            ui->treeWidget->setItemWidget(child, 3, cbYpos);
+                QCheckBox* cbXpos = new QCheckBox();
+                cbXpos->setChecked(link->linkXpos);
+                connect(cbXpos, &QCheckBox::toggled,
+                        this, [linkWkPtr = link.toWeakRef()](int checked)
+                {
+                    LinkPtr link(linkWkPtr);
+                    if (!link) { return; }
+                    link->linkXpos = checked;
+                });
+                ui->treeWidget->setItemWidget(child, 2, cbXpos);
 
-            QCheckBox* cbXzoom = new QCheckBox();
-            cbXzoom->setChecked(subplot->linkXzoom);
-            connect(cbXzoom, &QCheckBox::toggled,
-                    this, [sbWkPtr = subplot.toWeakRef()](int checked)
-            {
-                SubplotPtr s(sbWkPtr);
-                if (!s) { return; }
-                s->linkXzoom = checked;
-            });
-            ui->treeWidget->setItemWidget(child, 4, cbXzoom);
+                QCheckBox* cbYpos = new QCheckBox();
+                cbYpos->setChecked(link->linkYpos);
+                connect(cbYpos, &QCheckBox::toggled,
+                        this, [linkWkPtr = link.toWeakRef()](int checked)
+                {
+                    LinkPtr link(linkWkPtr);
+                    if (!link) { return; }
+                    link->linkYpos = checked;
+                });
+                ui->treeWidget->setItemWidget(child, 3, cbYpos);
 
-            QCheckBox* cbYzoom = new QCheckBox();
-            cbYzoom->setChecked(subplot->linkYzoom);
-            connect(cbYzoom, &QCheckBox::toggled,
-                    this, [sbWkPtr = subplot.toWeakRef()](int checked)
-            {
-                SubplotPtr s(sbWkPtr);
-                if (!s) { return; }
-                s->linkYzoom = checked;
-            });
-            ui->treeWidget->setItemWidget(child, 5, cbYzoom);
+                QCheckBox* cbXzoom = new QCheckBox();
+                cbXzoom->setChecked(link->linkXzoom);
+                connect(cbXzoom, &QCheckBox::toggled,
+                        this, [linkWkPtr = link.toWeakRef()](int checked)
+                {
+                    LinkPtr link(linkWkPtr);
+                    if (!link) { return; }
+                    link->linkXzoom = checked;
+                });
+                ui->treeWidget->setItemWidget(child, 4, cbXzoom);
+
+                QCheckBox* cbYzoom = new QCheckBox();
+                cbYzoom->setChecked(link->linkYzoom);
+                connect(cbYzoom, &QCheckBox::toggled,
+                        this, [linkWkPtr = link.toWeakRef()](int checked)
+                {
+                    LinkPtr link(linkWkPtr);
+                    if (!link) { return; }
+                    link->linkYzoom = checked;
+                });
+                ui->treeWidget->setItemWidget(child, 5, cbYzoom);
+
+            }
+
         }
 
         ui->treeWidget->addTopLevelItem(parentItem);
+        parentItem->setFirstColumnSpanned(true);
         parentItem->setExpanded(true);
     }
 

@@ -46,9 +46,10 @@ public:
 
 signals:
     void plot(bool newPlot, int ixcol, QList<int> iycols, Range range);
+    void mapPlot(bool newPlot, int ixcol, int iycol, Range range);
 
 private slots:
-    void setRangeToAll();
+    void onRangeAdded(RangePtr range);
 
     void on_toolButton_errors_value_prev_clicked();
     void on_toolButton_errors_value_next_clicked();
@@ -61,8 +62,13 @@ private slots:
     void on_pushButton_addToPlot_clicked();
     void on_treeWidget_cols_x_itemSelectionChanged();
     void on_treeWidget_cols_y_itemSelectionChanged();
-    void on_toolButton_range_clicked();
     void on_pushButton_newPlot_clicked();
+
+    void on_pushButton_newMapPlot_clicked();
+
+    void on_comboBox_range_currentIndexChanged(int index);
+
+    void on_lineEdit_range_textEdited(const QString &arg1);
 
 private:
     Ui::TableWidget *ui;
@@ -91,8 +97,17 @@ private:
     void setRange(RangePtr range);
 
     void emitPlot(bool newPlot);
+    void emitMapPlot(bool newPlot);
 
     void resizeEvent(QResizeEvent* event);
+
+    void setupRangeComboBox();
+    QMap<int, RangePtr> comboBoxRangeMap;
+    int comboBoxAllIndex = 0;
+    int comboBoxCustomIndex = 1;
+    Range allRange;
+    void addRangeToComboBoxAndMap(RangePtr range);
+    Range getRange();
 };
 
 #endif // TABLEWIDGET_H

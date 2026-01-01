@@ -74,21 +74,44 @@ int PlotWindow::tag()
     return mTag;
 }
 
+QList<LinkPtr> PlotWindow::links()
+{
+    QList<LinkPtr> ret;
+
+    foreach (SubplotPtr subplot, mSubplots) {
+        ret.append(subplot->link);
+    }
+    if (mMapPlot) {
+        ret.append(mMapPlot->link);
+    }
+
+    return ret;
+}
+
 QList<SubplotPtr> PlotWindow::subplots()
 {
     return mSubplots;
 }
 
-QCustomPlot *PlotWindow::plotWidget()
+MapPlotPtr PlotWindow::mapPlot()
 {
-    return ui->plot;
+    return mMapPlot;
+}
+
+QSize PlotWindow::plotWidgetSize()
+{
+    if (mMapWidget) {
+        return mMapWidget->size();
+    } else {
+        return ui->plot->size();
+    }
 }
 
 void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 {
     SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) {
-        subplot.reset(new Subplot(ui->plot->axisRect()));
+        subplot.reset(new Subplot(ui->plot->axisRect(), this));
         initSubplot(subplot);
     }
 
@@ -99,14 +122,38 @@ void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, 
 {
     if (!subplot) { return; }
 
-    subplot->plotData(csv, ixcol, iycol, range);
+    subplot->plot(csv, ixcol, iycol, range);
+
+    setupGuiForNormalPlot();
+}
+
+void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
+{
+    if (!mMapWidget) {
+        mMapWidget = new QGVMap();
+        mMapWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+        QHBoxLayout* layout = static_cast<QHBoxLayout*>(ui->centralwidget->layout());
+        layout->removeWidget(ui->plot);
+        ui->plot->hide();
+        layout->insertWidget(0, mMapWidget, 1);
+    }
+
+    if (!mMapPlot) {
+        mMapPlot.reset(new MapPlot(mMapWidget, this));
+
+        initPlot(mMapPlot);
+        mAllPlots.append(mMapPlot);
+    }
+
+    mMapPlot->plot(csv, ixcol, iycol, range);
+
+    setupGuiForMap();
 }
 
 SubplotPtr PlotWindow::addSubplot()
 {
-    QCPAxisRect* bottomAxisRect = new QCPAxisRect(ui->plot);
-    ui->plot->plotLayout()->addElement(ui->plot->plotLayout()->rowCount(), 0, bottomAxisRect);
-    SubplotPtr subplot(new Subplot(bottomAxisRect));
+    SubplotPtr subplot = Subplot::newAtBottomOfPlot(ui->plot, this);
     initSubplot(subplot);
     return subplot;
 }
@@ -145,23 +192,58 @@ void PlotWindow::setYLabel(QString ylabel)
 void PlotWindow::syncAxisRanges(int linkGroup, QRectF xyrange)
 {
     foreach (SubplotPtr subplot, mSubplots) {
-        if (!subplot->linkGroup) { continue; }
-        if (subplot->linkGroup != linkGroup) { continue; }
-        subplot->syncAxisRanges(xyrange);
+        if (subplot->link->match(linkGroup)) {
+            subplot->syncAxisRanges(xyrange);
+        }
     }
 }
 
 void PlotWindow::syncDataTip(int linkGroup, int index)
 {
     foreach (SubplotPtr subplot, mSubplots) {
-        if (!subplot->linkGroup) { continue; }
-        if (subplot->linkGroup != linkGroup) { continue; }
-        subplot->syncDataTip(index);
+        if (subplot->link->match(linkGroup)) {
+            subplot->syncDataTip(index);
+        }
     }
+    if (mMapPlot) {
+        if (mMapPlot->link->match(linkGroup)) {
+            mMapPlot->syncDataTip(index);
+        }
+    }
+}
+
+void PlotWindow::setupGuiForNormalPlot()
+{
+    // Mouse/keyboard control info
+    ui->frame_info_ctrlWheelZoom->setVisible(true);
+    ui->frame_info_ldragPan->setVisible(true);
+    ui->frame_info_rclickMenu->setVisible(true);
+    ui->frame_info_rdragZoom->setVisible(true);
+    ui->frame_info_shiftWheelVzoom->setVisible(true);
+    ui->frame_info_wheelHzoom->setVisible(true);
+    ui->frame_info_wheelZoom->setVisible(false);
+}
+
+void PlotWindow::setupGuiForMap()
+{
+    // Mouse/keyboard control info
+    ui->frame_info_ctrlWheelZoom->setVisible(false);
+    ui->frame_info_ldragPan->setVisible(true);
+    ui->frame_info_rclickMenu->setVisible(true);
+    ui->frame_info_rdragZoom->setVisible(false);
+    ui->frame_info_shiftWheelVzoom->setVisible(false);
+    ui->frame_info_wheelHzoom->setVisible(false);
+    ui->frame_info_wheelZoom->setVisible(true);
+
+    // Image menu items
+    ui->action_Copy_SVG->setVisible(false);
+    ui->action_Save_as_PDF->setVisible(false);
+    ui->action_Save_as_SVG->setVisible(false);
 }
 
 bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 {
+    // TODO: consider implementing in Subplot
     bool keyPressOrRelease =    (event->type() == QEvent::KeyPress)
                              || (event->type() == QEvent::KeyRelease);
 
@@ -176,8 +258,8 @@ bool PlotWindow::eventFilter(QObject* /*watched*/, QEvent *event)
 
 void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 {
-    foreach (SubplotPtr subplot, mSubplots) {
-        subplot->resizeEvent();
+    foreach (PlotPtr p, mAllPlots) {
+        p->resized();
     }
 }
 
@@ -188,37 +270,43 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
     }
 }
 
-void PlotWindow::initSubplot(SubplotPtr subplot)
+void PlotWindow::initPlot(PlotPtr plot)
 {
-    connect(subplot.data(), &Subplot::axisRangesChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()]
+    connect(plot.data(), &Plot::axisRangesChanged,
+            this, [this, pWkPtr = plot.toWeakRef()]
             (int linkGroup, QRectF xyrange)
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        onAxisRangesChanged(s, linkGroup, xyrange);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        onAxisRangesChanged(p, linkGroup, xyrange);
     });
 
-    connect(subplot.data(), &Subplot::dataTipChanged,
-            this, [this, sWkPtr = subplot.toWeakRef()]
+    connect(plot.data(), &Plot::dataTipChanged,
+            this, [this, pWkPtr = plot.toWeakRef()]
             (int linkGroup, int index)
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        onDataTipChanged(s, linkGroup, index);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        onDataTipChanged(p, linkGroup, index);
     });
 
-    connect(subplot.data(), &Subplot::linkSettingsTriggered,
-            this, [this, sWkPtr = subplot.toWeakRef()]()\
+    connect(plot.data(), &Plot::linkSettingsTriggered,
+            this, [this, pWkPtr = plot.toWeakRef()]()
     {
-        SubplotPtr s(sWkPtr);
-        if (!s) { return; }
-        emit linkSettingsTriggered(s);
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        emit linkSettingsTriggered(p->link);
     });
+}
+
+void PlotWindow::initSubplot(SubplotPtr subplot)
+{
+    initPlot(subplot);
 
     mSubplots.append(subplot);
+    mAllPlots.append(subplot);
 
-    subplot->tag = QString("Subplot %1").arg(mSubplots.count());
+    subplot->link->tag = QString("Subplot %1").arg(mSubplots.count());
 }
 
 void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
@@ -226,12 +314,18 @@ void PlotWindow::storeAndDisableCrosshairsOfAllSubplots()
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->storeAndDisableCrosshairs();
     }
+    if (mMapPlot) {
+        mMapPlot->storeAndDisableCrosshairs();
+    }
 }
 
 void PlotWindow::restoreCrosshairsOfAllSubplots()
 {
     foreach (SubplotPtr subplot, mSubplots) {
         subplot->restoreCrosshairs();
+    }
+    if (mMapPlot) {
+        mMapPlot->restoreCrosshairs();
     }
 }
 
@@ -339,25 +433,26 @@ QCPLegend *PlotWindow::findLegendUnderPos(QPoint pos)
     return nullptr;
 }
 
-void PlotWindow::onAxisRangesChanged(SubplotPtr subplot, int linkGroup, QRectF xyrange)
+void PlotWindow::onAxisRangesChanged(PlotPtr plot, int linkGroup, QRectF xyrange)
 {
-    foreach (SubplotPtr s, mSubplots) {
-        if (s == subplot) { continue; }
-        if (!s->linkGroup) { continue; }
-        if (s->linkGroup != linkGroup) { continue; }
-        s->syncAxisRanges(xyrange);
+    foreach (PlotPtr p, mAllPlots) {
+        if (p == plot) { continue; }
+        if (p->link->match(linkGroup)) {
+            p->syncAxisRanges(xyrange);
+        }
     }
     emit axisRangesChanged(linkGroup, xyrange);
 }
 
-void PlotWindow::onDataTipChanged(SubplotPtr subplot, int linkGroup, int index)
+void PlotWindow::onDataTipChanged(PlotPtr plot, int linkGroup, int index)
 {
-    foreach (SubplotPtr s, mSubplots) {
-        if (s == subplot) { continue; }
-        if (!s->linkGroup) { continue; }
-        if (s->linkGroup != linkGroup) { continue; }
-        s->syncDataTip(index);
+    foreach (PlotPtr p, mAllPlots) {
+        if (p == plot) { continue; }
+        if (p->link->match(linkGroup)) {
+            p->syncDataTip(index);
+        }
     }
+
     emit dataTipChanged(linkGroup, index);
 }
 
@@ -442,7 +537,14 @@ void PlotWindow::on_action_Save_as_PDF_triggered()
 void PlotWindow::on_action_Copy_PNG_triggered()
 {
     storeAndDisableCrosshairsOfAllSubplots();
-    QImage image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+
+    QImage image;
+    if (mMapPlot) {
+        image = mMapPlot->toPixmap().toImage();
+    } else {
+        image = ui->plot->toPixmap(0, 0, 2.0).toImage();
+    }
+
     restoreCrosshairsOfAllSubplots();
 
     QClipboard* clipboard = QGuiApplication::clipboard();
@@ -471,11 +573,24 @@ void PlotWindow::on_action_Save_as_PNG_triggered()
     if (path.isEmpty()) { return; }
 
     storeAndDisableCrosshairsOfAllSubplots();
-    bool ok = ui->plot->savePng(path, 0, 0, 2.0);
+
+    bool ok;
+
+    if (mMapPlot) {
+
+        ok = mMapPlot->saveToPng(path);
+
+    } else {
+
+        ok = ui->plot->savePng(path, 0, 0, 2.0);
+
+    }
+
     if (!ok) {
         QMessageBox::critical(this, "Save to PNG failed",
                               "Failed to save to PNG: " + path);
     }
+
     restoreCrosshairsOfAllSubplots();
 }
 
@@ -499,4 +614,5 @@ void PlotWindow::on_action_Save_as_SVG_triggered()
                               "Failed to save to SVG: " + path);
     }
 }
+
 

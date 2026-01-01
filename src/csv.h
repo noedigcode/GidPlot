@@ -24,8 +24,11 @@
 #include "matrix.h"
 #include "Range.h"
 
-struct Csv
+class Csv : public QObject
 {
+    Q_OBJECT
+public:
+
     struct FileInfo
     {
         QString filename;
@@ -40,9 +43,20 @@ struct Csv
         QString info;
     } importInfo;
 
+    QList<RangePtr> ranges();
+    void addRange(RangePtr range);
+
+    Range allRange();
+
     MatrixPtr matrix;
-    QList<RangePtr> ranges;
+
+signals:
+    void rangeAdded(RangePtr range);
+
+private:
+    QList<RangePtr> mRanges;
 };
+
 typedef QSharedPointer<Csv> CsvPtr;
 typedef QWeakPointer<Csv> CsvWeakPtr;
 

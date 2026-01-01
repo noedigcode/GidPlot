@@ -24,18 +24,18 @@
 
 
 Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
-    : QObject{parentWidget}, parentWidget(parentWidget), axisRect(axisRect)
+    : Plot{parentWidget}, axisRect(axisRect)
 {
-    plot = axisRect->parentPlot();
+    mPlot = axisRect->parentPlot();
     xAxis = axisRect->axis(QCPAxis::atBottom);
     yAxis = axisRect->axis(QCPAxis::atLeft);
 
     // We will manually add plottables to legends per subplot
-    plot->setAutoAddPlottableToLegend(false);
+    mPlot->setAutoAddPlottableToLegend(false);
 
-    if (axisRect->insetLayout()->elements(false).contains(plot->legend)) {
+    if (axisRect->insetLayout()->elements(false).contains(mPlot->legend)) {
         // Use already existing default plot legend for this subplot (axisrect)
-        legend = plot->legend;
+        legend = mPlot->legend;
     } else {
         // Create new legend for this subplot (axisrect)
         legend = new QCPLegend();
@@ -45,15 +45,33 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
         legend->setLayer("legend");
     }
 
-    connect(plot, &QCustomPlot::mouseMove, this, &Subplot::onPlotMouseMove);
-    connect(plot, &QCustomPlot::mousePress, this, &Subplot::onPlotMousePress);
-    connect(plot, &QCustomPlot::mouseRelease, this, &Subplot::onPlotMouseRelease);
-    connect(plot, &QCustomPlot::axisDoubleClick, this, &Subplot::onAxisDoubleClick);
-    connect(plot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
+    connect(mPlot, &QCustomPlot::mouseMove, this, &Subplot::onPlotMouseMove);
+    connect(mPlot, &QCustomPlot::mousePress, this, &Subplot::onPlotMousePress);
+    connect(mPlot, &QCustomPlot::mouseRelease, this, &Subplot::onPlotMouseRelease);
+    connect(mPlot, &QCustomPlot::axisDoubleClick, this, &Subplot::onAxisDoubleClick);
+    connect(mPlot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
 
     setupCrosshairs();
-    setupCrosshairsDialog();
     setupMenus();
+    setupLink();
+}
+
+SubplotPtr Subplot::newAtBottomOfPlot(QCustomPlot *plot, QWidget *parentWidget)
+{
+    QCPAxisRect* ar = new QCPAxisRect(plot);
+    plot->plotLayout()->addElement(plot->plotLayout()->rowCount(), 0, ar);
+    SubplotPtr subplot(new Subplot(ar, parentWidget));
+    return subplot;
+}
+
+SubplotPtr Subplot::castFromPlot(PlotPtr plot)
+{
+    return qSharedPointerCast<Subplot>(plot);
+}
+
+void Subplot::setupLink()
+{
+    link->supportPosZoom = true;
 }
 
 QCPLegend *Subplot::findLegend(QCPAxisRect *axisRect)
@@ -97,11 +115,11 @@ void Subplot::onPlotMousePress(QMouseEvent *event)
     if (event->button() == Qt::LeftButton) {
         if (legend && legend->selectTest(event->pos(), false) >= 0) {
             legendMouse.mouseDown = true;
-            plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            mPlot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
             legendMouse.startRect = axisRect->insetLayout()->insetRect(0);
         } else if (markerPressed) {
             markerMouse.mouseDown = true;
-            plot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
+            mPlot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
         }
     }
 }
@@ -135,31 +153,31 @@ void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const
     menu->addAction(QIcon("://edit"), "Rename", this, [=]()
     {
         bool ok;
-        QString name = QInputDialog::getText(parentWidget, "Curve Name", "Name",
+        QString name = QInputDialog::getText(mParentWidget, "Curve Name", "Name",
                                              QLineEdit::Normal,
                                              plottable->name(), &ok);
         if (!ok) { return; }
         plottable->setName(name);
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
     menu->addAction(QIcon("://color"), "Set Color", this, [=]()
     {
         QPen pen = plottable->pen();
-        QColor color = QColorDialog::getColor(pen.color(), parentWidget);
+        QColor color = QColorDialog::getColor(pen.color(), mParentWidget);
         if (!color.isValid()) { return; }
         pen.setColor(color);
         plottable->setPen(pen);
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
     menu->addAction(QIcon("://delete"), "Delete", this, [=]()
     {
         removeGraph(plottableGraphMap.value(plottable));
-        plot->replot();
+        mPlot->replot();
         updateLegendPlacement();
     });
-    menu->popup(plot->mapToGlobal(pos));
+    menu->popup(mPlot->mapToGlobal(pos));
 }
 
 void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
@@ -167,46 +185,34 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
     qDebug() << "Legend right-clicked";
 }
 
-void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
+void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
 {
     bool firstPlot = (axisRect->plottables().size() == 0);
 
     QVector<double> x = csv->matrix->data[ixcol].mid(range.start, range.size());
     QVector<double> y = csv->matrix->data[iycol].mid(range.start, range.size());
 
-    if (firstPlot) {
-        xmin = Matrix::vmin(x);
-        xmax = Matrix::vmax(x);
-        ymin = Matrix::vmin(y);
-        ymax = Matrix::vmax(y);
-    } else {
-        xmin = qMin(xmin, Matrix::vmin(x));
-        xmax = qMax(xmax, Matrix::vmax(x));
-        ymin = qMin(ymin, Matrix::vmin(y));
-        ymax = qMax(ymax, Matrix::vmax(y));
-    }
+    Matrix::VStats xstats = Matrix::vstats(x);
+    Matrix::VStats ystats = Matrix::vstats(y);
 
-    // Determine whether x is monotonically inreasing
-    bool up = true;
-    for (int i = 1; i < x.count(); i++) {
-        if (x[i] < x[i-1]) {
-            up = false;
-            break;
-        }
-    }
+    QPen pen = Graph::nextPen(mPenIndex++);
 
-    QPen pen = pens.value((mPenIndex++) % pens.count());
+    QString name = csv->matrix->heading(iycol);
+    // If range is not all, show range name
+    if (!range.sameAs(csv->allRange())) {
+        name = QString("%1 (%2)").arg(name).arg(range.name);
+    }
 
     GraphPtr graph;
-    if (up) {
+    if (xstats.monotonicallyIncreasing) {
         // Graph is more efficient but can only be used if x is monotonically
         // increasing
-        QCPGraph* qcpgraph = plot->addGraph(xAxis, yAxis);
+        QCPGraph* qcpgraph = mPlot->addGraph(xAxis, yAxis);
         graph.reset(new Graph(qcpgraph));
         qcpgraph->setData(x, y);
         qcpgraph->setPen(pen);
-        qcpgraph->setName(csv->matrix->heading(iycol));
-        mPlotCrosshairSnap = SnapXOnly;
+        qcpgraph->setName(name);
+        mPlotCrosshairSnap = ClosestXOnly;
         mPlotCrosshair->showHorizontalLine = false;
         updateGuiForCrosshairOptions();
     } else {
@@ -215,14 +221,24 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         graph.reset(new Graph(qcpcurve));
         qcpcurve->setData(x, y);
         qcpcurve->setPen(pen);
-        qcpcurve->setName(csv->matrix->heading(iycol));
-        mPlotCrosshairSnap = SnapToClosest;
+        qcpcurve->setName(name);
+        mPlotCrosshairSnap = ClosestXY;
         setEqualAxesButDontReplot(true);
     }
     graph->csv = csv;
     graph->range = range;
+    graph->xstats = xstats;
+    graph->ystats = ystats;
     graphs.append(graph);
     plottableGraphMap.insert(graph->plottable(), graph);
+
+    // Record min/max for all graphs
+    expandBounds(graph->dataBounds());
+
+    graph->grid.bounds = graph->dataBounds();
+    for (int i = 0; i < x.count(); i++) {
+        graph->grid.insert(QPointF(x[i], y[i]), i);
+    }
 
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
 
@@ -258,18 +274,18 @@ void Subplot::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
 void Subplot::setXLabel(QString xlabel)
 {
     xAxis->setLabel(xlabel);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::setYLabel(QString ylabel)
 {
     yAxis->setLabel(ylabel);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::queueReplot()
 {
-    plot->replot(QCustomPlot::rpQueuedReplot);
+    mPlot->replot(QCustomPlot::rpQueuedReplot);
 }
 
 void Subplot::syncAxisRanges(QRectF xyrange)
@@ -279,16 +295,16 @@ void Subplot::syncAxisRanges(QRectF xyrange)
     QRectF r(xAxis->range().lower, yAxis->range().lower,
              xAxis->range().size(), yAxis->range().size());
     QPointF center = r.center();
-    if (linkXpos) {
+    if (link->linkXpos) {
         center.setX(xyrange.center().x());
     }
-    if (linkYpos) {
+    if (link->linkYpos) {
         center.setY(xyrange.center().y());
     }
-    if (linkXzoom) {
+    if (link->linkXzoom) {
         r.setWidth(xyrange.width());
     }
-    if (linkYzoom) {
+    if (link->linkYzoom) {
         r.setHeight(xyrange.height());
     }
     r.moveCenter(center);
@@ -301,22 +317,21 @@ void Subplot::syncAxisRanges(QRectF xyrange)
 
 void Subplot::syncDataTip(int index)
 {
-    if (mPlotCrosshair->visible()) {
-        if (dataTipGraph) {
-            index -= dataTipGraph->range.start;
-            double x = dataTipGraph->datax(index);
-            double y = dataTipGraph->datay(index);
-            mPlotCrosshair->position->setCoords(x, y);
-            mPlotCrosshair->text = QString("%1, %2 [%3]")
-                    .arg(x)
-                    .arg(y)
-                    .arg(index);
-            queueReplot();
-        }
-    }
+    if (!mPlotCrosshair->visible()) { return; }
+    if (!dataTipGraph) { return; }
+
+    index -= dataTipGraph->range.start;
+    double x = dataTipGraph->datax(index);
+    double y = dataTipGraph->datay(index);
+    mPlotCrosshair->position->setCoords(x, y);
+    mPlotCrosshair->text = QString("%1, %2 [%3]")
+            .arg(x)
+            .arg(y)
+            .arg(index);
+    queueReplot();
 }
 
-void Subplot::resizeEvent()
+void Subplot::resized()
 {
     if (mEqualAxes) {
         setEqualAxesAndReplot(true);
@@ -364,41 +379,61 @@ void Subplot::keyEvent(QEvent *event)
     }
 }
 
+bool Subplot::plotCrosshairVisible()
+{
+    return mPlotCrosshair->visible();
+}
+
+void Subplot::setPlotCrosshairVisible(bool visible)
+{
+    mPlotCrosshair->setVisible(visible);
+    updateGuiForCrosshairOptions();
+}
+
+bool Subplot::mouseCrosshairVisible()
+{
+    return mMouseCrosshair->visible();
+}
+
+void Subplot::setMouseCrosshairVisible(bool visible)
+{
+    mMouseCrosshair->setVisible(visible);
+    updateGuiForCrosshairOptions();
+}
+
 void Subplot::showAll()
 {
-    QRectF rect(xmin, ymin, xmax - xmin, ymax - ymin);
-
     // If the plot is a constant horizontal Y line, adjust y axis to display it better.
-    if (rect.height() == 0) {
-        if (rect.top() == 0) {
+    if (bounds.height() == 0) {
+        if (bounds.top() == 0) {
             // Y = constant zero. Make y axis 1- to 1.
-            rect.setTop(1);
-            rect.setBottom(-1);
-        } else if (rect.top() > 0) {
+            bounds.setTop(1);
+            bounds.setBottom(-1);
+        } else if (bounds.top() > 0) {
             // Y = positive constant. Make y axis 0 to y.
-            rect.setBottom(0);
+            bounds.setBottom(0);
         } else {
             // Y = negative constant. Make y axis y to 0.
-            rect.setTop(0);
+            bounds.setTop(0);
         }
     }
 
     // Calculate a padding so lines at the edges of the axis ranges can be seen,
     // e.g. line on x axis (y = 0), or initial line on y axis (x = 0).
     double paddingPx = 2;
-    double ypad = rect.height() / axisRect->height() * paddingPx;
-    double xpad = rect.width() / axisRect->width() * paddingPx;
+    double ypad = bounds.height() / axisRect->height() * paddingPx;
+    double xpad = bounds.width() / axisRect->width() * paddingPx;
 
-    rect.setLeft(rect.left() - xpad);
-    rect.setRight(rect.right() + xpad);
-    rect.setTop(rect.top() - ypad);
-    rect.setBottom(rect.bottom() + ypad);
+    bounds.setLeft(bounds.left() - xpad);
+    bounds.setRight(bounds.right() + xpad);
+    bounds.setTop(bounds.top() - ypad);
+    bounds.setBottom(bounds.bottom() + ypad);
 
     if (mEqualAxes) {
-        updatePlotForEqualAxes(rect);
+        updatePlotForEqualAxes(bounds);
     } else {
-        xAxis->setRange(rect.left(), rect.right());
-        yAxis->setRange(rect.top(), rect.bottom());
+        xAxis->setRange(bounds.left(), bounds.right());
+        yAxis->setRange(bounds.top(), bounds.bottom());
         queueReplot();
     }
 }
@@ -406,7 +441,7 @@ void Subplot::showAll()
 void Subplot::setEqualAxesButDontReplot(bool fixed)
 {
     mEqualAxes = fixed;
-    actionEqualAxes->setChecked(mEqualAxes);
+    plotMenu.actionEqualAxes->setChecked(fixed);
 
     if (fixed) {
         axisRect->setRangeZoom(Qt::Vertical | Qt::Horizontal);
@@ -534,15 +569,10 @@ bool Subplot::plotMouseRightDragZoom(QMouseEvent *event)
     return true;
 }
 
-void Subplot::setupCrosshairsDialog()
-{
-    connect(&mCrosshairsDialog, &CrosshairsDialog::settingsChanged,
-            this, &Subplot::onCrosshairsDialogChanged);
-}
-
-void Subplot::showCrosshairsDialog()
+CrosshairsDialog::Settings Subplot::crosshairsDialogAboutToShow()
 {
     CrosshairsDialog::Settings s;
+
     s.plotCrosshair = mPlotCrosshair->visible();
     s.plotHline = mPlotCrosshair->showHorizontalLine;
     s.plotVline = mPlotCrosshair->showVerticalLine;
@@ -552,10 +582,10 @@ void Subplot::showCrosshairsDialog()
     s.mouseVline = mMouseCrosshair->showVerticalLine;
     s.mouseDot = mMouseCrosshair->showCircle;
 
-    mCrosshairsDialog.show(s);
+    return s;
 }
 
-void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
+void Subplot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
 {
     if (s.plotCrosshair != mPlotCrosshair->visible()) {
         mPlotCrosshairVisibilityChangedByUser = true;
@@ -574,115 +604,7 @@ void Subplot::onCrosshairsDialogChanged(CrosshairsDialog::Settings s)
 
 void Subplot::setupMenus()
 {
-    // Plot context menu
 
-    plotContextMenu.addAction(QIcon("://marker"), "Place Marker", this,
-                              &Subplot::onActionPlaceMarkerTriggered);
-    actionMeasure = plotContextMenu.addAction(QIcon("://measure"), "Measure", this,
-                              &Subplot::onActionMeasureTriggered);
-    plotContextMenu.addAction(QIcon("://showall"), "Show All", this,
-                              [=]() { showAll(); });
-    actionEqualAxes = plotContextMenu.addAction(QIcon("://equalaxes"), "Equal Axes", this,
-                              &Subplot::onActionEqualAxesTriggered);
-    actionEqualAxes->setCheckable(true);
-
-    // Data tip menu
-    dataTipMenu.setTitle("Datatip Plot");
-    connect(&dataTipMenu, &QMenu::aboutToShow, this, &Subplot::onDataTipMenuAboutToShow);
-    plotContextMenu.addMenu(&dataTipMenu);
-
-    // Range menu
-    rangeMenu.setTitle("Range");
-    connect(&rangeMenu, &QMenu::aboutToShow, this, &Subplot::onRangeMenuAboutToShow);
-    plotContextMenu.addMenu(&rangeMenu);
-
-    plotContextMenu.addAction(QIcon("://crosshair"), "Crosshairs...",
-                              this, [=]() { showCrosshairsDialog(); });
-
-    plotContextMenu.addAction(QIcon("://link"), "Link to Other Plots...",
-                                    this, &Subplot::linkSettingsTriggered);
-}
-
-void Subplot::onRangeMenuAboutToShow()
-{
-    rangeMenu.clear();
-
-    if (!dataTipGraph) {
-        rangeMenu.addAction("No datatip");
-    } else {
-
-        QMenu* newRangeMenu = rangeMenu.addMenu("New Range");
-
-        newRangeMenu->addAction("Set start of new range", this, [=]()
-        {
-            QString name = QInputDialog::getText(parentWidget, "New Range", "Name",
-                                                 QLineEdit::Normal,
-                                                 QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-            if (name.isEmpty()) { return; }
-            RangePtr range(new Range());
-            range->name = name;
-            // Take start of graph range into account
-            range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-            range->end = dataTipGraph->range.end + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
-        });
-        newRangeMenu->addAction("Set end of new range", this, [=]()
-        {
-            QString name = QInputDialog::getText(parentWidget, "New Range", "Name",
-                                                 QLineEdit::Normal,
-                                                 QString("Range %1").arg(dataTipGraph->csv->ranges.count() + 1));
-            if (name.isEmpty()) { return; }
-            RangePtr range(new Range());
-            range->name = name;
-            // Take start of graph range into account
-            range->start = 0 + dataTipGraph->range.start;
-            range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-            dataTipGraph->csv->ranges.append(range);
-        });
-
-        foreach (RangePtr range, dataTipGraph->csv->ranges) {
-            QMenu* rangeXMenu = rangeMenu.addMenu(range->name);
-            RangeWeakPtr rangeWkPtr(range);
-            rangeXMenu->addAction("Set start", this, [this, rangeWkPtr]()
-            {
-                RangePtr range(rangeWkPtr);
-                if (!range) { return; }
-                // Take start of graph range into account
-                range->start = mPlotCrosshairIndex + dataTipGraph->range.start;
-            });
-            rangeXMenu->addAction("Set end", this, [this, rangeWkPtr]()
-            {
-                RangePtr range(rangeWkPtr);
-                if (!range) { return; }
-                // Take start of graph range into account
-                range->end = mPlotCrosshairIndex + dataTipGraph->range.start;
-            });
-        }
-    }
-}
-
-void Subplot::onDataTipMenuAboutToShow()
-{
-    dataTipMenu.clear();
-    foreach (GraphPtr g, graphs) {
-        QAction* action = dataTipMenu.addAction(g->name(), this,
-                                                [this, gwk = g.toWeakRef()]()
-        {
-            GraphPtr g2(gwk);
-            if (!g2) { return; }
-            dataTipGraph = g2;
-        });
-
-        QPixmap pixmap(16, 16);
-        pixmap.fill(g->color());
-        QIcon icon(pixmap);
-        action->setIcon(icon);
-
-        action->setCheckable(true);
-        if (dataTipGraph == g) {
-            action->setChecked(true);
-        }
-    }
 }
 
 void Subplot::onActionPlaceMarkerTriggered()
@@ -695,7 +617,7 @@ void Subplot::onActionPlaceMarkerTriggered()
     ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
     if (!closest.valid) { return; }
 
-    MarkerPtr marker = addMarker(QPointF(closest.xCoord, closest.yCoord));
+    MarkerPtr marker = addMarker(closest.coord);
 
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
@@ -703,14 +625,14 @@ void Subplot::onActionPlaceMarkerTriggered()
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::onActionMeasureTriggered()
 {
     if (!mCurrentMeasure) {
         // Not busy with a measure. Start a new one.
-        actionMeasure->setText("End Measure");
+        plotMenu.setMeasureActionStarted();
     } else {
         // Busy with a measure. End it here.
         clearCurrentMeasure();
@@ -744,12 +666,12 @@ void Subplot::onActionMeasureTriggered()
     mMeasures.append(m);
     mCurrentMeasure = m;
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::onActionEqualAxesTriggered()
 {
-    setEqualAxesAndReplot(actionEqualAxes->isChecked());
+    setEqualAxesAndReplot(plotMenu.actionEqualAxes->isChecked());
 }
 
 bool Subplot::plotMouseMove(QMouseEvent *event)
@@ -784,8 +706,6 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
         if (event->buttons() == Qt::NoButton) {
 
-            QString text;
-
             if (mPlotCrosshair->visible() && dataTipGraph) {
 
                 QElapsedTimer timer;
@@ -803,17 +723,13 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                     mPlotCrosshair->setVisible(false);
                     updateGuiForCrosshairOptions();
                 } else if (closest.valid) {
-                    mPlotCrosshair->position->setCoords(closest.xCoord, closest.yCoord);
+                    mPlotCrosshair->position->setCoords(closest.coord);
                     mPlotCrosshair->text = QString("%1, %2 [%3]")
-                            .arg(closest.xCoord)
-                            .arg(closest.yCoord)
+                            .arg(closest.coord.x())
+                            .arg(closest.coord.y())
                             .arg(closest.dataIndex);
-                    text = QString("Plot: [%1] (%2, %3)")
-                            .arg(closest.dataIndex)
-                            .arg(closest.xCoord)
-                            .arg(closest.yCoord);
-                    emit dataTipChanged(linkGroup,
-                                closest.dataIndex+ dataTipGraph->range.start);
+                    emit dataTipChanged(link->group,
+                                closest.dataIndex + dataTipGraph->range.start);
                     replot = true;
 
                     mPlotCrosshairIndex = closest.dataIndex;
@@ -892,7 +808,7 @@ bool Subplot::legendMouseMove(QMouseEvent *event)
 
 void Subplot::updateLegendPlacement()
 {
-    if (!plot->isVisible()) { return; }
+    if (!mPlot->isVisible()) { return; }
 
     QRect axisRectPixels = axisRect->rect();
     QSize legendSize = legend->minimumOuterSizeHint();
@@ -933,7 +849,7 @@ void Subplot::updateLegendPlacement()
     rect.setWidth(wNorm);
     rect.setHeight(hNorm);
     axisRect->insetLayout()->setInsetRect(0, rect);
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::removeGraph(GraphPtr graph)
@@ -944,28 +860,34 @@ void Subplot::removeGraph(GraphPtr graph)
     if (legendItem) {
         legend->remove(legendItem);
     }
-    plot->removePlottable(graph->plottable());
+    mPlot->removePlottable(graph->plottable());
     graphs.removeAll(graph);
     plottableGraphMap.remove(graph->plottable());
 
     if (dataTipGraph == graph) {
         dataTipGraph = graphs.value(0);
     }
+
+    // Recalculate overall min/max for remaining graphs
+    bounds = QRectF();
+    foreach (GraphPtr graph, graphs) {
+        expandBounds(graph->dataBounds());
+    }
 }
 
 MarkerPtr Subplot::addMarker(QPointF coord)
 {
-    PlotMarkerItem* dot = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
     dot->position->setCoords(coord);
     dot->circleSize = 10;
     dot->circleFillBrush = QBrush(QColor(255, 0, 0, 100));
     dot->linePen.setStyle(Qt::DashLine);
 
-    QCPItemText* label = new QCPItemText(plot);
+    QCPItemText* label = new QCPItemText(mPlot);
     label->setClipAxisRect(axisRect);
     label->position->setAxes(xAxis, yAxis);
-    label->setFont(plot->font());
+    label->setFont(mPlot->font());
     label->setLayer("marker-labels");
     label->position->setParentAnchor(dot->anchor);
     // Pixel position is set relative to the anchor assigned above
@@ -975,7 +897,7 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     label->setBrush(QBrush(QColor("#f8fabe")));
     label->setPositionAlignment(Qt::AlignLeft | Qt::AlignBottom);
 
-    QCPItemLine* arrow = new QCPItemLine(plot);
+    QCPItemLine* arrow = new QCPItemLine(mPlot);
     arrow->setClipAxisRect(axisRect);
     foreach (QCPItemPosition* position, arrow->positions()) {
         position->setAxes(xAxis, yAxis);
@@ -996,7 +918,7 @@ MarkerPtr Subplot::addMarker(QPointF coord)
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 
-    plot->replot();
+    mPlot->replot();
 
     return marker;
 }
@@ -1014,7 +936,7 @@ bool Subplot::markerMouseDown(QMouseEvent *mouseEvent)
         // Move to start of markers list (top to bottom)
         mMarkers.removeAll(marker);
         mMarkers.prepend(marker);
-        plot->replot();
+        mPlot->replot();
 
         markerMouse.startTextPixelPos = marker->textItem->position->pixelPosition();
     }
@@ -1053,7 +975,7 @@ MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
     foreach (MarkerPtr marker, mMarkers) {
         if (marker->textItem) {
             double dist = marker->textItem->selectTest(pos, false);
-            if ((dist >= 0) && (dist < plot->selectionTolerance())) {
+            if ((dist >= 0) && (dist < mPlot->selectionTolerance())) {
                 ret = marker;
                 break;
             }
@@ -1075,7 +997,7 @@ bool Subplot::markerRightClick(QPoint pos)
     // hold on to it.
     QWeakPointer<Marker> mWptr(markerMouse.marker);
 
-    menu->addAction(QIcon("://edit"), "Edit Text",
+    menu->addAction(QIcon("://edit"), "Edit",
                     this, [this, mWptr = marker.toWeakRef()]()
     {
         MarkerPtr m(mWptr);
@@ -1091,7 +1013,7 @@ bool Subplot::markerRightClick(QPoint pos)
         deleteMarker(m);
     });
 
-    menu->popup(plot->mapToGlobal(pos));
+    menu->popup(mPlot->mapToGlobal(pos));
 
     return true;
 }
@@ -1162,7 +1084,7 @@ void Subplot::editMarkerText(MarkerPtr marker)
 
         updateMarkerText(m);
         updateMarkerArrow(m);
-        plot->replot();
+        mPlot->replot();
     });
 }
 
@@ -1170,9 +1092,9 @@ void Subplot::deleteMarker(MarkerPtr marker)
 {
     if (!marker) { return; }
 
-    plot->removeItem(marker->arrow);
-    plot->removeItem(marker->textItem);
-    plot->removeItem(marker->plotMarker);
+    mPlot->removeItem(marker->arrow);
+    mPlot->removeItem(marker->textItem);
+    mPlot->removeItem(marker->plotMarker);
     mMarkers.removeAll(marker);
 
     // Remove related measure
@@ -1185,25 +1107,25 @@ void Subplot::deleteMarker(MarkerPtr marker)
         }
     }
 
-    plot->replot();
+    mPlot->replot();
 }
 
 void Subplot::clearCurrentMeasure()
 {
     mCurrentMeasure.reset();
     // Restore measure action text that was set to end measure when started
-    actionMeasure->setText("Measure");
+    plotMenu.setMeasureActionEnded();
 }
 
 void Subplot::setupCrosshairs()
 {
-    mPlotCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mPlotCrosshair = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     mPlotCrosshair->setClipAxisRect(axisRect);
     mPlotCrosshair->setLayer("crosshairs");
     mPlotCrosshair->circleSize = 7;
     mPlotCrosshair->showVerticalLine = true;
 
-    mMouseCrosshair = new PlotMarkerItem(plot, axisRect, xAxis, yAxis);
+    mMouseCrosshair = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     mMouseCrosshair->setClipAxisRect(axisRect);
     mMouseCrosshair->setLayer("crosshairs");
     mMouseCrosshair->circleSize = 7;
@@ -1219,18 +1141,16 @@ void Subplot::updateGuiForCrosshairOptions()
     queueReplot();
 }
 
-void Subplot::storeAndDisableCrosshairs()
+QPointF Subplot::pixelPosToCoord(QPoint pos)
 {
-    lastPlotCrosshairVisible = mPlotCrosshair->visible();
-    mPlotCrosshair->setVisible(false);
-    lastMouseCrosshairVisible = mMouseCrosshair->visible();
-    mMouseCrosshair->setVisible(false);
+    return QPointF(xAxis->pixelToCoord(pos.x()),
+                   yAxis->pixelToCoord(pos.y()));
 }
 
-void Subplot::restoreCrosshairs()
+QPoint Subplot::coordToPixelPos(QPointF coord)
 {
-    mPlotCrosshair->setVisible(lastPlotCrosshairVisible);
-    mMouseCrosshair->setVisible(lastMouseCrosshairVisible);
+    return QPoint(xAxis->coordToPixel(coord.x()),
+                  yAxis->coordToPixel(coord.y()));
 }
 
 void Subplot::onPlotMouseMove(QMouseEvent *event)
@@ -1279,7 +1199,7 @@ void Subplot::onPlotMouseRelease(QMouseEvent *event)
             // Was not dragging. Trigger mouse click event
             plotLeftClicked(event->pos());
         }
-        plot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
+        mPlot->setInteraction(QCP::iRangeDrag, true); // Re-enable plot panning
     }
 
     legendMouse.mouseDown = false;
@@ -1323,7 +1243,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
 
     if (!used) {
         // Plot area
-        plotContextMenu.popup(plot->mapToGlobal(pos));
+        plotMenu.menu.popup(mPlot->mapToGlobal(pos));
     }
 }
 
@@ -1356,7 +1276,7 @@ void Subplot::onAxisRangesChanged()
             mRangesChanged = false;
             QRectF r(xAxis->range().lower, yAxis->range().lower,
                      xAxis->range().size(), yAxis->range().size());
-            emit axisRangesChanged(linkGroup, r);
+            emit axisRangesChanged(link->group, r);
         }
     });
 }
@@ -1369,131 +1289,15 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
 
     if (part == QCPAxis::spAxisLabel) {
         bool ok;
-        QString text = QInputDialog::getText(parentWidget, "Axis Label", "Label",
+        QString text = QInputDialog::getText(mParentWidget, "Axis Label", "Label",
                                               QLineEdit::Normal,
                                               axis->label(),
                                               &ok);
         if (ok) {
             axis->setLabel(text);
-            plot->replot();
+            mPlot->replot();
         }
     }
 }
 
-Subplot::ClosestCoord Subplot::findClosestCoord(QPoint pos, GraphPtr graph, CrosshairSnap snap)
-{
-    ClosestCoord closest;
 
-    if (!graph || !xAxis || !yAxis) {
-        closest.valid = false;
-        return closest;
-    }
-
-    for (int i = 0; i < graph->dataCount(); ++i) {
-
-        double xCrd = graph->datax(i);
-        int xPixel = xAxis->coordToPixel(xCrd);
-        double yCrd = graph->datay(i);
-
-        int dist = 0;
-
-        if (snap == SnapXOnly) {
-            dist = qAbs(pos.x() - xPixel);
-        } else if (snap == SnapToClosest) {
-            int yPixel = yAxis->coordToPixel(yCrd);
-            // Calculate distance in pixels to account for zooms
-            dist = qSqrt( qPow(pos.x() - xPixel, 2)
-                          + qPow(pos.y() - yPixel, 2) );
-        }
-
-        if ((i == 0) || (dist < closest.distancePixels)) {
-            closest.valid = true;
-            closest.distancePixels = dist;
-            closest.xCoord = xCrd;
-            closest.yCoord = yCrd;
-            closest.dataIndex = i;
-            if (dist == 0) {
-                // We're not gonna find anything closer
-                break;
-            }
-        }
-    }
-
-    return closest;
-}
-
-QCPAbstractPlottable *Graph::plottable()
-{
-    QCPAbstractPlottable* ret = nullptr;
-    if (curve) {
-        ret = static_cast<QCPAbstractPlottable*>(curve);
-    } else if (graph) {
-        ret = static_cast<QCPAbstractPlottable*>(graph);
-    }
-    return ret;
-}
-
-bool Graph::isCurve()
-{
-    return (curve != nullptr);
-}
-
-bool Graph::isGraph()
-{
-    return (graph != nullptr);
-}
-
-QString Graph::name()
-{
-    if (curve) {
-        return curve->name();
-    } else if (graph) {
-        return graph->name();
-    } else {
-        return "";
-    }
-}
-
-int Graph::dataCount()
-{
-    if (curve) {
-        return curve->dataCount();
-    } else if (graph) {
-        return graph->dataCount();
-    } else {
-        return 0;
-    }
-}
-
-double Graph::datax(int index)
-{
-    if (curve) {
-        return curve->data()->at(index)->key;
-    } else if (graph) {
-        return graph->data()->at(index)->key;
-    } else {
-        return 0;
-    }
-}
-
-double Graph::datay(int index)
-{
-    if (curve) {
-        return curve->data()->at(index)->value;
-    } else if (graph) {
-        return graph->data()->at(index)->value;
-    } else {
-        return 0;
-    }
-}
-
-QColor Graph::color()
-{
-    if (curve) {
-        return curve->pen().color();
-    } else if (graph) {
-        return graph->pen().color();
-    } else {
-        return QColor();
-    }
-}

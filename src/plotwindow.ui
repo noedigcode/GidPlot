@@ -46,7 +46,7 @@
        <number>7</number>
       </property>
       <item>
-       <widget class="QFrame" name="frame">
+       <widget class="QFrame" name="frame_info_rclickMenu">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -110,7 +110,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_3">
+       <widget class="QFrame" name="frame_info_ldragPan">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -187,7 +187,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_4">
+       <widget class="QFrame" name="frame_info_rdragZoom">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -264,7 +264,65 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_5">
+       <widget class="QFrame" name="frame_info_wheelZoom">
+        <property name="styleSheet">
+         <string notr="true">.QFrame {
+	border: 1px solid grey;
+}</string>
+        </property>
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_15">
+         <property name="spacing">
+          <number>1</number>
+         </property>
+         <property name="leftMargin">
+          <number>1</number>
+         </property>
+         <property name="topMargin">
+          <number>1</number>
+         </property>
+         <property name="rightMargin">
+          <number>1</number>
+         </property>
+         <property name="bottomMargin">
+          <number>1</number>
+         </property>
+         <item>
+          <widget class="QLabel" name="label_26">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+           <property name="text">
+            <string/>
+           </property>
+           <property name="pixmap">
+            <pixmap resource="../images/images.qrc">:/mouse_scroll.png</pixmap>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_27">
+           <property name="text">
+            <string>Zoom</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QFrame" name="frame_info_wheelHzoom">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -322,7 +380,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_6">
+       <widget class="QFrame" name="frame_info_shiftWheelVzoom">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -387,7 +445,7 @@
        </widget>
       </item>
       <item>
-       <widget class="QFrame" name="frame_2">
+       <widget class="QFrame" name="frame_info_ctrlWheelZoom">
         <property name="styleSheet">
          <string notr="true">.QFrame {
 	border: 1px solid grey;
@@ -474,7 +532,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>23</height>
+     <height>30</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuWindow">

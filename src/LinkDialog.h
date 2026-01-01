@@ -37,7 +37,7 @@ public:
     explicit LinkDialog(QWidget *parent = nullptr);
     ~LinkDialog();
 
-    void show(QList<PlotWindow*> plotWindows, SubplotPtr selectSubplot);
+    void show(QList<PlotWindow*> plotWindows, LinkPtr selectLink);
 
 private:
     Ui::LinkDialog *ui;
