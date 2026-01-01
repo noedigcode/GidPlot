@@ -16,7 +16,7 @@ Plus, plot latitude/longitude data on a map. Yes, an actual map!
 
 - [QCustomPlot](https://www.qcustomplot.com/) is used for plotting.
 - [QGeoView](https://github.com/AmonRaNet/QGeoView) is used for map plotting.
-- Map tiles are retrieve on the fly from [OpenStreetMap](https://www.openstreetmap.org/).
+- Map tiles are retrieved on the fly from [OpenStreetMap](https://www.openstreetmap.org/).
 
 
 Requirements:
