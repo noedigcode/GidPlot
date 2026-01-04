@@ -23,6 +23,7 @@ Requirements:
 -------------
 
 - Qt 5
+  - Qt SVG module (on Ubuntu, `libqt5svg5-dev` for building and `libqt5svg5` for running)
 - Windows or Linux (and probably Mac too)
 - OpenSSL for retrieving map tiles over https.
   - On Windows, you need the `libcrypto-1_1-x64.dll` and `libssl-1_1-x64.dll` files
