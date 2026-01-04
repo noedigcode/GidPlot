@@ -21,12 +21,13 @@
 #ifndef PLOTWINDOW_H
 #define PLOTWINDOW_H
 
+#include "MapPlot.h"
 #include "MarkerEditDialog.h"
 #include "PlotMarkerItem.h"
+#include "PlotPropertiesDialog.h"
 #include "csv.h"
-#include "utils.h"
 #include "subplot.h"
-#include "MapPlot.h"
+#include "utils.h"
 
 #include "QCustomPlot/qcustomplot.h"
 
@@ -77,7 +78,7 @@ signals:
     void dataTipChanged(int linkGroup, int index);
     void requestWindowDock(Dock location);
     void requestWindowResize(int width, int height);
-    void titleSet(QString title);
+    void titleChanged(QString title);
     void linkSettingsTriggered(LinkPtr link);
 
 private slots:
@@ -111,6 +112,7 @@ private:
     QFont mPlotFont;
     void setPlotFont(QFont font);
 
+    QString mTitle;
     QCPTextElement* mPlotTitle = nullptr;
 
     QByteArray plotToSvg();
@@ -161,6 +163,15 @@ private:
     void restoreCrosshairsOfAllSubplots();
 
     MapPlotPtr mMapPlot;
+
+    // -----------------------------------------------------------------------
+    // Properties dialog
+
+private:
+    PlotPropertiesDialog mPropertiesDialog;
+    void setupPropertiesDialog();
+
+    // -------------------------------------------------------------------------
 
 private slots:
     void on_action_Save_as_PDF_triggered();

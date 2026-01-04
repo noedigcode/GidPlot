@@ -57,6 +57,9 @@ public:
     bool saveToPng(QString path);
     QPixmap toPixmap();
 
+    Properties getPlotProperties();
+    void setPlotProperties(Properties p);
+
     bool mouseCrosshairVisible();
     void setMouseCrosshairVisible(bool visible);
     bool plotCrosshairVisible();
@@ -92,9 +95,6 @@ private:
     void setupCrosshairs();
     MapMarker* mTrackCrosshair = nullptr;
     // TODO: Mouse crosshair
-
-    CrosshairsDialog::Settings crosshairsDialogAboutToShow();
-    void crosshairsDialogChanged(CrosshairsDialog::Settings s);
 
     QPointF pixelPosToCoord(QPoint pos);
     QPoint coordToPixelPos(QPointF coord);

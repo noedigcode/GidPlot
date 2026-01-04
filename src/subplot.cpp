@@ -271,16 +271,77 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
     }
 }
 
-void Subplot::setXLabel(QString xlabel)
+void Subplot::setXLabel(QString xlabel, bool visible)
 {
-    xAxis->setLabel(xlabel);
+    mXlabel = xlabel;
+    mXlabelVisible = visible;
+    xAxis->setLabel(visible ? xlabel : "");
     mPlot->replot();
 }
 
-void Subplot::setYLabel(QString ylabel)
+void Subplot::setYLabel(QString ylabel, bool visible)
 {
-    yAxis->setLabel(ylabel);
+    mYlabel = ylabel;
+    mYlabelVisible = visible;
+    yAxis->setLabel(visible ? ylabel : "");
     mPlot->replot();
+}
+
+void Subplot::setPlotProperties(Properties p)
+{
+    // Crosshairs
+
+    if (p.plotCrosshair != mPlotCrosshair->visible()) {
+        mPlotCrosshairVisibilityChangedByUser = true;
+        mPlotCrosshair->setVisible(p.plotCrosshair);
+    }
+    mPlotCrosshair->showHorizontalLine = p.plotHline;
+    mPlotCrosshair->showVerticalLine = p.plotVline;
+    mPlotCrosshair->showCircle = p.plotDot;
+    mMouseCrosshair->setVisible(p.mouseCrosshair);
+    mMouseCrosshair->showHorizontalLine = p.mouseHline;
+    mMouseCrosshair->showVerticalLine = p.mouseVline;
+    mMouseCrosshair->showCircle = p.mouseDot;
+
+    updateGuiForCrosshairOptions();
+
+    // Other properties
+
+    this->setTitle(p.title);
+    legend->setVisible(p.showLegend);
+    setXLabel(p.xlabel, p.showXlabel);
+    setYLabel(p.ylabel, p.showYlabel);
+
+    // TODO apply properties
+}
+
+Plot::Properties Subplot::getPlotProperties()
+{
+    Properties p;
+
+    // Crosshairs
+
+    p.plotCrosshair = mPlotCrosshair->visible();
+    p.plotHline = mPlotCrosshair->showHorizontalLine;
+    p.plotVline = mPlotCrosshair->showVerticalLine;
+    p.plotDot = mPlotCrosshair->showCircle;
+    p.mouseCrosshair = mMouseCrosshair->visible();
+    p.mouseHline = mMouseCrosshair->showHorizontalLine;
+    p.mouseVline = mMouseCrosshair->showVerticalLine;
+    p.mouseDot = mMouseCrosshair->showCircle;
+
+    // Other properties
+
+    p.title = this->title();
+    p.showLegend = legend->visible();
+    p.xlabel = mXlabel;
+    p.showXlabel = mXlabelVisible;
+    p.ylabel = mYlabel;
+    p.showYlabel = mYlabelVisible;
+
+    // TODO fill properties
+
+    return p;
 }
 
 void Subplot::queueReplot()
@@ -567,39 +628,6 @@ bool Subplot::plotMouseRightDragZoom(QMouseEvent *event)
                 (mouse.startYrange.lower + mouse.startYrange.size() * ycf) + ysize * (1 - ycf));
 
     return true;
-}
-
-CrosshairsDialog::Settings Subplot::crosshairsDialogAboutToShow()
-{
-    CrosshairsDialog::Settings s;
-
-    s.plotCrosshair = mPlotCrosshair->visible();
-    s.plotHline = mPlotCrosshair->showHorizontalLine;
-    s.plotVline = mPlotCrosshair->showVerticalLine;
-    s.plotDot = mPlotCrosshair->showCircle;
-    s.mouseCrosshair = mMouseCrosshair->visible();
-    s.mouseHline = mMouseCrosshair->showHorizontalLine;
-    s.mouseVline = mMouseCrosshair->showVerticalLine;
-    s.mouseDot = mMouseCrosshair->showCircle;
-
-    return s;
-}
-
-void Subplot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
-{
-    if (s.plotCrosshair != mPlotCrosshair->visible()) {
-        mPlotCrosshairVisibilityChangedByUser = true;
-        mPlotCrosshair->setVisible(s.plotCrosshair);
-    }
-    mPlotCrosshair->showHorizontalLine = s.plotHline;
-    mPlotCrosshair->showVerticalLine = s.plotVline;
-    mPlotCrosshair->showCircle = s.plotDot;
-    mMouseCrosshair->setVisible(s.mouseCrosshair);
-    mMouseCrosshair->showHorizontalLine = s.mouseHline;
-    mMouseCrosshair->showVerticalLine = s.mouseVline;
-    mMouseCrosshair->showCircle = s.mouseDot;
-
-    updateGuiForCrosshairOptions();
 }
 
 void Subplot::setupMenus()
@@ -1294,8 +1322,11 @@ void Subplot::onAxisDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part,
                                               axis->label(),
                                               &ok);
         if (ok) {
-            axis->setLabel(text);
-            mPlot->replot();
+            if (axis == xAxis) {
+                setXLabel(text, mXlabelVisible);
+            } else if (axis == yAxis) {
+                setYLabel(text, mYlabelVisible);
+            }
         }
     }
 }

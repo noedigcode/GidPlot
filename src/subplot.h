@@ -75,8 +75,13 @@ public:
     bool inAxisRect(QPoint pos);
 
     void plot(CsvPtr csv, int ixcol, int iycol, Range range);
-    void setXLabel(QString xlabel);
-    void setYLabel(QString ylabel);
+    void setXLabel(QString xlabel, bool visible = true);
+    void setXLabelVisible(bool visible);
+    void setYLabel(QString ylabel, bool visible = true);
+    void setYLabelVisible(bool visible);
+
+    Properties getPlotProperties();
+    void setPlotProperties(Properties p);
 
     bool mouseCrosshairVisible();
     void setMouseCrosshairVisible(bool visible);
@@ -98,6 +103,11 @@ private:
     QCPLegend* legend = nullptr;
     void queueReplot();
 
+    QString mXlabel;
+    bool mXlabelVisible = false;
+    QString mYlabel;
+    bool mYlabelVisible = false;
+
     void setupLink();
 
     // Keep count of current pen index when adding new plots instead of simply
@@ -117,9 +127,6 @@ private:
     bool mRangesSyncedFromOutside = false;
 
     MarkerEditDialog mMarkerEditDialog;
-
-    CrosshairsDialog::Settings crosshairsDialogAboutToShow();
-    void crosshairsDialogChanged(CrosshairsDialog::Settings settings);
 
     // -----------------------------------------------------------------------
     // Menus

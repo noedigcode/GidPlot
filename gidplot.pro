@@ -36,6 +36,7 @@ SOURCES += \
     src/MapPlot.cpp \
     src/MarkerEditDialog.cpp \
     src/PlotMarkerItem.cpp \
+    src/PlotPropertiesDialog.cpp \
     src/PopoutTabWidget.cpp \
     src/ProgressDialog.cpp \
     src/QCustomPlot/GidQCustomPlot.cpp \
@@ -63,6 +64,7 @@ HEADERS += \
     src/MapPlot.h \
     src/MarkerEditDialog.h \
     src/PlotMarkerItem.h \
+    src/PlotPropertiesDialog.h \
     src/PopoutTabWidget.h \
     src/ProgressDialog.h \
     src/QCustomPlot/GidQCustomPlot.h \
@@ -90,6 +92,7 @@ FORMS += \
     src/CsvImportDialog.ui \
     src/LinkDialog.ui \
     src/MarkerEditDialog.ui \
+    src/PlotPropertiesDialog.ui \
     src/ProgressDialog.ui \
     src/aboutdialog.ui \
     src/mainwindow.ui \

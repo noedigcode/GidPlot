@@ -25,7 +25,19 @@ Plot::Plot(QWidget *parentWidget)
     : QObject{parentWidget}, mParentWidget(parentWidget)
 {
     setupPlotMenu();
-    setupCrosshairsDialog();
+}
+
+QString Plot::title()
+{
+    return mTitle;
+}
+
+void Plot::setTitle(QString title)
+{
+    if (title != mTitle) {
+        mTitle = title;
+        emit titleChanged(title);
+    }
 }
 
 void Plot::storeAndDisableCrosshairs()
@@ -45,6 +57,16 @@ void Plot::restoreCrosshairs()
 void Plot::expandBounds(QRectF otherDataBounds)
 {
     bounds = bounds.united(otherDataBounds);
+}
+
+void Plot::showCrosshairsDialog()
+{
+    emit requestShowCrosshairSettings();
+}
+
+void Plot::showPropertiesDialog()
+{
+    emit requestShowPlotProperties();
 }
 
 void Plot::setupPlotMenu()
@@ -69,6 +91,9 @@ void Plot::setupPlotMenu()
             this, &Plot::onActionEqualAxesTriggered);
     connect(plotMenu.actionCrosshairs, &QAction::triggered,
             this, &Plot::showCrosshairsDialog);
+    connect(plotMenu.actionProperties, &QAction::triggered,
+            this, &Plot::showPropertiesDialog);
+
     connect(plotMenu.actionLink, &QAction::triggered,
             this, &Plot::linkSettingsTriggered);
 }
@@ -76,17 +101,6 @@ void Plot::setupPlotMenu()
 void Plot::onActionDataTipGraphSelected(GraphPtr graph)
 {
     dataTipGraph = graph;
-}
-
-void Plot::showCrosshairsDialog()
-{
-    mCrosshairsDialog.show(crosshairsDialogAboutToShow());
-}
-
-void Plot::setupCrosshairsDialog()
-{
-    connect(&mCrosshairsDialog, &CrosshairsDialog::settingsChanged,
-            this, &Plot::crosshairsDialogChanged);
 }
 
 Plot::ClosestCoord Plot::findClosestCoord(QPoint mousePos, GraphPtr graph,

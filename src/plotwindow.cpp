@@ -33,6 +33,8 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    setupPropertiesDialog();
+
     // Initialise plot font
 #if defined(Q_OS_WIN)
     mPlotFont = QFont("Tahoma");
@@ -160,19 +162,30 @@ SubplotPtr PlotWindow::addSubplot()
 
 void PlotWindow::setTitle(QString title)
 {
-    if (!mPlotTitle) {
-        mPlotTitle = new QCPTextElement(ui->plot);
-        connect(mPlotTitle, &QCPTextElement::doubleClicked,
-                this, &PlotWindow::onTitleDoubleClick);
+    if (title == mTitle) { return; }
+    mTitle = title;
 
-        ui->plot->plotLayout()->insertRow(0);
-        ui->plot->plotLayout()->addElement(0, 0, mPlotTitle);
+    if (!mMapPlot) {
+        // Subplots use a common title widget in the plot widget
+        if (!mPlotTitle) {
+            mPlotTitle = new QCPTextElement(ui->plot);
+            connect(mPlotTitle, &QCPTextElement::doubleClicked,
+                    this, &PlotWindow::onTitleDoubleClick);
+
+            ui->plot->plotLayout()->insertRow(0);
+            ui->plot->plotLayout()->addElement(0, 0, mPlotTitle);
+        }
+        mPlotTitle->setText(title);
+        ui->plot->replot();
     }
 
-    mPlotTitle->setText(title);
-    ui->plot->replot();
+    foreach (PlotPtr plot, mAllPlots) {
+        if (plot->title() != title) {
+            plot->setTitle(title);
+        }
+    }
 
-    emit titleSet(title);
+    emit titleChanged(title);
 }
 
 void PlotWindow::setXLabel(QString xlabel)
@@ -272,6 +285,8 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
 
 void PlotWindow::initPlot(PlotPtr plot)
 {
+    plot->setTitle(mTitle);
+
     connect(plot.data(), &Plot::axisRangesChanged,
             this, [this, pWkPtr = plot.toWeakRef()]
             (int linkGroup, QRectF xyrange)
@@ -296,6 +311,30 @@ void PlotWindow::initPlot(PlotPtr plot)
         PlotPtr p(pWkPtr);
         if (!p) { return; }
         emit linkSettingsTriggered(p->link);
+    });
+
+    connect(plot.data(), &Plot::requestShowCrosshairSettings,
+            this, [this, pWkPtr = plot.toWeakRef()]()
+    {
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        mPropertiesDialog.showCrosshairSettings(p);
+    });
+
+    connect(plot.data(), &Plot::requestShowPlotProperties,
+            this, [this, pWkPtr = plot.toWeakRef()]()
+    {
+        PlotPtr p(pWkPtr);
+        if (!p) { return; }
+        mPropertiesDialog.showProperties(p);
+    });
+
+    connect(plot.data(), &Plot::titleChanged,
+            this, [this](QString title)
+    {
+        if (title != mTitle) {
+            setTitle(title);
+        }
     });
 }
 
@@ -327,6 +366,15 @@ void PlotWindow::restoreCrosshairsOfAllSubplots()
     if (mMapPlot) {
         mMapPlot->restoreCrosshairs();
     }
+}
+
+void PlotWindow::setupPropertiesDialog()
+{
+    connect(&mPropertiesDialog, &PlotPropertiesDialog::plotPropertiesChanged,
+            this, [=](PlotPtr plot, Plot::Properties p)
+    {
+        plot->setPlotProperties(p);
+    });
 }
 
 void PlotWindow::plottableClick(QCPAbstractPlottable* /*plottable*/,

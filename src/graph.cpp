@@ -151,6 +151,9 @@ PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
     menu.addMenu(&rangeMenu);
 
     actionCrosshairs = menu.addAction(QIcon("://crosshair"), "Crosshairs...");
+    actionCrosshairs->setVisible(false); // TODO Temporarily hidden. Remove crosshairs action if not used
+
+    actionProperties = menu.addAction(QIcon("://crosshair"), "Properties...");
     actionLink = menu.addAction(QIcon("://link"), "Link to Other Plots...");
 
 }

@@ -23,7 +23,6 @@
 
 #include "link.h"
 #include "graph.h"
-#include "CrosshairsDialog.h"
 
 #include <QObject>
 #include <QWidget>
@@ -35,7 +34,36 @@ public:
     explicit Plot(QWidget *parentWidget = nullptr);
     virtual ~Plot() = default;
 
+    struct Properties
+    {
+        bool plotCrosshair = false;
+        bool plotHline = false;
+        bool plotVline = false;
+        bool plotDot = false;
+        bool mouseCrosshair = false;
+        bool mouseHline = false;
+        bool mouseVline = false;
+        bool mouseDot = false;
+
+        bool supportShowTitle = true;
+        bool supportXlabel = true;
+        bool supportYlabel = true;
+
+        bool showTitle = true;
+        bool showXlabel = true;
+        bool showYlabel = true;
+        QString title;
+        QString xlabel;
+        QString ylabel;
+        bool showLegend = false;
+    };
+    virtual Properties getPlotProperties() = 0;
+    virtual void setPlotProperties(Properties p) = 0;
+
     LinkPtr link {new Link()};
+
+    QString title();
+    void setTitle(QString title);
 
     virtual bool mouseCrosshairVisible() = 0;
     virtual void setMouseCrosshairVisible(bool visible) = 0;
@@ -53,9 +81,14 @@ signals:
     void axisRangesChanged(int linkGroup, QRectF xyrange);
     void dataTipChanged(int linkGroup, int index);
     void linkSettingsTriggered();
+    void requestShowPlotProperties();
+    void requestShowCrosshairSettings();
+    void titleChanged(QString title);
 
 protected:
     QWidget* mParentWidget = nullptr;
+
+    QString mTitle;
 
     QRectF bounds;
     void expandBounds(QRectF otherDataBounds);
@@ -70,17 +103,18 @@ protected slots:
     virtual void onActionEqualAxesTriggered() = 0;
 
     // -----------------------------------------------------------------------
+    // Properties dialog
+protected:
+    void showCrosshairsDialog();
+    void showPropertiesDialog();
+
+    // -----------------------------------------------------------------------
     // Crosshairs
 protected:
-    CrosshairsDialog mCrosshairsDialog;
     int mPlotCrosshairIndex = 0;
     ClosestOption mPlotCrosshairSnap = ClosestXOnly;
-    void showCrosshairsDialog();
-    virtual CrosshairsDialog::Settings crosshairsDialogAboutToShow() = 0;
-    virtual void crosshairsDialogChanged(CrosshairsDialog::Settings s) = 0;
 
 private:
-    void setupCrosshairsDialog();
     bool mLastPlotCrosshairVisible = false;
     bool mLastMouseCrosshairVisible = false;
 

@@ -149,6 +149,7 @@ public:
     QAction* actionLink;
     QAction* actionMeasure;
     QAction* actionPlaceMarker;
+    QAction* actionProperties;
     QAction* actionShowAll;
     QMenu dataTipMenu;
     QMenu rangeMenu;

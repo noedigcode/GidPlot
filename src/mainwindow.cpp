@@ -86,6 +86,7 @@ void MainWindow::importCsv(Csv::FileInfo info)
 PlotWindow *MainWindow::addPlot(QString title)
 {
     PlotWindow* p = new PlotWindow(++mPlotCounter);
+    p->setTitle(title);
 
     connect(p, &PlotWindow::destroyed, this, [=]() { onPlotWindowDestroyed(p); });
     connect(p, &PlotWindow::axisRangesChanged,
@@ -101,7 +102,7 @@ PlotWindow *MainWindow::addPlot(QString title)
     connect(p, &PlotWindow::requestWindowDock,
             this, [=](PlotWindow::Dock location) {
                 onPlotRequestWindowDock(p, location); });
-    connect(p, &PlotWindow::titleSet,
+    connect(p, &PlotWindow::titleChanged,
             this, [=](QString title) { onPlotTitleSet(p, title); });
     connect(p, &PlotWindow::linkSettingsTriggered,
             this, &MainWindow::onPlotLinkSettingsTrigerred);

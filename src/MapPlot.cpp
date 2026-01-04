@@ -212,6 +212,39 @@ QPixmap MapPlot::toPixmap()
     return pixmap;
 }
 
+Plot::Properties MapPlot::getPlotProperties()
+{
+    Properties p;
+
+    p.plotCrosshair = mTrackCrosshair->isVisible();
+    // TODO: Sub-parts of crosshair
+    p.plotDot = true;
+
+    // TODO: Mouse crosshair settings
+
+    p.supportShowTitle = false;
+    p.supportXlabel = false;
+    p.supportYlabel = false;
+
+    p.title = this->title();
+
+    // TODO set properties
+
+    return p;
+}
+
+void MapPlot::setPlotProperties(Properties p)
+{
+    mTrackCrosshair->setVisible(p.plotCrosshair);
+    // TODO: Sub-parts of crosshair
+
+    // TODO: Mouse crosshair
+
+    this->setTitle(p.title);
+
+    // TODO set properties
+}
+
 bool MapPlot::plotCrosshairVisible()
 {
     return mTrackCrosshair->isVisible();
@@ -245,26 +278,6 @@ void MapPlot::setupCrosshairs()
     mTrackCrosshair->setVisible(false);
     mTrackCrosshair->bringToFront();
     mMapWidget->addItem(mTrackCrosshair);
-}
-
-CrosshairsDialog::Settings MapPlot::crosshairsDialogAboutToShow()
-{
-    CrosshairsDialog::Settings s;
-    s.plotCrosshair = mTrackCrosshair->isVisible();
-    // TODO: Sub-parts of crosshair
-    s.plotDot = true;
-
-    // TODO: Mouse crosshair settings
-
-    return s;
-}
-
-void MapPlot::crosshairsDialogChanged(CrosshairsDialog::Settings s)
-{
-    mTrackCrosshair->setVisible(s.plotCrosshair);
-    // TODO: Sub-parts of crosshair
-
-    // TODO: Mouse crosshair
 }
 
 QPointF MapPlot::pixelPosToCoord(QPoint pos)
@@ -331,3 +344,6 @@ void MapPlot::onActionEqualAxesTriggered()
 {
     // Not applicable for map
 }
+
+
+
