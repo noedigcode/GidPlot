@@ -144,7 +144,6 @@ public:
 
     QMenu menu;
 
-    QAction* actionCrosshairs;
     QAction* actionEqualAxes;
     QAction* actionLink;
     QAction* actionMeasure;

@@ -52,13 +52,6 @@ void PlotPropertiesDialog::showProperties(PlotPtr plot)
     prepAndShow(plot);
 }
 
-void PlotPropertiesDialog::showCrosshairSettings(PlotPtr plot)
-{
-    // TODO Crosshair settings is now the same as properties.
-    //      Remove crosshair-specific functions
-    prepAndShow(plot);
-}
-
 void PlotPropertiesDialog::connectWidgets()
 {
     QList<QGroupBox*> groupBoxes {
@@ -106,7 +99,7 @@ void PlotPropertiesDialog::emitPlotPropertiesChanged()
 
 void PlotPropertiesDialog::setupCurvesTree(PlotPtr plot)
 {
-    // Setup curves
+    // TODO Setup curves
 }
 
 void PlotPropertiesDialog::prepAndShow(PlotPtr plot)

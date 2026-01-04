@@ -307,7 +307,7 @@ void Subplot::setPlotProperties(Properties p)
 
     // Other properties
 
-    this->setTitle(p.title);
+    this->setTitle(p.title, p.showTitle);
     legend->setVisible(p.showLegend);
     setXLabel(p.xlabel, p.showXlabel);
     setYLabel(p.ylabel, p.showYlabel);
@@ -333,13 +333,12 @@ Plot::Properties Subplot::getPlotProperties()
     // Other properties
 
     p.title = this->title();
+    p.showTitle = this->mTitleVisible;
     p.showLegend = legend->visible();
     p.xlabel = mXlabel;
     p.showXlabel = mXlabelVisible;
     p.ylabel = mYlabel;
     p.showYlabel = mYlabelVisible;
-
-    // TODO fill properties
 
     return p;
 }

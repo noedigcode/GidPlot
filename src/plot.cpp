@@ -32,11 +32,12 @@ QString Plot::title()
     return mTitle;
 }
 
-void Plot::setTitle(QString title)
+void Plot::setTitle(QString title, bool visible)
 {
-    if (title != mTitle) {
+    if ((title != mTitle) || (visible != mTitleVisible)) {
         mTitle = title;
-        emit titleChanged(title);
+        mTitleVisible = visible;
+        emit titleChanged(title, visible);
     }
 }
 
@@ -59,16 +60,6 @@ void Plot::expandBounds(QRectF otherDataBounds)
     bounds = bounds.united(otherDataBounds);
 }
 
-void Plot::showCrosshairsDialog()
-{
-    emit requestShowCrosshairSettings();
-}
-
-void Plot::showPropertiesDialog()
-{
-    emit requestShowPlotProperties();
-}
-
 void Plot::setupPlotMenu()
 {
     plotMenu.parentWidget = mParentWidget;
@@ -89,10 +80,8 @@ void Plot::setupPlotMenu()
             this, &Plot::showAll);
     connect(plotMenu.actionEqualAxes, &QAction::triggered,
             this, &Plot::onActionEqualAxesTriggered);
-    connect(plotMenu.actionCrosshairs, &QAction::triggered,
-            this, &Plot::showCrosshairsDialog);
     connect(plotMenu.actionProperties, &QAction::triggered,
-            this, &Plot::showPropertiesDialog);
+            this, &Plot::requestShowPlotProperties);
 
     connect(plotMenu.actionLink, &QAction::triggered,
             this, &Plot::linkSettingsTriggered);

@@ -160,10 +160,15 @@ SubplotPtr PlotWindow::addSubplot()
     return subplot;
 }
 
-void PlotWindow::setTitle(QString title)
+void PlotWindow::setTitle(QString title, bool visible)
 {
-    if (title == mTitle) { return; }
+    bool titleChanged = (title != mTitle);
+    bool visibleChanged = (visible != mTitleVisible);
+    bool changed = titleChanged || visibleChanged;
+    if (!changed) { return; }
+
     mTitle = title;
+    mTitleVisible = visible;
 
     if (!mMapPlot) {
         // Subplots use a common title widget in the plot widget
@@ -175,17 +180,19 @@ void PlotWindow::setTitle(QString title)
             ui->plot->plotLayout()->insertRow(0);
             ui->plot->plotLayout()->addElement(0, 0, mPlotTitle);
         }
-        mPlotTitle->setText(title);
+        mPlotTitle->setText(visible ? title : "");
         ui->plot->replot();
     }
 
     foreach (PlotPtr plot, mAllPlots) {
         if (plot->title() != title) {
-            plot->setTitle(title);
+            plot->setTitle(title, visible);
         }
     }
 
-    emit titleChanged(title);
+    if (titleChanged) {
+        emit this->titleChanged(title);
+    }
 }
 
 void PlotWindow::setXLabel(QString xlabel)
@@ -285,7 +292,7 @@ void PlotWindow::showEvent(QShowEvent* /*event*/)
 
 void PlotWindow::initPlot(PlotPtr plot)
 {
-    plot->setTitle(mTitle);
+    plot->setTitle(mTitle, mTitleVisible);
 
     connect(plot.data(), &Plot::axisRangesChanged,
             this, [this, pWkPtr = plot.toWeakRef()]
@@ -313,14 +320,6 @@ void PlotWindow::initPlot(PlotPtr plot)
         emit linkSettingsTriggered(p->link);
     });
 
-    connect(plot.data(), &Plot::requestShowCrosshairSettings,
-            this, [this, pWkPtr = plot.toWeakRef()]()
-    {
-        PlotPtr p(pWkPtr);
-        if (!p) { return; }
-        mPropertiesDialog.showCrosshairSettings(p);
-    });
-
     connect(plot.data(), &Plot::requestShowPlotProperties,
             this, [this, pWkPtr = plot.toWeakRef()]()
     {
@@ -330,11 +329,9 @@ void PlotWindow::initPlot(PlotPtr plot)
     });
 
     connect(plot.data(), &Plot::titleChanged,
-            this, [this](QString title)
+            this, [this](QString title, bool visible)
     {
-        if (title != mTitle) {
-            setTitle(title);
-        }
+        setTitle(title, visible);
     });
 }
 

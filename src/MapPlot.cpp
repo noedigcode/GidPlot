@@ -228,7 +228,7 @@ Plot::Properties MapPlot::getPlotProperties()
 
     p.title = this->title();
 
-    // TODO set properties
+    // TODO p.showLegend
 
     return p;
 }
@@ -242,7 +242,7 @@ void MapPlot::setPlotProperties(Properties p)
 
     this->setTitle(p.title);
 
-    // TODO set properties
+    // TODO p.showLegend
 }
 
 bool MapPlot::plotCrosshairVisible()

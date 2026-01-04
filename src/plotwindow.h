@@ -63,7 +63,7 @@ public:
     void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
     void plotMap(CsvPtr csv, int ixcol, int iycol, Range range);
     SubplotPtr addSubplot();
-    void setTitle(QString title);
+    void setTitle(QString title, bool visible = true);
     void setXLabel(QString xlabel);
     void setYLabel(QString ylabel);
 
@@ -113,6 +113,7 @@ private:
     void setPlotFont(QFont font);
 
     QString mTitle;
+    bool mTitleVisible = true;
     QCPTextElement* mPlotTitle = nullptr;
 
     QByteArray plotToSvg();

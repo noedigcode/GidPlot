@@ -23,7 +23,6 @@ public:
     Plot::Properties getPlotProperties();
 
     void showProperties(PlotPtr plot);
-    void showCrosshairSettings(PlotPtr plot);
 
 signals:
     void plotPropertiesChanged(PlotPtr plot, Plot::Properties p);

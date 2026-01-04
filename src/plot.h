@@ -63,7 +63,7 @@ public:
     LinkPtr link {new Link()};
 
     QString title();
-    void setTitle(QString title);
+    void setTitle(QString title, bool visible = true);
 
     virtual bool mouseCrosshairVisible() = 0;
     virtual void setMouseCrosshairVisible(bool visible) = 0;
@@ -82,13 +82,13 @@ signals:
     void dataTipChanged(int linkGroup, int index);
     void linkSettingsTriggered();
     void requestShowPlotProperties();
-    void requestShowCrosshairSettings();
-    void titleChanged(QString title);
+    void titleChanged(QString title, bool visible);
 
 protected:
     QWidget* mParentWidget = nullptr;
 
     QString mTitle;
+    bool mTitleVisible = true;
 
     QRectF bounds;
     void expandBounds(QRectF otherDataBounds);
@@ -101,12 +101,6 @@ protected slots:
     virtual void onActionPlaceMarkerTriggered() = 0;
     virtual void onActionMeasureTriggered() = 0;
     virtual void onActionEqualAxesTriggered() = 0;
-
-    // -----------------------------------------------------------------------
-    // Properties dialog
-protected:
-    void showCrosshairsDialog();
-    void showPropertiesDialog();
 
     // -----------------------------------------------------------------------
     // Crosshairs

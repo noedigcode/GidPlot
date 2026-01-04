@@ -30,7 +30,6 @@ include(appicon/appicon.pri)
 include(src/QGeoView/QGeoView.pri)
 
 SOURCES += \
-    src/CrosshairsDialog.cpp \
     src/CsvImportDialog.cpp \
     src/LinkDialog.cpp \
     src/MapPlot.cpp \
@@ -58,7 +57,6 @@ SOURCES += \
     src/csvimporter.cpp
 
 HEADERS += \
-    src/CrosshairsDialog.h \
     src/CsvImportDialog.h \
     src/LinkDialog.h \
     src/MapPlot.h \
@@ -88,7 +86,6 @@ HEADERS += \
     src/version.h
 
 FORMS += \
-    src/CrosshairsDialog.ui \
     src/CsvImportDialog.ui \
     src/LinkDialog.ui \
     src/MarkerEditDialog.ui \
