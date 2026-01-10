@@ -83,6 +83,10 @@ public:
     Properties getPlotProperties();
     void setPlotProperties(Properties p);
 
+    void renameGraph(GraphPtr graph, QString name);
+    void setGraphColor(GraphPtr graph, QColor color);
+    void removeGraph(GraphPtr graph);
+
     bool mouseCrosshairVisible();
     void setMouseCrosshairVisible(bool visible);
     bool plotCrosshairVisible();
@@ -169,7 +173,6 @@ private:
     // Graphs / plottables
 
     QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
-    void removeGraph(GraphPtr graph);
 
     // -------------------------------------------------------------------------
     // Markers

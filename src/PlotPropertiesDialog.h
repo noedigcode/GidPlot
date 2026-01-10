@@ -39,6 +39,16 @@ private:
     void setupCurvesTree(PlotPtr plot);
 
     void prepAndShow(PlotPtr plot);
+
+    const int mCurveTreeColName = 1;
+    const int mCurveTreeColColor = 0;
+
+    QMap<QTreeWidgetItem*, GraphPtr> mTreeItemGraphMap;
+    void setItemColorIcon(QTreeWidgetItem* item, QColor color);
+
+private slots:
+    void on_treeWidget_curves_itemChanged(QTreeWidgetItem *item, int column);
+    void on_treeWidget_curves_itemDoubleClicked(QTreeWidgetItem *item, int column);
 };
 
 #endif // PLOTPROPERTIESDIALOG_H

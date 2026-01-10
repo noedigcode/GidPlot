@@ -27,6 +27,11 @@ Plot::Plot(QWidget *parentWidget)
     setupPlotMenu();
 }
 
+QList<GraphPtr> Plot::graphs()
+{
+    return mGraphs;
+}
+
 QString Plot::title()
 {
     return mTitle;
@@ -64,7 +69,7 @@ void Plot::setupPlotMenu()
 {
     plotMenu.parentWidget = mParentWidget;
     plotMenu.getDataTipGraphCallback = [this]() { return dataTipGraph; };
-    plotMenu.getGraphsCallback = [this]() { return graphs; };
+    plotMenu.getGraphsCallback = [this]() { return mGraphs; };
     plotMenu.getPlotCrosshairIndexCallback = [=]()
     {
         return mPlotCrosshairIndex;

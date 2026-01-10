@@ -136,47 +136,55 @@ void Subplot::onPlotItemDoubleClick(QCPAbstractItem *item, QMouseEvent* event)
     }
 }
 
-void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem, const QPoint &pos)
+void Subplot::onLegendItemRightClicked(QCPPlottableLegendItem *legendItem,
+                                       const QPoint &pos)
 {
     QCPAbstractPlottable* plottable = legendItem->plottable();
+    GraphPtr graph = plottableGraphMap.value(plottable);
+    if (!graph) { return; }
 
     QMenu* menu = new QMenu();
     connect(menu, &QMenu::aboutToHide, this, [=]() {
         menu->deleteLater();
     });
 
-    QPixmap pixmap(16, 16);
-    pixmap.fill(plottable->pen().color());
-    QIcon icon(pixmap);
-    menu->addAction(icon, plottable->name());
+    // Menu title simply displaying plot color and name
+    menu->addAction(PlotMenu::createColorIcon(plottable->pen().color()),
+                    plottable->name());
 
-    menu->addAction(QIcon("://edit"), "Rename", this, [=]()
+    menu->addAction(QIcon("://edit"), "Rename",
+                    this, [this, graphWkPtr = graph.toWeakRef()]()
     {
+        GraphPtr graph(graphWkPtr);
+        if (!graph) { return; }
+
         bool ok;
         QString name = QInputDialog::getText(mParentWidget, "Curve Name", "Name",
                                              QLineEdit::Normal,
-                                             plottable->name(), &ok);
+                                             graph->name(), &ok);
         if (!ok) { return; }
-        plottable->setName(name);
-        mPlot->replot();
-        updateLegendPlacement();
+        renameGraph(graph, name);
     });
-    menu->addAction(QIcon("://color"), "Set Color", this, [=]()
+    menu->addAction(QIcon("://color"), "Set Color",
+                    this, [this, graphWkPtr = graph.toWeakRef()]()
     {
-        QPen pen = plottable->pen();
-        QColor color = QColorDialog::getColor(pen.color(), mParentWidget);
+        GraphPtr graph(graphWkPtr);
+        if (!graph) { return; }
+
+        QColor color = QColorDialog::getColor(graph->color(), mParentWidget);
         if (!color.isValid()) { return; }
-        pen.setColor(color);
-        plottable->setPen(pen);
-        mPlot->replot();
-        updateLegendPlacement();
+
+        setGraphColor(graph, color);
     });
-    menu->addAction(QIcon("://delete"), "Delete", this, [=]()
+    menu->addAction(QIcon("://delete"), "Delete",
+                    this, [this, graphWkPtr = graph.toWeakRef()]()
     {
-        removeGraph(plottableGraphMap.value(plottable));
-        mPlot->replot();
-        updateLegendPlacement();
+        GraphPtr graph(graphWkPtr);
+        if (!graph) { return; }
+
+        removeGraph(graph);
     });
+
     menu->popup(mPlot->mapToGlobal(pos));
 }
 
@@ -229,7 +237,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
     graph->range = range;
     graph->xstats = xstats;
     graph->ystats = ystats;
-    graphs.append(graph);
+    mGraphs.append(graph);
     plottableGraphMap.insert(graph->plottable(), graph);
 
     // Record min/max for all graphs
@@ -242,8 +250,8 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
 
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
 
-    if (graphs.count() == 1) {
-        dataTipGraph = graphs.value(0);
+    if (mGraphs.count() == 1) {
+        dataTipGraph = mGraphs.value(0);
     }
 
     // Show legend if there is more than one curve
@@ -313,6 +321,49 @@ void Subplot::setPlotProperties(Properties p)
     setYLabel(p.ylabel, p.showYlabel);
 
     // TODO apply properties
+}
+
+void Subplot::renameGraph(GraphPtr graph, QString name)
+{
+    graph->plottable()->setName(name);
+    mPlot->replot();
+    updateLegendPlacement();
+}
+
+void Subplot::setGraphColor(GraphPtr graph, QColor color)
+{
+    QCPAbstractPlottable* plottable = graph->plottable();
+    QPen pen = plottable->pen();
+    pen.setColor(color);
+    plottable->setPen(pen);
+    mPlot->replot();
+    updateLegendPlacement();
+}
+
+void Subplot::removeGraph(GraphPtr graph)
+{
+    if (!graph) { return; }
+
+    QCPPlottableLegendItem* legendItem = legend->itemWithPlottable(graph->plottable());
+    if (legendItem) {
+        legend->remove(legendItem);
+    }
+    mPlot->removePlottable(graph->plottable());
+    mGraphs.removeAll(graph);
+    plottableGraphMap.remove(graph->plottable());
+
+    if (dataTipGraph == graph) {
+        dataTipGraph = mGraphs.value(0);
+    }
+
+    // Recalculate overall min/max for remaining graphs
+    bounds = QRectF();
+    foreach (GraphPtr graph, mGraphs) {
+        expandBounds(graph->dataBounds());
+    }
+
+    mPlot->replot();
+    updateLegendPlacement();
 }
 
 Plot::Properties Subplot::getPlotProperties()
@@ -637,7 +688,7 @@ void Subplot::setupMenus()
 void Subplot::onActionPlaceMarkerTriggered()
 {
     GraphPtr graph = dataTipGraph;
-    if (!graph) { graph = graphs.value(0); }
+    if (!graph) { graph = mGraphs.value(0); }
     if (!graph) { return; }
 
     QPoint pos = mouse.lastMovePos;
@@ -878,30 +929,6 @@ void Subplot::updateLegendPlacement()
     axisRect->insetLayout()->setInsetRect(0, rect);
     mPlot->replot();
 }
-
-void Subplot::removeGraph(GraphPtr graph)
-{
-    if (!graph) { return; }
-
-    QCPPlottableLegendItem* legendItem = legend->itemWithPlottable(graph->plottable());
-    if (legendItem) {
-        legend->remove(legendItem);
-    }
-    mPlot->removePlottable(graph->plottable());
-    graphs.removeAll(graph);
-    plottableGraphMap.remove(graph->plottable());
-
-    if (dataTipGraph == graph) {
-        dataTipGraph = graphs.value(0);
-    }
-
-    // Recalculate overall min/max for remaining graphs
-    bounds = QRectF();
-    foreach (GraphPtr graph, graphs) {
-        expandBounds(graph->dataBounds());
-    }
-}
-
 MarkerPtr Subplot::addMarker(QPointF coord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);

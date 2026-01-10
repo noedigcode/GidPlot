@@ -99,7 +99,20 @@ void PlotPropertiesDialog::emitPlotPropertiesChanged()
 
 void PlotPropertiesDialog::setupCurvesTree(PlotPtr plot)
 {
-    // TODO Setup curves
+    ui->treeWidget_curves->clear();
+    mTreeItemGraphMap.clear();
+
+    foreach (GraphPtr graph, plot->graphs()) {
+        QTreeWidgetItem* item = new QTreeWidgetItem();
+
+        item->setFlags(item->flags() | Qt::ItemIsEditable);
+
+        setItemColorIcon(item, graph->color());
+        item->setText(mCurveTreeColName, graph->name());
+
+        mTreeItemGraphMap.insert(item, graph);
+        ui->treeWidget_curves->addTopLevelItem(item);
+    }
 }
 
 void PlotPropertiesDialog::prepAndShow(PlotPtr plot)
@@ -108,6 +121,11 @@ void PlotPropertiesDialog::prepAndShow(PlotPtr plot)
     setPlotProperties(plot->getPlotProperties());
     setupCurvesTree(plot);
     show();
+}
+
+void PlotPropertiesDialog::setItemColorIcon(QTreeWidgetItem *item, QColor color)
+{
+    item->setIcon(mCurveTreeColColor, PlotMenu::createColorIcon(color));
 }
 
 Plot::Properties PlotPropertiesDialog::getPlotProperties()
@@ -132,5 +150,47 @@ Plot::Properties PlotPropertiesDialog::getPlotProperties()
     p.showLegend = ui->checkBox_showLegend->isChecked();
 
     return p;
+}
+
+void PlotPropertiesDialog::on_treeWidget_curves_itemChanged(
+        QTreeWidgetItem *item, int column)
+{
+    if (column == mCurveTreeColName) {
+
+        // Rename graph
+        if (!mPlot) { return; }
+        GraphPtr graph = mTreeItemGraphMap.value(item);
+        if (!graph) { return; }
+        mPlot->renameGraph(graph, item->text(column));
+
+    } else {
+        // Ignore renaming of other columns
+        item->setText(column, "");
+    }
+}
+
+void PlotPropertiesDialog::on_treeWidget_curves_itemDoubleClicked(
+        QTreeWidgetItem *item, int column)
+{
+    GraphPtr graph = mTreeItemGraphMap.value(item);
+    if (!graph) { return; }
+
+    if (column == mCurveTreeColName) {
+
+        ui->treeWidget_curves->editItem(item, column);
+        // itemChanged slot will handle renaming
+
+    } else if (column == mCurveTreeColColor) {
+
+        QColor color = QColorDialog::getColor(graph->color(), this);
+        if (color.isValid()) {
+
+            if (mPlot) {
+                setItemColorIcon(item, color);
+                mPlot->setGraphColor(graph, color);
+            }
+
+        }
+    }
 }
 

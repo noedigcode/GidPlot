@@ -155,6 +155,8 @@ public:
 
     QList<QAction*> actions();
 
+    static QIcon createColorIcon(QColor color);
+
 signals:
     void dataTipGraphSelected(GraphPtr graph);
 

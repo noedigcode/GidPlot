@@ -62,6 +62,11 @@ public:
 
     LinkPtr link {new Link()};
 
+    QList<GraphPtr> graphs();
+    virtual void renameGraph(GraphPtr graph, QString name) = 0;
+    virtual void setGraphColor(GraphPtr graph, QColor color) = 0;
+    virtual void removeGraph(GraphPtr graph) = 0;
+
     QString title();
     void setTitle(QString title, bool visible = true);
 
@@ -116,7 +121,7 @@ private:
     // Graphs
 protected:
     GraphPtr dataTipGraph;
-    QList<GraphPtr> graphs;
+    QList<GraphPtr> mGraphs;
 
     virtual QPointF pixelPosToCoord(QPoint pos) = 0;
     virtual QPoint coordToPixelPos(QPointF coord) = 0;

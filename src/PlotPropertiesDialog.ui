@@ -156,11 +156,44 @@
      <layout class="QVBoxLayout" name="verticalLayout_4">
       <item>
        <widget class="QTreeWidget" name="treeWidget_curves">
+        <property name="editTriggers">
+         <set>QAbstractItemView::EditKeyPressed</set>
+        </property>
+        <property name="indentation">
+         <number>0</number>
+        </property>
+        <property name="itemsExpandable">
+         <bool>true</bool>
+        </property>
+        <property name="allColumnsShowFocus">
+         <bool>false</bool>
+        </property>
         <column>
          <property name="text">
-          <string notr="true">Curve</string>
+          <string>Color</string>
          </property>
         </column>
+        <column>
+         <property name="text">
+          <string notr="true">Name</string>
+         </property>
+        </column>
+        <item>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="text">
+          <string>Curve 1</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="text">
+          <string>Curve 2</string>
+         </property>
+        </item>
        </widget>
       </item>
      </layout>

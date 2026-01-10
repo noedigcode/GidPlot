@@ -170,6 +170,14 @@ QList<QAction *> PlotMenu::actions()
     return menu.actions();
 }
 
+QIcon PlotMenu::createColorIcon(QColor color)
+{
+    QPixmap pixmap(16, 16);
+    pixmap.fill(color);
+    QIcon icon(pixmap);
+    return icon;
+}
+
 GraphPtr PlotMenu::datatipGraph()
 {
     GraphPtr ret;
@@ -212,10 +220,7 @@ void PlotMenu::onDataTipMenuAboutToShow()
             emit dataTipGraphSelected(g);
         });
 
-        QPixmap pixmap(16, 16);
-        pixmap.fill(g->color());
-        QIcon icon(pixmap);
-        action->setIcon(icon);
+        action->setIcon(PlotMenu::createColorIcon(g->color()));
 
         action->setCheckable(true);
 

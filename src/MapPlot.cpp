@@ -137,7 +137,7 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
         mMapWidget->addItem(line);
     }
 
-    graphs.append(graph);
+    mGraphs.append(graph);
     if (!dataTipGraph) {
         dataTipGraph = graph;
         mTrackCrosshair->setVisible(true);
@@ -243,6 +243,21 @@ void MapPlot::setPlotProperties(Properties p)
     this->setTitle(p.title);
 
     // TODO p.showLegend
+}
+
+void MapPlot::renameGraph(GraphPtr graph, QString name)
+{
+    // TODO
+}
+
+void MapPlot::setGraphColor(GraphPtr graph, QColor color)
+{
+    // TODO
+}
+
+void MapPlot::removeGraph(GraphPtr graph)
+{
+    // TODO
 }
 
 bool MapPlot::plotCrosshairVisible()
