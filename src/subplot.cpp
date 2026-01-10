@@ -344,14 +344,20 @@ void Subplot::removeGraph(GraphPtr graph)
 {
     if (!graph) { return; }
 
+    // Remove from legend
     QCPPlottableLegendItem* legendItem = legend->itemWithPlottable(graph->plottable());
     if (legendItem) {
         legend->remove(legendItem);
     }
+
+    // Remove from plot
     mPlot->removePlottable(graph->plottable());
+
+    // Remove from data structures
     mGraphs.removeAll(graph);
     plottableGraphMap.remove(graph->plottable());
 
+    // Remove from datatip
     if (dataTipGraph == graph) {
         dataTipGraph = mGraphs.value(0);
     }

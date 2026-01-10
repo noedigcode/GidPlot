@@ -49,6 +49,7 @@ private:
 private slots:
     void on_treeWidget_curves_itemChanged(QTreeWidgetItem *item, int column);
     void on_treeWidget_curves_itemDoubleClicked(QTreeWidgetItem *item, int column);
+    void on_toolButton_curve_remove_clicked();
 };
 
 #endif // PLOTPROPERTIESDIALOG_H

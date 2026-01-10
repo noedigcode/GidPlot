@@ -247,17 +247,48 @@ void MapPlot::setPlotProperties(Properties p)
 
 void MapPlot::renameGraph(GraphPtr graph, QString name)
 {
-    // TODO
+    graph->track->name = name;
+    // TODO update legend when implemented
 }
 
 void MapPlot::setGraphColor(GraphPtr graph, QColor color)
 {
-    // TODO
+    graph->track->pen.setColor(color);
+
+    foreach (MapLine* ml, graph->track->mapLines) {
+        ml->setColor(graph->track->pen.color());
+    }
+
+    // TODO update legend when implemented
 }
 
 void MapPlot::removeGraph(GraphPtr graph)
 {
-    // TODO
+    if (!graph) { return; }
+
+    // Remove from legend
+    // TODO remove from legend when implemented
+
+    // Remove from map
+    while (!graph->track->mapLines.isEmpty()) {
+        MapLine* ml = graph->track->mapLines.takeFirst();
+        mMapWidget->removeItem(ml);
+        delete ml;
+    }
+
+    // Remove from data structures
+    mGraphs.removeAll(graph);
+
+    // Remove from datatip
+    if (dataTipGraph == graph) {
+        dataTipGraph = mGraphs.value(0);
+    }
+
+    // Recalculate overall min/max of remaining tracks
+    bounds = QRectF();
+    foreach (GraphPtr graph, mGraphs) {
+        expandBounds(graph->dataBounds());
+    }
 }
 
 bool MapPlot::plotCrosshairVisible()

@@ -194,3 +194,18 @@ void PlotPropertiesDialog::on_treeWidget_curves_itemDoubleClicked(
     }
 }
 
+void PlotPropertiesDialog::on_toolButton_curve_remove_clicked()
+{
+    QTreeWidgetItem* item = ui->treeWidget_curves->currentItem();
+    if (!item) { return; }
+
+    GraphPtr graph = mTreeItemGraphMap.value(item);
+    if (!graph) { return; }
+
+    mTreeItemGraphMap.remove(item);
+    delete item; // Remove item from tree widget
+
+    if (!mPlot) { return; }
+    mPlot->removeGraph(graph);
+}
+
