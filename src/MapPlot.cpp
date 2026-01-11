@@ -221,6 +221,7 @@ Plot::Properties MapPlot::getPlotProperties()
     p.plotDot = true;
 
     // TODO: Mouse crosshair settings
+    p.mouseCrosshair = mMouseCrosshair->isVisible();
 
     p.supportShowTitle = false;
     p.supportXlabel = false;
@@ -239,6 +240,7 @@ void MapPlot::setPlotProperties(Properties p)
     // TODO: Sub-parts of crosshair
 
     // TODO: Mouse crosshair
+    mMouseCrosshair->setVisible(p.mouseCrosshair);
 
     this->setTitle(p.title);
 
@@ -319,11 +321,8 @@ void MapPlot::resized()
 
 void MapPlot::setupCrosshairs()
 {
-    mTrackCrosshair = new MapMarker(QGV::GeoPos(), 5);
-    mTrackCrosshair->setBrush(QBrush(QColor(255, 0, 0, 100)));
-    mTrackCrosshair->setVisible(false);
-    mTrackCrosshair->bringToFront();
-    mMapWidget->addItem(mTrackCrosshair);
+    mTrackCrosshair = new Crosshair(mMapWidget);
+    mMouseCrosshair = new Crosshair(mMapWidget);
 }
 
 QPointF MapPlot::pixelPosToCoord(QPoint pos)
@@ -371,18 +370,24 @@ void MapPlot::removeTiles()
 
 void MapPlot::onMapMouseMove(QPointF projPos)
 {
-    QPoint pixelPos = mMapWidget->mapFromProj(projPos);
+    QPoint mousePixelPos = mMapWidget->mapFromProj(projPos);
+
     if (mTrackCrosshair->isVisible() && dataTipGraph) {
-        ClosestCoord closest = findClosestCoord(
-                    pixelPos, dataTipGraph,
-                    ClosestXY);
-        if (closest.valid) {
-            QGV::GeoPos closestPos = mMapWidget->getProjection()->projToGeo(closest.coord);
-            mTrackCrosshair->setPosition(closestPos);
+
+        ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, dataTipGraph,
+                                                       ClosestXY);
+        if (closestProjPos.valid) {
+
+            mTrackCrosshair->setPosition(closestProjPos.coord);
+
             emit dataTipChanged(link->group,
-                                closest.dataIndex + dataTipGraph->range.start);
-            mPlotCrosshairIndex = closest.dataIndex;
+                                closestProjPos.dataIndex + dataTipGraph->range.start);
+            mPlotCrosshairIndex = closestProjPos.dataIndex;
         }
+    }
+
+    if (mMouseCrosshair->isVisible()) {
+        mMouseCrosshair->setPosition(projPos, mousePixelPos);
     }
 }
 
@@ -393,3 +398,61 @@ void MapPlot::onActionEqualAxesTriggered()
 
 
 
+
+MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
+{
+    mMapWidget = mapWidget;
+
+    marker = new MapMarker(QGV::GeoPos(), 5);
+    marker->setBrush(QBrush(QColor(255, 0, 0, 100)));
+    marker->setVisible(mVisible);
+    marker->bringToFront();
+    mMapWidget->addItem(marker);
+
+    label = new QGVWidgetText();
+    label->setVisible(mVisible);
+    mMapWidget->addWidget(label);
+
+}
+
+void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos)
+{
+    marker->setPosition(geoPos);
+
+    label->setText(QString("%1, %2")
+                   .arg(QString::number(geoPos.latitude(), 'f', 7))
+                   .arg(QString::number(geoPos.longitude(), 'f', 7)));
+
+    static const int offset = 5;
+    label->move(QPoint(pixelPos.x() + offset,
+                       pixelPos.y() - label->height() - offset));
+}
+
+void MapPlot::Crosshair::setPosition(QPointF projPos, QPoint pixelPos)
+{
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
+    setPosition(geoPos, pixelPos);
+}
+
+void MapPlot::Crosshair::setPosition(QPointF projPos)
+{
+    QPoint pixelPos = mMapWidget->mapFromProj(projPos);
+    setPosition(projPos, pixelPos);
+}
+
+void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos)
+{
+    QPointF projPos = mMapWidget->getProjection()->geoToProj(geoPos);
+    QPoint pixelPos = mMapWidget->mapFromProj(projPos);
+    setPosition(geoPos, pixelPos);
+}
+
+bool MapPlot::Crosshair::isVisible() {
+    return mVisible;
+}
+
+void MapPlot::Crosshair::setVisible(bool set) {
+    mVisible = set;
+    marker->setVisible(set);
+    label->setVisible(set);
+}

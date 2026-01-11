@@ -30,6 +30,7 @@
 #include "QGeoView/QGVMap.h"
 #include "QGeoView/QGVLayerTiles.h"
 #include "QGeoView/QGVLayerOSM.h"
+#include "QGeoView/QGVWidgetText.h"
 
 #include <QNetworkAccessManager>
 #include <QNetworkDiskCache>
@@ -97,8 +98,31 @@ private slots:
     // Crosshairs
 private:
     void setupCrosshairs();
-    MapMarker* mTrackCrosshair = nullptr;
-    // TODO: Mouse crosshair
+
+    struct Crosshair {
+        Crosshair() {}
+        Crosshair(QGVMap* mapWidget);
+
+        /* setPosition(geoPos, pixelPos) is what is really needed to draw the
+         * dot on the map, set the label text and set the label screen
+         * coordinates.
+         * The other are convenience functions. Use the one corresponding to
+         * the info you have available to avoid unnecessary calculations. */
+        void setPosition(QGV::GeoPos geoPos, QPoint pixelPos);
+        void setPosition(QPointF projPos, QPoint pixelPos);
+        void setPosition(QPointF projPos);
+        void setPosition(QGV::GeoPos geoPos);
+
+        bool isVisible();
+        void setVisible(bool set);
+        MapMarker* marker = nullptr;
+        QGVWidgetText* label = nullptr;
+        QGVMap* mMapWidget = nullptr;
+        bool mVisible = false;
+    };
+
+    Crosshair* mTrackCrosshair = nullptr;
+    Crosshair* mMouseCrosshair = nullptr;
 
     QPointF pixelPosToCoord(QPoint pos);
     QPoint coordToPixelPos(QPointF coord);
