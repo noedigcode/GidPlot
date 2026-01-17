@@ -396,9 +396,6 @@ void MapPlot::onActionEqualAxesTriggered()
     // Not applicable for map
 }
 
-
-
-
 MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
 {
     mMapWidget = mapWidget;
@@ -410,6 +407,9 @@ MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
     mMapWidget->addItem(marker);
 
     label = new QGVWidgetText();
+    label->setStyleSheet(
+                "padding: 3px;"
+                "background-color: rgba(255,255,255,150);");
     label->setVisible(mVisible);
     mMapWidget->addWidget(label);
 
