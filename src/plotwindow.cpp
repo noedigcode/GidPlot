@@ -59,9 +59,9 @@ PlotWindow::PlotWindow(int tag, QWidget *parent) :
     ui->plot->axisRect()->setRangeZoom(Qt::Horizontal);
     ui->plot->setInteraction(QCP::iSelectPlottables, true);
 
-    ui->plot->addLayer("crosshairs", ui->plot->layer("main"), QCustomPlot::limAbove);
-    ui->plot->addLayer("markers", ui->plot->layer("crosshairs"), QCustomPlot::limAbove);
-    ui->plot->addLayer("marker-labels", ui->plot->layer("marker-labels"), QCustomPlot::limAbove);
+    ui->plot->addLayer("markers", ui->plot->layer("main"), QCustomPlot::limAbove);
+    ui->plot->addLayer("marker-labels", ui->plot->layer("markers"), QCustomPlot::limAbove);
+    ui->plot->addLayer("crosshairs", ui->plot->layer("marker-labels"), QCustomPlot::limAbove);
 
     ui->plot->installEventFilter(this);
 }
