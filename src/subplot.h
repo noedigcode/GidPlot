@@ -173,6 +173,7 @@ private:
     // Graphs / plottables
 
     QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
+    void setDataTipGraph(GraphPtr graph);
 
     // -------------------------------------------------------------------------
     // Markers
@@ -212,17 +213,14 @@ private:
 
     void setupCrosshairs();
 
+    bool mPlotCrosshairVisible = true;
     PlotMarkerItem* mPlotCrosshair = nullptr;
-
     bool mPlotCrosshairVisibilityChangedByUser = false;
+
     PlotMarkerItem* mMouseCrosshair = nullptr;
-    void updateGuiForCrosshairOptions();
 
     QPointF pixelPosToCoord(QPoint pos);
     QPoint coordToPixelPos(QPointF coord);
-
-    bool lastPlotCrosshairVisible = false;
-    bool lastMouseCrosshairVisible = false;
 
 private slots:
     void onPlotMousePress(QMouseEvent* event);

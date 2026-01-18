@@ -222,7 +222,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         qcpgraph->setName(name);
         mPlotCrosshairSnap = ClosestXOnly;
         mPlotCrosshair->showHorizontalLine = false;
-        updateGuiForCrosshairOptions();
+        queueReplot();
     } else {
         // Curve is used otherwise
         QCPCurve* qcpcurve = new QCPCurve(xAxis, yAxis);
@@ -251,7 +251,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
 
     if (mGraphs.count() == 1) {
-        dataTipGraph = mGraphs.value(0);
+        setDataTipGraph(mGraphs.value(0));
     }
 
     // Show legend if there is more than one curve
@@ -299,9 +299,10 @@ void Subplot::setPlotProperties(Properties p)
 {
     // Crosshairs
 
-    if (p.plotCrosshair != mPlotCrosshair->visible()) {
+    if (p.plotCrosshair != mPlotCrosshairVisible) {
         mPlotCrosshairVisibilityChangedByUser = true;
-        mPlotCrosshair->setVisible(p.plotCrosshair);
+        setPlotCrosshairVisible(p.plotCrosshair);
+
     }
     mPlotCrosshair->showHorizontalLine = p.plotHline;
     mPlotCrosshair->showVerticalLine = p.plotVline;
@@ -311,7 +312,7 @@ void Subplot::setPlotProperties(Properties p)
     mMouseCrosshair->showVerticalLine = p.mouseVline;
     mMouseCrosshair->showCircle = p.mouseDot;
 
-    updateGuiForCrosshairOptions();
+    queueReplot();
 
     // Other properties
 
@@ -359,7 +360,7 @@ void Subplot::removeGraph(GraphPtr graph)
 
     // Remove from datatip
     if (dataTipGraph == graph) {
-        dataTipGraph = mGraphs.value(0);
+        setDataTipGraph(mGraphs.value(0));
     }
 
     // Recalculate overall min/max for remaining graphs
@@ -378,7 +379,7 @@ Plot::Properties Subplot::getPlotProperties()
 
     // Crosshairs
 
-    p.plotCrosshair = mPlotCrosshair->visible();
+    p.plotCrosshair = plotCrosshairVisible();
     p.plotHline = mPlotCrosshair->showHorizontalLine;
     p.plotVline = mPlotCrosshair->showVerticalLine;
     p.plotDot = mPlotCrosshair->showCircle;
@@ -434,7 +435,7 @@ void Subplot::syncAxisRanges(QRectF xyrange)
 
 void Subplot::syncDataTip(int index)
 {
-    if (!mPlotCrosshair->visible()) { return; }
+    if (!plotCrosshairVisible()) { return; }
     if (!dataTipGraph) { return; }
 
     index -= dataTipGraph->range.start;
@@ -498,13 +499,15 @@ void Subplot::keyEvent(QEvent *event)
 
 bool Subplot::plotCrosshairVisible()
 {
-    return mPlotCrosshair->visible();
+    return mPlotCrosshairVisible;
 }
 
 void Subplot::setPlotCrosshairVisible(bool visible)
 {
-    mPlotCrosshair->setVisible(visible);
-    updateGuiForCrosshairOptions();
+    mPlotCrosshairVisible = visible;
+
+    mPlotCrosshair->setVisible(mPlotCrosshairVisible && !dataTipGraph.isNull());
+    queueReplot();
 }
 
 bool Subplot::mouseCrosshairVisible()
@@ -515,7 +518,7 @@ bool Subplot::mouseCrosshairVisible()
 void Subplot::setMouseCrosshairVisible(bool visible)
 {
     mMouseCrosshair->setVisible(visible);
-    updateGuiForCrosshairOptions();
+    queueReplot();
 }
 
 void Subplot::showAll()
@@ -790,7 +793,7 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
         if (event->buttons() == Qt::NoButton) {
 
-            if (mPlotCrosshair->visible() && dataTipGraph) {
+            if (mPlotCrosshairVisible && dataTipGraph) {
 
                 QElapsedTimer timer;
                 timer.start();
@@ -804,8 +807,7 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                 // automatically. However, if the user has enabled it, leave
                 // it alone.
                 if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
-                    mPlotCrosshair->setVisible(false);
-                    updateGuiForCrosshairOptions();
+                    setPlotCrosshairVisible(false);
                 } else if (closest.valid) {
                     mPlotCrosshair->position->setCoords(closest.coord);
                     mPlotCrosshair->text = QString("%1, %2 [%3]")
@@ -935,6 +937,14 @@ void Subplot::updateLegendPlacement()
     axisRect->insetLayout()->setInsetRect(0, rect);
     mPlot->replot();
 }
+
+void Subplot::setDataTipGraph(GraphPtr graph)
+{
+    dataTipGraph = graph;
+    // Refresh plot crosshair visibility (in case graph is null)
+    setPlotCrosshairVisible(mPlotCrosshairVisible);
+}
+
 MarkerPtr Subplot::addMarker(QPointF coord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
@@ -1193,11 +1203,6 @@ void Subplot::setupCrosshairs()
     mMouseCrosshair->showHorizontalLine = true;
     mMouseCrosshair->setVisible(false);
 
-    updateGuiForCrosshairOptions();
-}
-
-void Subplot::updateGuiForCrosshairOptions()
-{
     queueReplot();
 }
 

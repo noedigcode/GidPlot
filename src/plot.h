@@ -121,6 +121,7 @@ private:
     // Graphs
 protected:
     GraphPtr dataTipGraph;
+    virtual void setDataTipGraph(GraphPtr graph) = 0;
     QList<GraphPtr> mGraphs;
 
     virtual QPointF pixelPosToCoord(QPoint pos) = 0;

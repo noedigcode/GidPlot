@@ -94,7 +94,7 @@ void Plot::setupPlotMenu()
 
 void Plot::onActionDataTipGraphSelected(GraphPtr graph)
 {
-    dataTipGraph = graph;
+    setDataTipGraph(graph);
 }
 
 Plot::ClosestCoord Plot::findClosestCoord(QPoint mousePos, GraphPtr graph,

@@ -62,6 +62,13 @@ void MapPlot::setupLink()
     link->tag = "Map Plot";
 }
 
+void MapPlot::setDataTipGraph(GraphPtr graph)
+{
+    dataTipGraph = graph;
+    // Refresh plot crosshair visibility (in case graph is null)
+    setPlotCrosshairVisible(mTrackCrosshairVisible);
+}
+
 void MapPlot::setupMenus()
 {
     // TODO
@@ -139,8 +146,7 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 
     mGraphs.append(graph);
     if (!dataTipGraph) {
-        dataTipGraph = graph;
-        mTrackCrosshair->setVisible(true);
+        setDataTipGraph(graph);
     }
 
     showAll();
@@ -153,7 +159,7 @@ void MapPlot::syncAxisRanges(QRectF /*xyrange*/)
 
 void MapPlot::syncDataTip(int index)
 {
-    if (!mTrackCrosshair->isVisible()) { return; }
+    if (!plotCrosshairVisible()) { return; }
     if (!dataTipGraph) { return; }
 
     index -= dataTipGraph->range.start;
@@ -216,7 +222,7 @@ Plot::Properties MapPlot::getPlotProperties()
 {
     Properties p;
 
-    p.plotCrosshair = mTrackCrosshair->isVisible();
+    p.plotCrosshair = plotCrosshairVisible();
     // TODO: Sub-parts of crosshair
     p.plotDot = true;
 
@@ -236,7 +242,7 @@ Plot::Properties MapPlot::getPlotProperties()
 
 void MapPlot::setPlotProperties(Properties p)
 {
-    mTrackCrosshair->setVisible(p.plotCrosshair);
+    setPlotCrosshairVisible(p.plotCrosshair);
     // TODO: Sub-parts of crosshair
 
     // TODO: Mouse crosshair
@@ -283,7 +289,7 @@ void MapPlot::removeGraph(GraphPtr graph)
 
     // Remove from datatip
     if (dataTipGraph == graph) {
-        dataTipGraph = mGraphs.value(0);
+        setDataTipGraph(mGraphs.value(0));
     }
 
     // Recalculate overall min/max of remaining tracks
@@ -295,12 +301,13 @@ void MapPlot::removeGraph(GraphPtr graph)
 
 bool MapPlot::plotCrosshairVisible()
 {
-    return mTrackCrosshair->isVisible();
+    return mTrackCrosshairVisible;
 }
 
 void MapPlot::setPlotCrosshairVisible(bool visible)
 {
-    mTrackCrosshair->setVisible(visible);
+    mTrackCrosshairVisible = visible;
+    mTrackCrosshair->setVisible(visible && !dataTipGraph.isNull());
 }
 
 bool MapPlot::mouseCrosshairVisible()
@@ -372,7 +379,7 @@ void MapPlot::onMapMouseMove(QPointF projPos)
 {
     QPoint mousePixelPos = mMapWidget->mapFromProj(projPos);
 
-    if (mTrackCrosshair->isVisible() && dataTipGraph) {
+    if (mTrackCrosshairVisible && dataTipGraph) {
 
         ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, dataTipGraph,
                                                        ClosestXY);

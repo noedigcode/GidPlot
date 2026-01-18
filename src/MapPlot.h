@@ -85,6 +85,8 @@ private:
 
     void setupLink();
 
+    void setDataTipGraph(GraphPtr graph);
+
     // -----------------------------------------------------------------------
     // Menus
 private:
@@ -121,6 +123,7 @@ private:
         bool mVisible = false;
     };
 
+    bool mTrackCrosshairVisible = true;
     Crosshair* mTrackCrosshair = nullptr;
     Crosshair* mMouseCrosshair = nullptr;
 
