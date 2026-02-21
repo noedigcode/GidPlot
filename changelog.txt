@@ -1,6 +1,22 @@
 Gid~Plot Changelog
 ==================
 
+[0.1.1] - 2026-02-21
+--------------------
+
+Added
+
+- Plot properties dialog to set title, axis labels, show/hide legend, crosshair
+  visibility and list all plotted curves. Curves colours and names can be set
+  and curves can be removed from the dialog.
+- Map crosshairs with labels.
+
+Changed
+
+- Crosshairs are now above markers.
+- Hide crosshairs when there are no curves plotted.
+
+
 [0.1.0] - 2026-01-01
 --------------------
 
