@@ -22,7 +22,7 @@
 #define GRAPH_H
 
 #include "csv.h"
-#include "mapline.h"
+#include "QGVLine.h"
 
 #include "QCustomPlot/qcustomplot.h"
 
@@ -51,7 +51,7 @@ struct Track
     QString name;
     QPen pen;
 
-    QList<MapLine*> mapLines;
+    QList<QGVLine*> mapLines;
 
 };
 typedef QSharedPointer<Track> TrackPtr;

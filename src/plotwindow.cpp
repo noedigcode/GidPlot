@@ -285,8 +285,8 @@ void PlotWindow::resizeEvent(QResizeEvent* /*event*/)
 
 void PlotWindow::showEvent(QShowEvent* /*event*/)
 {
-    foreach (SubplotPtr subplot, mSubplots) {
-        subplot->showEvent();
+    foreach (PlotPtr plot, mAllPlots) {
+        plot->showEvent();
     }
 }
 

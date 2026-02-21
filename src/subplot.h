@@ -92,11 +92,11 @@ public:
     bool plotCrosshairVisible();
     void setPlotCrosshairVisible(bool visible);
     void resized();
+    void showEvent();
     void showAll();
     void syncAxisRanges(QRectF xyrange);
     void syncDataTip(int index);
 
-    void showEvent();
     void keyEvent(QEvent* event);
 
 private:

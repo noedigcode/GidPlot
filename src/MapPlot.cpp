@@ -66,7 +66,7 @@ void MapPlot::setDataTipGraph(GraphPtr graph)
 {
     dataTipGraph = graph;
     // Refresh plot crosshair visibility (in case graph is null)
-    setPlotCrosshairVisible(mTrackCrosshairVisible);
+    setPlotCrosshairVisible(mPlotCrosshairVisible);
 }
 
 void MapPlot::setupMenus()
@@ -138,7 +138,7 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     for (int i = 0; i < track->lats.count() - 1; i++) {
         QGV::GeoPos pos1(track->lats[i], track->lons[i]);
         QGV::GeoPos pos2(track->lats[i+1], track->lons[i+1]);
-        MapLine* line = new MapLine(pos1, pos2);
+        QGVLine* line = new QGVLine(pos1, pos2);
         line->setColor(track->pen.color());
         track->mapLines.append(line);
         mMapWidget->addItem(line);
@@ -150,6 +150,10 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     }
 
     showAll();
+
+    // Call resized() to update crosshairs widget size. Queue it to give MapPlot
+    // a chance to be set up and displayed.
+    QMetaObject::invokeMethod(this, [=]() { resized(); }, Qt::QueuedConnection);
 }
 
 void MapPlot::syncAxisRanges(QRectF /*xyrange*/)
@@ -166,7 +170,7 @@ void MapPlot::syncDataTip(int index)
     if ((index < 0) || (index >= dataTipGraph->dataCount())) { return; }
     double lat = dataTipGraph->track->lats[index];
     double lon = dataTipGraph->track->lons[index];
-    mTrackCrosshair->setPosition(QGV::GeoPos(lat, lon));
+    mPlotCrosshair->setPosition(QGV::GeoPos(lat, lon));
 }
 
 void MapPlot::setMapOSM()
@@ -223,11 +227,14 @@ Plot::Properties MapPlot::getPlotProperties()
     Properties p;
 
     p.plotCrosshair = plotCrosshairVisible();
-    // TODO: Sub-parts of crosshair
-    p.plotDot = true;
+    p.plotDot = mPlotCrosshair->isMarkerVisible();
+    p.plotHline = mPlotCrosshair->isHlineVisible();
+    p.plotVline = mPlotCrosshair->isVlineVisible();
 
-    // TODO: Mouse crosshair settings
-    p.mouseCrosshair = mMouseCrosshair->isVisible();
+    p.mouseCrosshair = mouseCrosshairVisible();
+    p.mouseDot = mMouseCrosshair->isMarkerVisible();
+    p.mouseHline = mMouseCrosshair->isHlineVisible();
+    p.mouseVline = mMouseCrosshair->isVlineVisible();
 
     p.supportShowTitle = false;
     p.supportXlabel = false;
@@ -243,10 +250,14 @@ Plot::Properties MapPlot::getPlotProperties()
 void MapPlot::setPlotProperties(Properties p)
 {
     setPlotCrosshairVisible(p.plotCrosshair);
-    // TODO: Sub-parts of crosshair
+    mPlotCrosshair->setMarkerVisible(p.plotDot);
+    mPlotCrosshair->setHlineVisible(p.plotHline);
+    mPlotCrosshair->setVlineVisible(p.plotVline);
 
-    // TODO: Mouse crosshair
-    mMouseCrosshair->setVisible(p.mouseCrosshair);
+    setMouseCrosshairVisible(p.mouseCrosshair);
+    mMouseCrosshair->setMarkerVisible(p.mouseDot);
+    mMouseCrosshair->setHlineVisible(p.mouseHline);
+    mMouseCrosshair->setVlineVisible(p.mouseVline);
 
     this->setTitle(p.title);
 
@@ -263,7 +274,7 @@ void MapPlot::setGraphColor(GraphPtr graph, QColor color)
 {
     graph->track->pen.setColor(color);
 
-    foreach (MapLine* ml, graph->track->mapLines) {
+    foreach (QGVLine* ml, graph->track->mapLines) {
         ml->setColor(graph->track->pen.color());
     }
 
@@ -279,7 +290,7 @@ void MapPlot::removeGraph(GraphPtr graph)
 
     // Remove from map
     while (!graph->track->mapLines.isEmpty()) {
-        MapLine* ml = graph->track->mapLines.takeFirst();
+        QGVLine* ml = graph->track->mapLines.takeFirst();
         mMapWidget->removeItem(ml);
         delete ml;
     }
@@ -301,34 +312,39 @@ void MapPlot::removeGraph(GraphPtr graph)
 
 bool MapPlot::plotCrosshairVisible()
 {
-    return mTrackCrosshairVisible;
+    return mPlotCrosshairVisible;
 }
 
 void MapPlot::setPlotCrosshairVisible(bool visible)
 {
-    mTrackCrosshairVisible = visible;
-    mTrackCrosshair->setVisible(visible && !dataTipGraph.isNull());
+    mPlotCrosshairVisible = visible;
+    mPlotCrosshair->setVisible(visible && !dataTipGraph.isNull());
 }
 
 bool MapPlot::mouseCrosshairVisible()
 {
-    // TODO Mouse crosshair
-    return false;
+    return mMouseCrosshair->isVisible();
 }
 
-void MapPlot::setMouseCrosshairVisible(bool /*visible*/)
+void MapPlot::setMouseCrosshairVisible(bool visible)
 {
-    // TODO Mouse crosshair
+    mMouseCrosshair->setVisible(visible);
 }
 
 void MapPlot::resized()
 {
+    mPlotCrosshair->lines->resize(mMapWidget->size());
+    mMouseCrosshair->lines->resize(mMapWidget->size());
+}
 
+void MapPlot::showEvent()
+{
+    resized();
 }
 
 void MapPlot::setupCrosshairs()
 {
-    mTrackCrosshair = new Crosshair(mMapWidget);
+    mPlotCrosshair = new Crosshair(mMapWidget);
     mMouseCrosshair = new Crosshair(mMapWidget);
 }
 
@@ -379,13 +395,13 @@ void MapPlot::onMapMouseMove(QPointF projPos)
 {
     QPoint mousePixelPos = mMapWidget->mapFromProj(projPos);
 
-    if (mTrackCrosshairVisible && dataTipGraph) {
+    if (mPlotCrosshairVisible && dataTipGraph) {
 
         ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, dataTipGraph,
                                                        ClosestXY);
         if (closestProjPos.valid) {
 
-            mTrackCrosshair->setPosition(closestProjPos.coord);
+            mPlotCrosshair->setPosition(closestProjPos.coord);
 
             emit dataTipChanged(link->group,
                                 closestProjPos.dataIndex + dataTipGraph->range.start);
@@ -420,6 +436,11 @@ MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
     label->setVisible(mVisible);
     mMapWidget->addWidget(label);
 
+    lines = new QGVCrosshairWidget();
+    lines->move(0, 0);
+    lines->resize(mMapWidget->size());
+    lines->setVisible(mVisible);
+    mMapWidget->addWidget(lines);
 }
 
 void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos)
@@ -433,6 +454,8 @@ void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos)
     static const int offset = 5;
     label->move(QPoint(pixelPos.x() + offset,
                        pixelPos.y() - label->height() - offset));
+
+    lines->setPos(pixelPos);
 }
 
 void MapPlot::Crosshair::setPosition(QPointF projPos, QPoint pixelPos)
@@ -454,12 +477,53 @@ void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos)
     setPosition(geoPos, pixelPos);
 }
 
-bool MapPlot::Crosshair::isVisible() {
+bool MapPlot::Crosshair::isVisible()
+{
     return mVisible;
 }
 
-void MapPlot::Crosshair::setVisible(bool set) {
+void MapPlot::Crosshair::setVisible(bool set)
+{
     mVisible = set;
-    marker->setVisible(set);
-    label->setVisible(set);
+
+    marker->setVisible(mShowMarker & set);
+    label->setVisible(mShowLabel & set);
+    lines->setVisible(set);
+}
+
+void MapPlot::Crosshair::setMarkerVisible(bool visible)
+{
+    mShowMarker = visible;
+    marker->setVisible(mShowMarker & mVisible);
+}
+
+bool MapPlot::Crosshair::isMarkerVisible()
+{
+    return mShowMarker;
+}
+
+void MapPlot::Crosshair::setLabelVisible(bool visible)
+{
+    mShowLabel = visible;
+    label->setVisible(mShowLabel & mVisible);
+}
+
+void MapPlot::Crosshair::setHlineVisible(bool visible)
+{
+    lines->setHorizontalLineVisible(visible);
+}
+
+bool MapPlot::Crosshair::isHlineVisible()
+{
+    return lines->horizontalLineVisible();
+}
+
+void MapPlot::Crosshair::setVlineVisible(bool visible)
+{
+    lines->setVerticalLineVisible(visible);
+}
+
+bool MapPlot::Crosshair::isVlineVisible()
+{
+    return lines->verticalLineVisible();
 }

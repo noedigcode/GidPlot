@@ -18,7 +18,7 @@
  *
  *****************************************************************************/
 
-/* MapLine
+/* QGVLine
  *
  * Draws a line on a QGeoView map.
  *
@@ -32,12 +32,12 @@
 #include <QPainter>
 #include <QPen>
 
-class MapLine : public QGVDrawItem
+class QGVLine : public QGVDrawItem
 {
     Q_OBJECT
 
 public:
-    explicit MapLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2);
+    explicit QGVLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2);
 
     QColor color();
     void setColor(QColor color);

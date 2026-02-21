@@ -75,6 +75,7 @@ public:
     virtual bool plotCrosshairVisible() = 0;
     virtual void setPlotCrosshairVisible(bool visible) = 0;
     virtual void resized() = 0;
+    virtual void showEvent() = 0;
     virtual void showAll() = 0;
     virtual void syncAxisRanges(QRectF xyrange) = 0;
     virtual void syncDataTip(int index) = 0;

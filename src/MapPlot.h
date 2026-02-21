@@ -24,8 +24,9 @@
 #include "csv.h"
 #include "graph.h"
 #include "plot.h"
-#include "mapline.h"
+#include "QGVLine.h"
 #include "mapMarker.h"
+#include "QGVCrosshairWidget.h"
 
 #include "QGeoView/QGVMap.h"
 #include "QGeoView/QGVLayerTiles.h"
@@ -70,6 +71,7 @@ public:
     bool plotCrosshairVisible();
     void setPlotCrosshairVisible(bool visible);
     void resized();
+    void showEvent();
     void showAll();
     void syncAxisRanges(QRectF xyrange);
     void syncDataTip(int index);
@@ -108,7 +110,7 @@ private:
         /* setPosition(geoPos, pixelPos) is what is really needed to draw the
          * dot on the map, set the label text and set the label screen
          * coordinates.
-         * The other are convenience functions. Use the one corresponding to
+         * The others are convenience functions. Use the one corresponding to
          * the info you have available to avoid unnecessary calculations. */
         void setPosition(QGV::GeoPos geoPos, QPoint pixelPos);
         void setPosition(QPointF projPos, QPoint pixelPos);
@@ -117,14 +119,31 @@ private:
 
         bool isVisible();
         void setVisible(bool set);
+
         MapMarker* marker = nullptr;
+        void setMarkerVisible(bool visible);
+        bool isMarkerVisible();
+
         QGVWidgetText* label = nullptr;
+        void setLabelVisible(bool visible);
+        bool isLabelVisible();
+
+        QGVCrosshairWidget* lines = nullptr;
+        void setHlineVisible(bool visible);
+        bool isHlineVisible();
+        void setVlineVisible(bool visible);
+        bool isVlineVisible();
+
         QGVMap* mMapWidget = nullptr;
+
+    private:
         bool mVisible = false;
+        bool mShowMarker = true;
+        bool mShowLabel = true;
     };
 
-    bool mTrackCrosshairVisible = true;
-    Crosshair* mTrackCrosshair = nullptr;
+    bool mPlotCrosshairVisible = true;
+    Crosshair* mPlotCrosshair = nullptr;
     Crosshair* mMouseCrosshair = nullptr;
 
     QPointF pixelPosToCoord(QPoint pos);

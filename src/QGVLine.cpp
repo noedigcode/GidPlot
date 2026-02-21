@@ -18,10 +18,10 @@
  *
  *****************************************************************************/
 
-#include "mapline.h"
+#include "QGVLine.h"
 
 
-MapLine::MapLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2) :
+QGVLine::QGVLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2) :
     mPos1(pos1),
     mPos2(pos2)
 {
@@ -29,55 +29,55 @@ MapLine::MapLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2) :
     mPen.setWidth(3);
 }
 
-QColor MapLine::color()
+QColor QGVLine::color()
 {
     return mPen.color();
 }
 
-void MapLine::setColor(QColor color)
+void QGVLine::setColor(QColor color)
 {
     mPen.setColor(color);
     repaint();
 }
 
-void MapLine::setWidth(int width)
+void QGVLine::setWidth(int width)
 {
     mPen.setWidth(width);
     repaint();
 }
 
-void MapLine::setPen(QPen pen)
+void QGVLine::setPen(QPen pen)
 {
     mPen = pen;
     repaint();
 }
 
-void MapLine::onProjection(QGVMap* geoMap)
+void QGVLine::onProjection(QGVMap* geoMap)
 {
     QGVDrawItem::onProjection(geoMap);
     mProjPos1 = geoMap->getProjection()->geoToProj(mPos1);
     mProjPos2 = geoMap->getProjection()->geoToProj(mPos2);
 }
 
-void MapLine::onUpdate()
+void QGVLine::onUpdate()
 {
     QGVDrawItem::onUpdate();
 }
 
-QPainterPath MapLine::projShape() const
+QPainterPath QGVLine::projShape() const
 {
     QPainterPath path(mProjPos1);
     path.lineTo(mProjPos2);
     return path;
 }
 
-void MapLine::projPaint(QPainter* painter)
+void QGVLine::projPaint(QPainter* painter)
 {
     painter->setPen(mPen);
     painter->drawLine(mProjPos1, mProjPos2);
 }
 
-QPointF MapLine::projAnchor() const
+QPointF QGVLine::projAnchor() const
 {
     return mProjPos1;
 }

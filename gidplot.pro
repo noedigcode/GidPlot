@@ -39,6 +39,8 @@ SOURCES += \
     src/PopoutTabWidget.cpp \
     src/ProgressDialog.cpp \
     src/QCustomPlot/GidQCustomPlot.cpp \
+    src/QGVCrosshairWidget.cpp \
+    src/QGVLine.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
     src/csv.cpp \
@@ -48,7 +50,6 @@ SOURCES += \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
     src/mapMarker.cpp \
-    src/mapline.cpp \
     src/plot.cpp \
     src/plotwindow.cpp \
     src/subplot.cpp \
@@ -66,6 +67,8 @@ HEADERS += \
     src/PopoutTabWidget.h \
     src/ProgressDialog.h \
     src/QCustomPlot/GidQCustomPlot.h \
+    src/QGVCrosshairWidget.h \
+    src/QGVLine.h \
     src/Range.h \
     src/aboutdialog.h \
     src/csv.h \
@@ -75,7 +78,6 @@ HEADERS += \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
     src/mapMarker.h \
-    src/mapline.h \
     src/plot.h \
     src/plotwindow.h \
     src/subplot.h \

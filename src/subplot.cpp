@@ -320,8 +320,6 @@ void Subplot::setPlotProperties(Properties p)
     legend->setVisible(p.showLegend);
     setXLabel(p.xlabel, p.showXlabel);
     setYLabel(p.ylabel, p.showYlabel);
-
-    // TODO apply properties
 }
 
 void Subplot::renameGraph(GraphPtr graph, QString name)
