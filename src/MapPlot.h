@@ -25,7 +25,7 @@
 #include "graph.h"
 #include "plot.h"
 #include "QGVLine.h"
-#include "mapMarker.h"
+#include "QGVMarker.h"
 #include "QGVCrosshairWidget.h"
 
 #include "QGeoView/QGVMap.h"
@@ -120,7 +120,7 @@ private:
         bool isVisible();
         void setVisible(bool set);
 
-        MapMarker* marker = nullptr;
+        QGVMarker* marker = nullptr;
         void setMarkerVisible(bool visible);
         bool isMarkerVisible();
 

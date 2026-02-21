@@ -41,6 +41,7 @@ SOURCES += \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/QGVCrosshairWidget.cpp \
     src/QGVLine.cpp \
+    src/QGVMarker.cpp \
     src/Range.cpp \
     src/aboutdialog.cpp \
     src/csv.cpp \
@@ -49,7 +50,6 @@ SOURCES += \
     src/main.cpp \
     src/mainwindow.cpp \
     src/QCustomPlot/qcustomplot.cpp \
-    src/mapMarker.cpp \
     src/plot.cpp \
     src/plotwindow.cpp \
     src/subplot.cpp \
@@ -69,6 +69,7 @@ HEADERS += \
     src/QCustomPlot/GidQCustomPlot.h \
     src/QGVCrosshairWidget.h \
     src/QGVLine.h \
+    src/QGVMarker.h \
     src/Range.h \
     src/aboutdialog.h \
     src/csv.h \
@@ -77,7 +78,6 @@ HEADERS += \
     src/link.h \
     src/mainwindow.h \
     src/QCustomPlot/qcustomplot.h \
-    src/mapMarker.h \
     src/plot.h \
     src/plotwindow.h \
     src/subplot.h \

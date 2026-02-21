@@ -26,12 +26,12 @@
 #include <QPainter>
 #include <QPen>
 
-class MapMarker : public QGVDrawItem
+class QGVMarker : public QGVDrawItem
 {
     Q_OBJECT
 
 public:
-    explicit MapMarker(const QGV::GeoPos &pos, const float radius);
+    explicit QGVMarker(const QGV::GeoPos &pos, const float radius);
 
     void setPosition(QGV::GeoPos pos);
 

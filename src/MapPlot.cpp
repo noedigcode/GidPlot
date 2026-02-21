@@ -423,7 +423,7 @@ MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
 {
     mMapWidget = mapWidget;
 
-    marker = new MapMarker(QGV::GeoPos(), 5);
+    marker = new QGVMarker(QGV::GeoPos(), 5);
     marker->setBrush(QBrush(QColor(255, 0, 0, 100)));
     marker->setVisible(mVisible);
     marker->bringToFront();
