@@ -27,6 +27,7 @@
 #include "QGVLine.h"
 #include "QGVMarker.h"
 #include "QGVCrosshairWidget.h"
+#include "QGVLegendWidget.h"
 
 #include "QGeoView/QGVMap.h"
 #include "QGeoView/QGVLayerTiles.h"
@@ -84,6 +85,7 @@ private:
 
     QGVMap* mMapWidget = nullptr;
     QGVLayerTiles* mTilesItem = nullptr;
+    QScopedPointer<QGVLegendWidget> mLegend;
 
     void setupLink();
 

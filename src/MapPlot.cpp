@@ -46,6 +46,9 @@ MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
     mMapWidget->layout()->setMargin(0);
     setMapOSM();
 
+    // Set up legend
+    mLegend.reset(new QGVLegendWidget(mMapWidget));
+
     setupCrosshairs();
     setupLink();
     setupMenus();
@@ -149,6 +152,14 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
         setDataTipGraph(graph);
     }
 
+    // Add to legend
+    mLegend->addEntry(track->pen.color(), track->name);
+    if (mGraphs.count() == 1) {
+        mLegend->show();
+        mLegend->snapToCorner(Qt::TopRightCorner);
+    }
+    mLegend->updatePlacement();
+
     showAll();
 
     // Call resized() to update crosshairs widget size. Queue it to give MapPlot
@@ -175,7 +186,8 @@ void MapPlot::syncDataTip(int index)
 
 void MapPlot::setMapOSM()
 {
-    setMapTiles(new QGVLayerOSM());
+    setMapTiles(new QGVLayerOSM()); // Ownership is taken of layer and it will
+                                    // be deleted when a new layer is set.
 }
 
 void MapPlot::zoomTo(double lat1, double lon1, double lat2, double lon2)
@@ -267,7 +279,7 @@ void MapPlot::setPlotProperties(Properties p)
 void MapPlot::renameGraph(GraphPtr graph, QString name)
 {
     graph->track->name = name;
-    // TODO update legend when implemented
+    mLegend->setEntryName(mGraphs.indexOf(graph), name);
 }
 
 void MapPlot::setGraphColor(GraphPtr graph, QColor color)
@@ -278,7 +290,7 @@ void MapPlot::setGraphColor(GraphPtr graph, QColor color)
         ml->setColor(graph->track->pen.color());
     }
 
-    // TODO update legend when implemented
+    mLegend->setEntryColor(mGraphs.indexOf(graph), color);
 }
 
 void MapPlot::removeGraph(GraphPtr graph)
@@ -286,7 +298,7 @@ void MapPlot::removeGraph(GraphPtr graph)
     if (!graph) { return; }
 
     // Remove from legend
-    // TODO remove from legend when implemented
+    mLegend->removeEntry(mGraphs.indexOf(graph));
 
     // Remove from map
     while (!graph->track->mapLines.isEmpty()) {
@@ -335,6 +347,7 @@ void MapPlot::resized()
 {
     mPlotCrosshair->lines->resize(mMapWidget->size());
     mMouseCrosshair->lines->resize(mMapWidget->size());
+    mLegend->updatePlacement();
 }
 
 void MapPlot::showEvent()

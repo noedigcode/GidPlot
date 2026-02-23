@@ -40,6 +40,7 @@ SOURCES += \
     src/ProgressDialog.cpp \
     src/QCustomPlot/GidQCustomPlot.cpp \
     src/QGVCrosshairWidget.cpp \
+    src/QGVLegendWidget.cpp \
     src/QGVLine.cpp \
     src/QGVMarker.cpp \
     src/Range.cpp \
@@ -68,6 +69,7 @@ HEADERS += \
     src/ProgressDialog.h \
     src/QCustomPlot/GidQCustomPlot.h \
     src/QGVCrosshairWidget.h \
+    src/QGVLegendWidget.h \
     src/QGVLine.h \
     src/QGVMarker.h \
     src/Range.h \
