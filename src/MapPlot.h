@@ -86,6 +86,8 @@ private:
     QGVMap* mMapWidget = nullptr;
     QGVLayerTiles* mTilesItem = nullptr;
     QScopedPointer<QGVLegendWidget> mLegend;
+    bool mShowLegend = true;
+    bool mAutoShowLegend = true;
 
     void setupLink();
 

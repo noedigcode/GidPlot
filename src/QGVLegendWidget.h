@@ -29,7 +29,6 @@ public:
     void setEntryColor(int index, QColor color);
     void setEntryName(int index, QString name);
     void removeEntry(int index);
-    void clearEntries();
 
     void snapToCorner(Qt::Corner corner, const QPoint& margin = {10, 10});
     void setDraggable(bool draggable);
@@ -37,6 +36,7 @@ public:
     void setPixelPos(QPoint pixelPos);
     void setNormPos(QPointF normPos);
     void updatePlacement();
+    void queueUpdateSizeAndPlacement();
 
 protected:
     void mousePressEvent(QMouseEvent* event) override;
@@ -51,6 +51,9 @@ private:
     QPoint mDragOffset;
     QPointF mNormPos;
 
+    QMargins mContentMargins {7, 5, 7, 4};
+    int mRowSpacing = 3;
+
     struct Entry {
 
         Entry (QWidget* parent);
@@ -61,6 +64,9 @@ private:
 
         void setText(QString text);
         void setColor(QColor color);
+
+        QSize iconSize {32, 18};
+        int iconTextPadding = 7;
     };
     typedef QSharedPointer<Entry> EntryPtr;
 

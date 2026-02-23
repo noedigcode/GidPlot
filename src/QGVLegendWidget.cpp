@@ -12,8 +12,8 @@ QGVLegendWidget::QGVLegendWidget(QWidget* parent)
     setAttribute(Qt::WA_AlwaysStackOnTop);
 
     mLayout = new QVBoxLayout(this);
-    mLayout->setContentsMargins(10, 10, 10, 10);
-    mLayout->setSpacing(6);
+    mLayout->setContentsMargins(mContentMargins);
+    mLayout->setSpacing(mRowSpacing);
 }
 
 void QGVLegendWidget::addEntry(const QColor& color, const QString& name)
@@ -23,7 +23,8 @@ void QGVLegendWidget::addEntry(const QColor& color, const QString& name)
     entry->setColor(color);
     entry->setText(name);
     mLayout->addWidget(entry->row);
-    adjustSize();
+
+    queueUpdateSizeAndPlacement();
 
     mEntries.append(entry);
 }
@@ -42,7 +43,7 @@ void QGVLegendWidget::setEntryName(int index, QString name)
     if (!entry) { return; }
 
     entry->setText(name);
-    adjustSize();
+    queueUpdateSizeAndPlacement();
 }
 
 void QGVLegendWidget::removeEntry(int index)
@@ -55,15 +56,7 @@ void QGVLegendWidget::removeEntry(int index)
             mEntries.removeAt(index);
         }
     }
-    adjustSize();
-}
-
-void QGVLegendWidget::clearEntries()
-{
-    while (mLayout->count() > 0) {
-        removeEntry(0);
-    }
-    adjustSize();
+    queueUpdateSizeAndPlacement();
 }
 
 void QGVLegendWidget::snapToCorner(Qt::Corner corner, const QPoint& margin)
@@ -139,6 +132,15 @@ void QGVLegendWidget::updatePlacement()
     move(pixelPos);
 }
 
+void QGVLegendWidget::queueUpdateSizeAndPlacement()
+{
+    QMetaObject::invokeMethod(this, [=]()
+    {
+        adjustSize();
+        updatePlacement();
+    }, Qt::QueuedConnection);
+}
+
 void QGVLegendWidget::mousePressEvent(QMouseEvent* event)
 {
     if (mDraggable && event->button() == Qt::LeftButton) {
@@ -191,12 +193,12 @@ QGVLegendWidget::Entry::Entry(QWidget *parent)
     row = new QWidget(parent);
     QHBoxLayout* rowLayout = new QHBoxLayout(row);
     rowLayout->setContentsMargins(0, 0, 0, 0);
-    rowLayout->setSpacing(8);
+    rowLayout->setSpacing(iconTextPadding);
 
     iconLabel = new QLabel(row);
-    iconLabel->setFixedSize(24, 24);
+    iconLabel->setFixedSize(iconSize);
 
-    textLabel = new QLabel("blah", row);
+    textLabel = new QLabel(row);
 
     rowLayout->addWidget(iconLabel);
     rowLayout->addWidget(textLabel);
@@ -214,7 +216,7 @@ void QGVLegendWidget::Entry::setColor(QColor color)
 {
     if (!iconLabel) { return; }
 
-    QPixmap pixmap(24, 24);
+    QPixmap pixmap(iconSize);
     pixmap.fill(Qt::transparent);
     QPainter painter(&pixmap);
     painter.setPen(QPen(color, 2));

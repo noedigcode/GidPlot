@@ -48,6 +48,7 @@ MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
 
     // Set up legend
     mLegend.reset(new QGVLegendWidget(mMapWidget));
+    mLegend->setVisible(false);
 
     setupCrosshairs();
     setupLink();
@@ -155,10 +156,12 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     // Add to legend
     mLegend->addEntry(track->pen.color(), track->name);
     if (mGraphs.count() == 1) {
-        mLegend->show();
         mLegend->snapToCorner(Qt::TopRightCorner);
     }
-    mLegend->updatePlacement();
+    if (mAutoShowLegend) {
+        mShowLegend = (mGraphs.count() > 1);
+    }
+    mLegend->setVisible(mShowLegend && !mGraphs.isEmpty());
 
     showAll();
 
@@ -254,7 +257,7 @@ Plot::Properties MapPlot::getPlotProperties()
 
     p.title = this->title();
 
-    // TODO p.showLegend
+    p.showLegend = mShowLegend;
 
     return p;
 }
@@ -273,7 +276,11 @@ void MapPlot::setPlotProperties(Properties p)
 
     this->setTitle(p.title);
 
-    // TODO p.showLegend
+    if (p.showLegend != mShowLegend) {
+        mAutoShowLegend = false;
+        mShowLegend = p.showLegend;
+        mLegend->setVisible(mShowLegend && !mGraphs.isEmpty());
+    }
 }
 
 void MapPlot::renameGraph(GraphPtr graph, QString name)
@@ -320,6 +327,11 @@ void MapPlot::removeGraph(GraphPtr graph)
     foreach (GraphPtr graph, mGraphs) {
         expandBounds(graph->dataBounds());
     }
+
+    if (mAutoShowLegend) {
+        mShowLegend = (mGraphs.count() > 1);
+    }
+    mLegend->setVisible(mShowLegend && !mGraphs.isEmpty());
 }
 
 bool MapPlot::plotCrosshairVisible()
