@@ -21,13 +21,14 @@
 #ifndef MAPPLOT_H
 #define MAPPLOT_H
 
+#include "QGVAnnotationItem.h"
+#include "QGVCrosshairWidget.h"
+#include "QGVLegendWidget.h"
+#include "QGVLine.h"
+#include "QGVMarker.h"
 #include "csv.h"
 #include "graph.h"
 #include "plot.h"
-#include "QGVLine.h"
-#include "QGVMarker.h"
-#include "QGVCrosshairWidget.h"
-#include "QGVLegendWidget.h"
 
 #include "QGeoView/QGVMap.h"
 #include "QGeoView/QGVLayerTiles.h"
@@ -160,7 +161,11 @@ private:
     void setMapTiles(QGVLayerTiles* tiles);
     void removeTiles();
 
-private slots:
+    struct Mouse {
+        QPointF lastMoveProjPos;
+    } mouse;
+
+private slots:    
     void onMapMouseMove(QPointF projPos);
 };
 

@@ -39,6 +39,7 @@ SOURCES += \
     src/PopoutTabWidget.cpp \
     src/ProgressDialog.cpp \
     src/QCustomPlot/GidQCustomPlot.cpp \
+    src/QGVAnnotationItem.cpp \
     src/QGVCrosshairWidget.cpp \
     src/QGVLegendWidget.cpp \
     src/QGVLine.cpp \
@@ -68,6 +69,7 @@ HEADERS += \
     src/PopoutTabWidget.h \
     src/ProgressDialog.h \
     src/QCustomPlot/GidQCustomPlot.h \
+    src/QGVAnnotationItem.h \
     src/QGVCrosshairWidget.h \
     src/QGVLegendWidget.h \
     src/QGVLine.h \

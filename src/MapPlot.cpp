@@ -76,8 +76,8 @@ void MapPlot::setDataTipGraph(GraphPtr graph)
 void MapPlot::setupMenus()
 {
     // TODO
-    plotMenu.actionPlaceMarker->setVisible(false);
-    qDebug() << "TODO Implement place marker for map plots";
+    //plotMenu.actionPlaceMarker->setVisible(false);
+    //qDebug() << "TODO Implement place marker for map plots";
 
     // TODO
     plotMenu.actionMeasure->setVisible(false);
@@ -92,7 +92,19 @@ void MapPlot::setupMenus()
 
 void MapPlot::onActionPlaceMarkerTriggered()
 {
-    qDebug() << "TODO onActionPlaceMarkerTriggered()"; // TODO
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, graph, ClosestXY);
+    if (!closestProjPos.valid) { return; }
+
+    QGVAnnotationItem* marker = new QGVAnnotationItem();
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(closestProjPos.coord);
+    marker->setAnchor(geoPos);
+    marker->setText("Test Marker");
+    mMapWidget->addItem(marker);
 }
 
 void MapPlot::onActionMeasureTriggered()
@@ -418,6 +430,7 @@ void MapPlot::removeTiles()
 
 void MapPlot::onMapMouseMove(QPointF projPos)
 {
+    mouse.lastMoveProjPos = projPos;
     QPoint mousePixelPos = mMapWidget->mapFromProj(projPos);
 
     if (mPlotCrosshairVisible && dataTipGraph) {
