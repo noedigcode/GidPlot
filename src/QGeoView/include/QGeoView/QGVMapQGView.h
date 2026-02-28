@@ -67,13 +67,14 @@ private:
     void showTooltip(QHelpEvent* helpEvent);
     void zoomByWheel(QWheelEvent* event);
     void startMoving(QMouseEvent* event);
-    void startMovingObject(QMouseEvent* event);
+    bool startMovingObject(QMouseEvent* event);
     void startSelectionRect(QMouseEvent* event);
     void stopSelectionRect(QMouseEvent* event);
     void stopMovingObject(QMouseEvent* event);
     void zoomArea(QMouseEvent* event, QRect areaRect);
     void selectObjectsByRect(QMouseEvent* event, QRect selRect);
     void objectClick(QMouseEvent* event);
+    bool objectRightClick(QMouseEvent* event);
     void objectDoubleClick(QMouseEvent* event);
     void moveForWheel(QMouseEvent* event);
     void moveForRect(QMouseEvent* event);

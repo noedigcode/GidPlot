@@ -49,6 +49,7 @@ public:
     virtual QString projDebug();
     virtual void projOnFlags();
     virtual void projOnMouseClick(const QPointF& projPos);
+    virtual void projOnMouseRightClick(const QPointF& projPos);
     virtual void projOnMouseDoubleClick(const QPointF& projPos);
     virtual void projOnObjectStartMove(const QPointF& projPos);
     virtual void projOnObjectMovePos(const QPointF& projPos);

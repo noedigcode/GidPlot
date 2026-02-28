@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>345</width>
-    <height>321</height>
+    <height>333</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -57,9 +57,9 @@
        <widget class="QPlainTextEdit" name="plainTextEdit_labelText"/>
       </item>
       <item>
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="label_variableInfo">
         <property name="text">
-         <string>$i = index, $x, $y, $name = plot name</string>
+         <string>Variable info</string>
         </property>
         <property name="wordWrap">
          <bool>true</bool>

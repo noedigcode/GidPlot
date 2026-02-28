@@ -4,6 +4,7 @@
 #include <QString>
 #include <QPointF>
 #include <QRectF>
+#include <QPen>
 
 /**
  * @brief A map annotation: a text box with an arrow pointing to a geo coordinate.
@@ -29,40 +30,64 @@ public:
     void setAnchor(const QGV::GeoPos& anchor);
     void setText(const QString& text);
 
-    /** Pixel offset of the box centre relative to the anchor screen position. */
-    void    setBoxOffset(const QPointF& offset);
+    void setBoxOffset(const QPointF& offset);
     QPointF boxOffset() const { return mBoxOffset; }
 
     // QGVDrawItem interface
+    QPointF projAnchor() const override;
     void onProjection(QGVMap* geoMap) override;
+    void onCamera(const QGVCameraState& oldState, const QGVCameraState& newState) override;
     QPainterPath projShape() const override;
-    void         projPaint(QPainter* painter) override;
+    void projPaint(QPainter* painter) override;
 
     // Drag interface
-    void projOnObjectStartMove(const QPointF& projPos) override;
-    void projOnObjectMovePos(const QPointF& projPos) override;
+    void projOnMouseClick(const QPointF& projPos) override;
+    void projOnMouseRightClick(const QPointF& projPos) override;
+    void projOnMouseDoubleClick(const QPointF& projPos) override;
+    void projOnObjectStartMove(const QPointF& mouseProjPos) override;
+    void projOnObjectMovePos(const QPointF& mouseProjPos) override;
     void projOnObjectStopMove(const QPointF& projPos) override;
 
+signals:
+    void rightClicked(QPoint pixelPos);
+    void doubleClicked(QPoint pixelPos);
+
 private:
-    QRectF   boxRect(const QPointF& anchorScreen) const;
-    QPointF  anchorToScreen() const;
+    struct TextBoxRects {
+        QRectF textRect;
+        QRectF boxRect;
+    };
+    TextBoxRects getTextBoxRects(const QPointF &anchorProjPos) const;
     static QPointF closestPointOnRect(const QRectF& rect, const QPointF& point);
 
+    void updateAnchor();
     void updateGeometry();
 
-    QGV::GeoPos mAnchor;
-    QRectF mBoxProjRect;
-    QPointF mArrowProjPos;
-    QString     mText;
-    QPointF     mBoxOffset       {-120.0, -80.0};
+    QGV::GeoPos mAnchorGeoPos;
+    QPointF mAnchorProjPos;
+    TextBoxRects mTextBoxProjRects;
+    QPointF mArrowTailProjPos;
+    QRectF mDotProjRect;
+    QString mText;
+
+    QPointF mBoxOffset {10.0, -10.0};
+    QBrush mBoxFillBrush {QColor("#f8fabe")};
+    QPen mBoxPen {Qt::black};
+    QBrush mDotFillBrush {QColor(255, 0, 0, 100)};
+    QPen mDotPen;
+    int mDotSize = 10;
 
     // Drag state
-    QPointF     mDragStartOffset;
-    QPointF     mDragStartProjPos;
+    bool mDragValid = false;
+    QPointF mDragStartOffset;
+    QPointF mDragStartProjPos;
+    QPoint mDragStartPixelPos;
 
-    static constexpr double k_boxWidth   = 120.0;
-    static constexpr double k_boxHeight  =  36.0;
-    static constexpr double k_padding    =   8.0;
-    static constexpr double k_arrowWidth =   1.5;
-    static constexpr int    k_fontSize   =   9;
+    double mTextPadding = 2.0;
+    Qt::Alignment mTextAlignment = Qt::AlignCenter;
+    QFont mFont;
+    double mArrowLineWidth = 1;
+    double mArrowHeadLen = 10;
+    double mArrowHeadWidthHalf = 4;
+    int mFontSize = 9;
 };

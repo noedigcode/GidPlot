@@ -54,6 +54,7 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     setupCrosshairs();
     setupMenus();
     setupLink();
+    setupMarkerEditDialog();
 }
 
 SubplotPtr Subplot::newAtBottomOfPlot(QCustomPlot *plot, QWidget *parentWidget)
@@ -943,7 +944,12 @@ void Subplot::setDataTipGraph(GraphPtr graph)
     setPlotCrosshairVisible(mPlotCrosshairVisible);
 }
 
-MarkerPtr Subplot::addMarker(QPointF coord)
+void Subplot::setupMarkerEditDialog()
+{
+    mMarkerEditDialog.setNormalPlotMode();
+}
+
+Subplot::MarkerPtr Subplot::addMarker(QPointF coord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
@@ -1034,7 +1040,7 @@ void Subplot::markerMouseUp()
     markerMouse.mouseDown = false;
 }
 
-MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
+Subplot::MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
 {
     MarkerPtr ret;
 
@@ -1066,7 +1072,7 @@ bool Subplot::markerRightClick(QPoint pos)
     QWeakPointer<Marker> mWptr(markerMouse.marker);
 
     menu->addAction(QIcon("://edit"), "Edit",
-                    this, [this, mWptr = marker.toWeakRef()]()
+                    this, [this, mWptr]()
     {
         MarkerPtr m(mWptr);
         if (!m) { return; }
@@ -1074,7 +1080,7 @@ bool Subplot::markerRightClick(QPoint pos)
     });
 
     menu->addAction(QIcon("://delete"), "Delete Marker",
-                    this, [this, mWptr = marker.toWeakRef()]()
+                    this, [this, mWptr]()
     {
         MarkerPtr m(mWptr);
         if (!m) { return; }
@@ -1088,34 +1094,35 @@ bool Subplot::markerRightClick(QPoint pos)
 
 void Subplot::updateMarkerArrow(MarkerPtr marker)
 {
-    marker->arrow->end->setCoords(marker->plotMarker->position->coords());
-    QPointF p = marker->arrow->end->pixelPosition();
-    QRectF r(marker->textItem->topLeft->pixelPosition(),
-             marker->textItem->bottomRight->pixelPosition());
+    QCPItemText* textBox = marker->textItem;
 
-    QCPItemText* text = marker->textItem;
+    marker->arrow->end->setCoords(marker->plotMarker->position->coords());
+
+    QPointF point = marker->arrow->end->pixelPosition();
+    QRectF rect(textBox->topLeft->pixelPosition(),
+                textBox->bottomRight->pixelPosition());
 
     QCPItemAnchor* anchor = nullptr;
-    if (p.x() < r.left()) {
-        if (p.y() > r.bottom()) {
-            anchor = text->bottomLeft;
-        } else if (p.y() < r.top()) {
-            anchor = text->topLeft;
+    if (point.x() < rect.left()) {
+        if (point.y() > rect.bottom()) {
+            anchor = textBox->bottomLeft;
+        } else if (point.y() < rect.top()) {
+            anchor = textBox->topLeft;
         } else {
-            anchor = text->left;
+            anchor = textBox->left;
         }
-    } else if (p.x() > r.right()) {
-        if (p.y() > r.bottom()) {
-            anchor = text->bottomRight;
-        } else if (p.y() < r.top()) {
-            anchor = text->topRight;
+    } else if (point.x() > rect.right()) {
+        if (point.y() > rect.bottom()) {
+            anchor = textBox->bottomRight;
+        } else if (point.y() < rect.top()) {
+            anchor = textBox->topRight;
         } else {
-            anchor = text->right;
+            anchor = textBox->right;
         }
-    } else if (p.y() < r.top()) {
-        anchor = text->top;
+    } else if (point.y() < rect.top()) {
+        anchor = textBox->top;
     } else {
-        anchor = text->bottom;
+        anchor = textBox->bottom;
     }
 
     marker->arrow->start->setParentAnchor(anchor);

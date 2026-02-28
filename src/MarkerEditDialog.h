@@ -38,6 +38,9 @@ public:
     explicit MarkerEditDialog(QWidget *parent = nullptr);
     ~MarkerEditDialog();
 
+    void setMapPlotMode();
+    void setNormalPlotMode();
+
     void edit(QString text, bool showHline, bool showVline, bool showDot,
               std::function<void(void)> callback);
 
@@ -50,7 +53,7 @@ public:
         QString name;
         QString text;
     };
-    QList<Preset> presets;
+    QList<Preset> mPresets;
 
 private slots:
     void on_pushButton_apply_clicked();
@@ -61,6 +64,7 @@ private:
 
     QMenu mPresetMenu;
     void setupPresetMenu();
+    void refreshPresetMenu();
 
     std::function<void(void)> mCallback = nullptr;
 };
