@@ -161,6 +161,13 @@ PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
     actionProperties = menu.addAction(QIcon("://properties"), "Properties...");
     actionLink = menu.addAction(QIcon("://link"), "Link to Other Plots...");
 
+    // Copy menu
+    actionCopyCurveCoordinate = copyMenu.addAction("Copy Coordinate On Curve");
+    actionCopyCurveIndex = copyMenu.addAction("Copy Index On Curve");
+    actionCopyMouseCoordinate = copyMenu.addAction("Copy Coordinate At Mouse");
+    copyMenu.setTitle("Copy");
+    copyMenu.setIcon(QIcon("://copy"));
+    menu.addMenu(&copyMenu);
 }
 
 void PlotMenu::setMeasureActionStarted()

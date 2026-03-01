@@ -80,6 +80,12 @@ void Plot::setupPlotMenu()
     connect(&plotMenu, &PlotMenu::dataTipGraphSelected,
             this, &Plot::onActionDataTipGraphSelected);
 
+    connect(plotMenu.actionCopyCurveCoordinate, &QAction::triggered,
+            this, &Plot::onActionCopyCurveCoordinateTriggered);
+    connect(plotMenu.actionCopyCurveIndex, &QAction::triggered,
+            this, &Plot::onActionCopyCurveIndexTriggered);
+    connect(plotMenu.actionCopyMouseCoordinate, &QAction::triggered,
+            this, &Plot::onActionCopyMouseCoordinateTriggered);
     connect(plotMenu.actionPlaceMarkerOnCurve, &QAction::triggered,
             this, &Plot::onActionPlaceMarkerOnCurveTriggered);
     connect(plotMenu.actionPlaceMarkerAtMouse, &QAction::triggered,

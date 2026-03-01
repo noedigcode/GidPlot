@@ -145,14 +145,18 @@ public:
 
     QMenu menu;
 
+    QAction* actionCopyCurveCoordinate;
+    QAction* actionCopyCurveIndex;
+    QAction* actionCopyMouseCoordinate;
     QAction* actionEqualAxes;
     QAction* actionLink;
     QAction* actionMeasure;
-    QAction* actionPlaceMarkerOnCurve;
-    QAction* actionPlaceMarkerAtMouse;
     QAction* actionPasteMarker;
+    QAction* actionPlaceMarkerAtMouse;
+    QAction* actionPlaceMarkerOnCurve;
     QAction* actionProperties;
     QAction* actionShowAll;
+    QMenu copyMenu;
     QMenu dataTipMenu;
     QMenu markerMenu;
     QMenu rangeMenu;

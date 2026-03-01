@@ -55,7 +55,7 @@ public:
     struct Marker
     {
         QString datasetName;
-        int dataIndex = 0;
+        int dataIndex = -1;
         QGV::GeoPos pos;
         QGVAnnotationItem* mapAnnotation = nullptr;
         QString text;
@@ -118,6 +118,9 @@ private:
 private:
     void setupMenus();
 private slots:
+    void onActionCopyCurveCoordinateTriggered();
+    void onActionCopyCurveIndexTriggered();
+    void onActionCopyMouseCoordinateTriggered();
     void onActionPlaceMarkerOnCurveTriggered();
     void onActionPlaceMarkerAtMouseTriggered();
     void onActionPasteMarkerTriggered();
@@ -182,6 +185,9 @@ private:
     QGV::GeoPos pointToGeo(QPointF pos);
     QPointF geoToPoint(QGV::GeoPos pos);
 
+    double geoDistance(QGV::GeoPos a, QGV::GeoPos b);
+    double geoHeading(QGV::GeoPos a, QGV::GeoPos b);
+
     static QString formatLatLon(double value);
 
     // -----------------------------------------------------------------------
@@ -193,6 +199,7 @@ private:
 
 private slots:    
     void onMapMouseMove(QPointF projPos);
+    void onMapMouseClick(QPointF projPos);
 
     // -----------------------------------------------------------------------
     // Markers
@@ -204,9 +211,23 @@ private:
     void updateMarkerText(MarkerPtr marker);
     void editMarkerText(MarkerPtr marker);
     void deleteMarker(MarkerPtr marker);
-
-private slots:
     void onMarkerRightClick(MarkerPtr marker, QPoint pixelPos);
+
+    // -----------------------------------------------------------------------
+    // Measures
+private:
+    struct Measure
+    {
+        MarkerPtr a;
+        MarkerPtr b;
+        QString tag;
+    };
+    typedef QSharedPointer<Measure> MeasurePtr;
+
+    QList<MeasurePtr> mMeasures;
+    MeasurePtr mCurrentMeasure;
+    void clearCurrentMeasure();
+    int mMeasureCounter = 1;
 };
 
 

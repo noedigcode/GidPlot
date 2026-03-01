@@ -35,5 +35,6 @@
         <file alias="link">PastelSVG-1.2/link.png</file>
         <file alias="paste">PastelSVG-1.2/paste-plain.png</file>
         <file alias="properties">PastelSVG-1.2/application-form.png</file>
+        <file alias="coordinate">PastelSVG-1.2/bbcode.png</file>
     </qresource>
 </RCC>

@@ -137,6 +137,9 @@ private:
 private:
     void setupMenus();
 private slots:
+    void onActionCopyCurveCoordinateTriggered();
+    void onActionCopyCurveIndexTriggered();
+    void onActionCopyMouseCoordinateTriggered();
     void onActionPlaceMarkerOnCurveTriggered();
     void onActionPlaceMarkerAtMouseTriggered();
     void onActionPasteMarkerTriggered();

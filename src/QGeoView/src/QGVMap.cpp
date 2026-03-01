@@ -375,11 +375,30 @@ void QGVMap::mouseMoveEvent(QMouseEvent* event)
 
 void QGVMap::mousePressEvent(QMouseEvent* event)
 {
+    mMouseDownPos = event->pos();
+
     if (hasMouseTracking()) {
         Q_EMIT mapMousePress(mapToProj(event->pos()));
     }
     event->ignore();
     QWidget::mousePressEvent(event);
+}
+
+void QGVMap::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (hasMouseTracking()) {
+        // Only signal mouse clicked if mouse did not drag.
+        // Determine this by taking distance from mouse down position to current.
+        // This is not ideal - it should be done during mouse move, as the user
+        // could have dragged away and back to this point. However, mouseMoveEvent
+        // does not fire when the map is being dragged, so we can't use that.
+        QPoint delta = event->pos() - mMouseDownPos;
+        if (delta.manhattanLength() < 5) {
+            Q_EMIT mapMouseClicked(mapToProj(mMouseDownPos));
+        }
+    }
+    event->ignore();
+    QWidget::mouseReleaseEvent(event);
 }
 
 void QGVMap::handleDropDataOnQGVMapQGView(QPointF position, const QMimeData* dropData)
