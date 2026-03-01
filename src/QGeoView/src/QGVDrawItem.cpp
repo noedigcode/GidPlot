@@ -173,7 +173,7 @@ void QGVDrawItem::projOnMouseClick(const QPointF& projPos)
     }
 }
 
-void QGVDrawItem::projOnMouseRightClick(const QPointF &projPos)
+void QGVDrawItem::projOnMouseRightClick(const QPointF & /*projPos*/)
 {
 }
 
