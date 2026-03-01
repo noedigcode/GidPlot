@@ -1,6 +1,26 @@
 Gid~Plot Changelog
 ==================
 
+[0.2.0] - 2026-03-01
+--------------------
+
+Added
+
+- Map plot legend.
+- Markers on map plot.
+- Measure on map plot, including distance and heading calculations.
+- Marker copy and pasting on other plots. Marker text is also copied to OS clipboard.
+- Copy marker coordinate to OS clipboard (from marker context menu).
+- Add marker at mouse position.
+- Copy submenu in plot context menu to copy coordinates and index to OS clipboard.
+
+Changed
+
+- Map plot crosshair now shows index too (similar to normal plots).
+- Plot context menu now has submenu for markers (adding, pasting).
+- New plot properties icon in plot context menu.
+
+
 [0.1.1] - 2026-02-21
 --------------------
 
