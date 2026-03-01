@@ -296,25 +296,33 @@ void QGVMapQGView::startMoving(QMouseEvent* event)
     mMoveProjAnchor = mapToScene(event->pos());
 }
 
-void QGVMapQGView::startMovingObject(QMouseEvent* event)
+bool QGVMapQGView::startMovingObject(QMouseEvent* event)
 {
     if (!mMouseActions.testFlag(QGV::MouseAction::MoveObjects)) {
         changeState(QGV::MapState::Idle);
-        return;
+        return false;
     }
     const QPointF projPos = mapToScene(event->pos());
     auto geoObjects = mGeoMap->search(projPos, Qt::ContainsItemShape);
     if (geoObjects.isEmpty()) {
-        return;
+        return false;
     }
-    auto* geoObject = geoObjects.first();
-    if (!geoObject->isFlag(QGV::ItemFlag::Movable)) {
+    mMovingObject = nullptr;
+    foreach (auto* geoObject, geoObjects) {
+        if (geoObject->isFlag(QGV::ItemFlag::Movable)) {
+            mMovingObject = geoObject;
+            break;
+        }
+    }
+    if (!mMovingObject) {
         changeState(QGV::MapState::Idle);
-        return;
+        return false;
     }
-    mMovingObject = geoObject;
+
     mMovingObject->projOnObjectStartMove(projPos);
     changeState(QGV::MapState::MovingObjects);
+
+    return true;
 }
 
 void QGVMapQGView::startSelectionRect(QMouseEvent* event)
@@ -417,6 +425,29 @@ void QGVMapQGView::objectClick(QMouseEvent* event)
     }
 }
 
+bool QGVMapQGView::objectRightClick(QMouseEvent *event)
+{
+    if (event->button() != Qt::RightButton) {
+        return false;
+    }
+
+    const QPointF projPos = mapToScene(event->pos());
+    auto geoObjects = mGeoMap->search(projPos, Qt::ContainsItemShape);
+    if (geoObjects.isEmpty()) {
+        return false;
+    }
+    foreach (auto* geoObject, geoObjects) {
+        if (geoObject->isFlag(QGV::ItemFlag::Clickable)) {
+            if (event->button() == Qt::RightButton) {
+                geoObject->projOnMouseRightClick(projPos);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void QGVMapQGView::objectDoubleClick(QMouseEvent* event)
 {
     if (event->button() != Qt::LeftButton) {
@@ -427,10 +458,12 @@ void QGVMapQGView::objectDoubleClick(QMouseEvent* event)
     if (geoObjects.isEmpty()) {
         return;
     }
-    auto* geoObject = geoObjects.first();
-    if (geoObject->isFlag(QGV::ItemFlag::Clickable)) {
-        if (event->button() == Qt::LeftButton) {
-            geoObject->projOnMouseDoubleClick(projPos);
+    foreach (auto* geoObject, geoObjects) {
+        if (geoObject->isFlag(QGV::ItemFlag::Clickable)) {
+            if (event->button() == Qt::LeftButton) {
+                geoObject->projOnMouseDoubleClick(projPos);
+                return;
+            }
         }
     }
 }
@@ -532,9 +565,7 @@ void QGVMapQGView::mousePressEvent(QMouseEvent* event)
     event->ignore();
     objectClick(event);
     if (event->button() == Qt::LeftButton) {
-        if (event->modifiers() == Qt::AltModifier) {
-            startMovingObject(event);
-        } else if (event->modifiers() == Qt::NoModifier) {
+        if (!startMovingObject(event)) {
             startMoving(event);
         }
     } else if (event->button() == Qt::RightButton) {
@@ -551,6 +582,8 @@ void QGVMapQGView::mouseReleaseEvent(QMouseEvent* event)
     } else if (mState == QGV::MapState::SelectionRect) {
         if (mSelectionRect->isSelection()) {
             stopSelectionRect(event);
+        } else if (objectRightClick(event)) {
+            changeState(QGV::MapState::Idle);
         } else {
             showMenu(event);
         }

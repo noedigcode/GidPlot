@@ -35,6 +35,42 @@ MarkerEditDialog::~MarkerEditDialog()
     delete ui;
 }
 
+void MarkerEditDialog::setMapPlotMode()
+{
+    ui->checkBox_horizontalLine->setVisible(false);
+    ui->checkBox_verticalLine->setVisible(false);
+    ui->checkBox_dot->setVisible(false);
+    ui->label_variableInfo->setText("$i = index, $lat, $lon, $name = plot name");
+
+    mPresets << Preset{"Lat, Lon labeled on separate lines",
+                      "Lat: $lat\nLon: $lon"}
+
+            << Preset{"Lat, Lon, index labeled on separate lines",
+                      "Lat: $lat\nLon: $lon\nIndex: $i"}
+
+            << Preset{"Lat, Lon values only",
+                      "$lat, $lon"};
+    refreshPresetMenu();
+}
+
+void MarkerEditDialog::setNormalPlotMode()
+{
+    ui->checkBox_horizontalLine->setVisible(true);
+    ui->checkBox_verticalLine->setVisible(true);
+    ui->checkBox_dot->setVisible(true);
+    ui->label_variableInfo->setText("$i = index, $x, $y, $name = plot name");
+
+    mPresets << Preset{"X, Y labeled on separate lines",
+                      "X: $x\nY: $y"}
+
+            << Preset{"X, Y, index labeled on separate lines",
+                      "X: $x\nY: $y\nIndex: $i"}
+
+            << Preset{"X, Y, values only",
+                      "$x, $y"};
+    refreshPresetMenu();
+}
+
 void MarkerEditDialog::edit(QString text, bool showHline, bool showVline,
                             bool showDot, std::function<void ()> callback)
 {
@@ -83,22 +119,17 @@ void MarkerEditDialog::on_pushButton_cancel_clicked()
 
 void MarkerEditDialog::setupPresetMenu()
 {
-    presets << Preset{"X, Y labeled on separate lines",
-                      "X: $x\nY: $y"}
+    ui->toolButton_presets->setMenu(&mPresetMenu);
+}
 
-            << Preset{"X, Y, index labeled on separate lines",
-                      "X: $x\nY: $y\nIndex: $i"}
-
-            << Preset{"X, Y, values only",
-                      "$x, $y"};
-
-    foreach (Preset preset, presets) {
+void MarkerEditDialog::refreshPresetMenu()
+{
+    mPresetMenu.clear();
+    foreach (Preset preset, mPresets) {
         mPresetMenu.addAction(preset.name, this, [=]()
         {
             ui->plainTextEdit_labelText->setPlainText(preset.text);
         });
     }
-
-    ui->toolButton_presets->setMenu(&mPresetMenu);
 }
 

@@ -173,6 +173,10 @@ void QGVDrawItem::projOnMouseClick(const QPointF& projPos)
     }
 }
 
+void QGVDrawItem::projOnMouseRightClick(const QPointF & /*projPos*/)
+{
+}
+
 void QGVDrawItem::projOnMouseDoubleClick(const QPointF& projPos)
 {
     auto geoMap = getMap();

@@ -61,7 +61,7 @@ void PlotMarkerItem::draw(QCPPainter* painter)
                         textPos.y() - fm.ascent(),
                         textWidth + 2*pad,
                         fm.height() + 2*pad);
-        painter->fillRect(textRect, QBrush(QColor(255, 255, 255, 150)));
+        painter->fillRect(textRect, mTextLabelFillBrush);
 
         painter->setPen(QPen(Qt::black));
         painter->drawText(textPos, text);

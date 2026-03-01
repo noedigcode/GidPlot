@@ -42,6 +42,7 @@ MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
 
     // Set up map widget
     connect(mMapWidget, &QGVMap::mapMouseMove, this, &MapPlot::onMapMouseMove);
+    connect(mMapWidget, &QGVMap::mapMouseClicked, this, &MapPlot::onMapMouseClick);
     mMapWidget->setMouseTracking(true);
     mMapWidget->layout()->setMargin(0);
     setMapOSM();
@@ -53,6 +54,7 @@ MapPlot::MapPlot(QGVMap *mapWidget, QWidget *parentWidget)
     setupCrosshairs();
     setupLink();
     setupMenus();
+    setupMarkerEditDialog();
 }
 
 MapPlotPtr MapPlot::castFromPlot(PlotPtr plot)
@@ -75,29 +77,179 @@ void MapPlot::setDataTipGraph(GraphPtr graph)
 
 void MapPlot::setupMenus()
 {
-    // TODO
-    plotMenu.actionPlaceMarker->setVisible(false);
-    qDebug() << "TODO Implement place marker for map plots";
-
-    // TODO
-    plotMenu.actionMeasure->setVisible(false);
-    qDebug() << "TODO Implement measure for map plots";
-
-    // Equal axes toggling not applicable for map
+    // Equal axes toggling not applicable to map
     plotMenu.actionEqualAxes->setVisible(false);
 
     // QGVMap displays a context menu of all actions added to it
     mMapWidget->addActions(plotMenu.actions());
 }
 
-void MapPlot::onActionPlaceMarkerTriggered()
+void MapPlot::onActionCopyCurveCoordinateTriggered()
 {
-    qDebug() << "TODO onActionPlaceMarkerTriggered()"; // TODO
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, graph, ClosestXY);
+    if (!closestProjPos.valid) { return; }
+
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(closestProjPos.coord);
+
+    QGuiApplication::clipboard()->setText(
+                QString("%1, %2")
+                .arg(MapPlot::formatLatLon(geoPos.latitude()))
+                .arg(MapPlot::formatLatLon(geoPos.longitude())));
+}
+
+void MapPlot::onActionCopyCurveIndexTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, graph, ClosestXY);
+    if (!closestProjPos.valid) { return; }
+
+    QGuiApplication::clipboard()->setText(QString::number(closestProjPos.dataIndex));
+}
+
+void MapPlot::onActionCopyMouseCoordinateTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    QPointF projPos = pixelPosToCoord(mousePixelPos);
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
+
+    QGuiApplication::clipboard()->setText(
+                QString("%1, %2")
+                .arg(MapPlot::formatLatLon(geoPos.latitude()))
+                .arg(MapPlot::formatLatLon(geoPos.longitude())));
+}
+
+void MapPlot::onActionPlaceMarkerOnCurveTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, graph, ClosestXY);
+    if (!closestProjPos.valid) { return; }
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(closestProjPos.coord);
+
+    MarkerPtr marker = addMarker(geoPos);
+
+    marker->datasetName = graph->name();
+    marker->dataIndex = closestProjPos.dataIndex;
+    marker->text = "Lat: $lat\nLon: $lon\nIndex: $i";
+    updateMarkerText(marker);
+}
+
+void MapPlot::onActionPlaceMarkerAtMouseTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    QPointF projPos = pixelPosToCoord(mousePixelPos);
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
+
+    MarkerPtr marker = addMarker(geoPos);
+
+    marker->text = "Lat: $lat\nLon: $lon";
+    updateMarkerText(marker);
+}
+
+void MapPlot::onActionPasteMarkerTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QGV::GeoPos geoPos;
+    int index = Plot::copiedMarkerData.dataIndex - dataTipGraph->range.start;
+    if ((index >= 0) && (index < dataTipGraph->dataCount())) {
+        // Valid index
+        double lat = dataTipGraph->track->lats[index];
+        double lon = dataTipGraph->track->lons[index];
+        geoPos = QGV::GeoPos(lat, lon);
+    } else {
+        // Invalid index. See if it makes sense pasting the marker using coordinates.
+        QRectF rect = Plot::bounds;
+        double padx = bounds.width() * 0.5;
+        double pady = bounds.height() * 0.5;
+        rect.adjust(-padx, -pady, padx, pady);
+        bool doPaste = true;
+        if (!rect.contains(QPointF(Plot::copiedMarkerData.sourceX,
+                                     Plot::copiedMarkerData.sourceY))) {
+            // Copied marker coordinates are far out of our bounds.
+            // Confirm with user.
+            int button = QMessageBox::question(nullptr, "Paste Marker",
+                QString("Are you sure you want to paste the marker?\n"
+                "The copied marker has no data index and it may fall far outside "
+                "of this plot's bounds.\n"
+                "Source dataset: %1, x: %2, y: %3;\n")
+                .arg(Plot::copiedMarkerData.sourceTitle)
+                .arg(Plot::copiedMarkerData.sourceXaxis)
+                .arg(Plot::copiedMarkerData.sourceYaxis));
+            if (button != QMessageBox::Yes) {
+                doPaste = false;
+            }
+        }
+        if (doPaste) {
+            geoPos = QGV::GeoPos(Plot::copiedMarkerData.sourceY,
+                                 Plot::copiedMarkerData.sourceX);
+        } else {
+            return;
+        }
+    }
+
+    MarkerPtr marker = addMarker(geoPos);
+
+    marker->datasetName = graph->name();
+    marker->dataIndex = Plot::copiedMarkerData.dataIndex;
+    marker->text = Plot::copiedMarkerData.text;
+    updateMarkerText(marker);
 }
 
 void MapPlot::onActionMeasureTriggered()
 {
-    qDebug() << "TODO onActionMeasureTriggered()"; // TODO
+    if (!mCurrentMeasure) {
+        // Not busy with a measure. Start a new one.
+        Plot::plotMenu.setMeasureActionStarted();
+    } else {
+        // Busy with a measure. End it here.
+        clearCurrentMeasure();
+        return;
+    }
+
+    QPointF projPos = mouse.lastMoveProjPos;
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
+
+    MeasurePtr m = MeasurePtr::create();
+    m->tag = QString("Measure %1").arg(mMeasureCounter++);
+
+    QList<MarkerPtr> ab;
+    for (int i = 0; i < 2; i++) {
+
+        MarkerPtr a = addMarker(geoPos);
+        a->text = QString("%1 A\n$lat, $lon").arg(m->tag);
+        updateMarkerText(a);
+
+        ab.append(a);
+    }
+
+    m->a = ab.value(0);
+    m->b = ab.value(1);
+
+    mMeasures.append(m);
+    mCurrentMeasure = m;
 }
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
@@ -184,7 +336,7 @@ void MapPlot::syncDataTip(int index)
     if ((index < 0) || (index >= dataTipGraph->dataCount())) { return; }
     double lat = dataTipGraph->track->lats[index];
     double lon = dataTipGraph->track->lons[index];
-    mPlotCrosshair->setPosition(QGV::GeoPos(lat, lon));
+    mPlotCrosshair->setPosition(QGV::GeoPos(lat, lon), index);
 }
 
 void MapPlot::setMapOSM()
@@ -401,6 +553,44 @@ QPointF MapPlot::geoToPoint(QGV::GeoPos pos)
     return latLonToPoint(pos.latitude(), pos.longitude());
 }
 
+double MapPlot::geoDistance(QGV::GeoPos a, QGV::GeoPos b)
+{
+    // Haversine formula
+
+    double alatrad = qDegreesToRadians(a.latitude());
+    double blatrad = qDegreesToRadians(b.latitude());
+    double dlatrad = qDegreesToRadians(b.latitude() - a.latitude());
+    double dlonrad = qDegreesToRadians(b.longitude() - a.longitude());
+
+    static const double EARTH_R = 6378137;
+
+    return EARTH_R * 2 *
+            qAsin(
+                qSqrt(
+                    qPow(qSin(dlatrad/2),2)
+                    + qCos(alatrad) * qCos(blatrad) * qPow(qSin(dlonrad/2), 2)
+                )
+            );
+}
+
+double MapPlot::geoHeading(QGV::GeoPos a, QGV::GeoPos b)
+{
+    double alonrad = qDegreesToRadians(a.longitude());
+    double alatrad = qDegreesToRadians(a.latitude());
+    double blonrad = qDegreesToRadians(b.longitude());
+    double blatrad = qDegreesToRadians(b.latitude());
+
+    double headingRad = qAtan2((blonrad - alonrad) * qCos(blatrad),
+                               (blatrad - alatrad));
+
+    return qRadiansToDegrees(headingRad);
+}
+
+QString MapPlot::formatLatLon(double value)
+{
+    return QString::number(value, 'f', 7);
+}
+
 void MapPlot::setMapTiles(QGVLayerTiles *tiles)
 {
     removeTiles();
@@ -418,15 +608,17 @@ void MapPlot::removeTiles()
 
 void MapPlot::onMapMouseMove(QPointF projPos)
 {
+    mouse.lastMoveProjPos = projPos;
     QPoint mousePixelPos = mMapWidget->mapFromProj(projPos);
 
+    // Plot crosshair
     if (mPlotCrosshairVisible && dataTipGraph) {
 
         ClosestCoord closestProjPos = findClosestCoord(mousePixelPos, dataTipGraph,
                                                        ClosestXY);
         if (closestProjPos.valid) {
 
-            mPlotCrosshair->setPosition(closestProjPos.coord);
+            mPlotCrosshair->setPosition(closestProjPos.coord, closestProjPos.dataIndex);
 
             emit dataTipChanged(link->group,
                                 closestProjPos.dataIndex + dataTipGraph->range.start);
@@ -434,9 +626,190 @@ void MapPlot::onMapMouseMove(QPointF projPos)
         }
     }
 
+    // Mouse crosshair
     if (mMouseCrosshair->isVisible()) {
         mMouseCrosshair->setPosition(projPos, mousePixelPos);
     }
+
+    // Measure
+    if (mCurrentMeasure) {
+        QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(mouse.lastMoveProjPos);
+        double dist = geoDistance(mCurrentMeasure->a->pos, geoPos);
+        double heading = geoHeading(mCurrentMeasure->a->pos, geoPos);
+
+        mCurrentMeasure->b->pos = geoPos;
+        mCurrentMeasure->b->mapAnnotation->setAnchor(geoPos);
+        mCurrentMeasure->b->text =
+                QString("%1 B\n$lat, $lon\nDistance: %2 m\nHeading: %3 deg")
+                .arg(mCurrentMeasure->tag)
+                .arg(dist)
+                .arg(heading);
+        updateMarkerText(mCurrentMeasure->b);
+    }
+}
+
+void MapPlot::onMapMouseClick(QPointF /*projPos*/)
+{
+    if (mCurrentMeasure) {
+        // Stop measuring
+        clearCurrentMeasure();
+    }
+}
+
+void MapPlot::setupMarkerEditDialog()
+{
+    mMarkerEditDialog.setMapPlotMode();
+}
+
+void MapPlot::updateMarkerText(MarkerPtr marker)
+{
+    QString text = marker->text;
+    text.replace("$i", QString::number(marker->dataIndex));
+    text.replace("$x", formatLatLon(marker->pos.longitude()));
+    text.replace("$y", formatLatLon(marker->pos.latitude()));
+    text.replace("$lat", formatLatLon(marker->pos.latitude()));
+    text.replace("$lon", formatLatLon(marker->pos.longitude()));
+    text.replace("$name", marker->datasetName);
+    text.replace("$$", "$");
+    marker->mapAnnotation->setText(text);
+}
+
+void MapPlot::editMarkerText(MarkerPtr marker)
+{
+    if (!marker) { return; }
+
+    mMarkerEditDialog.edit(marker->text,
+                           false,
+                           false,
+                           false,
+                           [this, markerWkPtr = marker.toWeakRef()]()
+    {
+        MarkerPtr m(markerWkPtr);
+        if (!m) { return; }
+
+        m->text = mMarkerEditDialog.text();
+
+        updateMarkerText(m);
+    });
+}
+
+void MapPlot::deleteMarker(MarkerPtr marker)
+{
+    if (!marker) { return; }
+
+    mMapWidget->removeItem(marker->mapAnnotation);
+    mMarkers.removeAll(marker);
+
+    // Remove related measure
+    foreach (MeasurePtr m, mMeasures) {
+        if ((m->a == marker) || (m->b == marker)) {
+            mMeasures.removeAll(m);
+            if (mCurrentMeasure == m) {
+                clearCurrentMeasure();
+            }
+        }
+    }
+}
+
+void MapPlot::onMarkerRightClick(MarkerPtr marker, QPoint pixelPos)
+{
+    QMenu* menu = new QMenu();
+    connect(menu, &QMenu::aboutToHide, this, [=]() { menu->deleteLater(); });
+
+    // Use weak pointer to not capture shared pointer in lambdas that might
+    // hold on to it.
+    QWeakPointer<Marker> mWptr(marker);
+
+    menu->addAction(QIcon("://edit"), "Edit",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        editMarkerText(m);
+    });
+
+    menu->addAction(QIcon("://copy"), "Copy Text/Marker",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+
+        // Copy text, as displayed, to OS clipboard
+        QGuiApplication::clipboard()->setText(m->mapAnnotation->text());
+
+        // Store marker data for other plots to use
+        Plot::copiedMarkerData.text = m->text;
+        Plot::copiedMarkerData.dataIndex = m->dataIndex;
+        Plot::copiedMarkerData.valid = true;
+        Plot::copiedMarkerData.sourceX = m->pos.longitude();
+        Plot::copiedMarkerData.sourceY = m->pos.latitude();
+        Plot::copiedMarkerData.sourceXaxis = "Longitude";
+        Plot::copiedMarkerData.sourceYaxis = "Latitude";
+        Plot::copiedMarkerData.sourceTitle = Plot::title();
+    });
+
+    menu->addAction(QIcon("://coordinate"), "Copy Coordinate",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+
+        // Copy coordinate to OS clipboard
+        QGuiApplication::clipboard()->setText(
+                    QString("%1, %2")
+                    .arg(MapPlot::formatLatLon(m->pos.latitude()))
+                    .arg(MapPlot::formatLatLon(m->pos.longitude())));
+    });
+
+    menu->addSeparator();
+
+    menu->addAction(QIcon("://delete"), "Delete Marker",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        deleteMarker(m);
+    });
+
+    menu->popup(mMapWidget->mapToGlobal(pixelPos));
+}
+
+void MapPlot::clearCurrentMeasure()
+{
+    mCurrentMeasure.reset();
+    // Restore measure action text that was set to end measure when started
+    Plot::plotMenu.setMeasureActionEnded();
+}
+
+MapPlot::MarkerPtr MapPlot::addMarker(QGV::GeoPos geoPos)
+{
+    MarkerPtr marker = MarkerPtr::create();
+
+    marker->pos = geoPos;
+
+    marker->mapAnnotation = new QGVAnnotationItem();
+    marker->mapAnnotation->setAnchor(geoPos);
+    marker->mapAnnotation->setText("New Marker");
+
+    connect(marker->mapAnnotation, &QGVAnnotationItem::rightClicked,
+            this, [this, mWptr = marker.toWeakRef()](QPoint pixelPos)
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        onMarkerRightClick(m, pixelPos);
+    });
+    connect(marker->mapAnnotation, &QGVAnnotationItem::doubleClicked,
+            this, [this, mWptr = marker.toWeakRef()](QPoint /*pixelPos*/)
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+        editMarkerText(m);
+    });
+
+    mMapWidget->addItem(marker->mapAnnotation);
+    mMarkers.append(marker);
+
+    return marker;
 }
 
 void MapPlot::onActionEqualAxesTriggered()
@@ -468,13 +841,17 @@ MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
     mMapWidget->addWidget(lines);
 }
 
-void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos)
+void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos, int index)
 {
     marker->setPosition(geoPos);
 
-    label->setText(QString("%1, %2")
-                   .arg(QString::number(geoPos.latitude(), 'f', 7))
-                   .arg(QString::number(geoPos.longitude(), 'f', 7)));
+    QString text = QString("%1, %2")
+            .arg(MapPlot::formatLatLon(geoPos.latitude()))
+            .arg(MapPlot::formatLatLon(geoPos.longitude()));
+    if (index >= 0) {
+        text = QString("%1 [%2]").arg(text).arg(index);
+    }
+    label->setText(text);
 
     static const int offset = 5;
     label->move(QPoint(pixelPos.x() + offset,
@@ -483,23 +860,23 @@ void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, QPoint pixelPos)
     lines->setPos(pixelPos);
 }
 
-void MapPlot::Crosshair::setPosition(QPointF projPos, QPoint pixelPos)
+void MapPlot::Crosshair::setPosition(QPointF projPos, QPoint pixelPos, int index)
 {
     QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
-    setPosition(geoPos, pixelPos);
+    setPosition(geoPos, pixelPos, index);
 }
 
-void MapPlot::Crosshair::setPosition(QPointF projPos)
+void MapPlot::Crosshair::setPosition(QPointF projPos, int index)
 {
     QPoint pixelPos = mMapWidget->mapFromProj(projPos);
-    setPosition(projPos, pixelPos);
+    setPosition(projPos, pixelPos, index);
 }
 
-void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos)
+void MapPlot::Crosshair::setPosition(QGV::GeoPos geoPos, int index)
 {
     QPointF projPos = mMapWidget->getProjection()->geoToProj(geoPos);
     QPoint pixelPos = mMapWidget->mapFromProj(projPos);
-    setPosition(geoPos, pixelPos);
+    setPosition(geoPos, pixelPos, index);
 }
 
 bool MapPlot::Crosshair::isVisible()

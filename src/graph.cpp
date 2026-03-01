@@ -134,7 +134,15 @@ QPen Graph::nextPen(int index)
 
 PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
 {
-    actionPlaceMarker = menu.addAction(QIcon("://marker"), "Place Marker");
+    // Marker menu
+    actionPlaceMarkerOnCurve = markerMenu.addAction(QIcon("://marker"), "Place Marker On Curve");
+    actionPlaceMarkerAtMouse = markerMenu.addAction(QIcon("://cursor"), "Place Marker At Mouse");
+    actionPasteMarker = markerMenu.addAction(QIcon("://paste"), "Paste Marker");
+    markerMenu.setTitle("Marker");
+    markerMenu.setIcon(QIcon("://marker"));
+    connect(&markerMenu, &QMenu::aboutToShow, this, &PlotMenu::onMarkerMenuAboutToShow);
+    menu.addMenu(&markerMenu);
+
     actionMeasure = menu.addAction(QIcon("://measure"), "Measure");
     actionShowAll = menu.addAction(QIcon("://showall"), "Show All");
     actionEqualAxes = menu.addAction(QIcon("://equalaxes"), "Equal Axes");
@@ -150,9 +158,16 @@ PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
     connect(&rangeMenu, &QMenu::aboutToShow, this, &PlotMenu::onRangeMenuAboutToShow);
     menu.addMenu(&rangeMenu);
 
-    actionProperties = menu.addAction(QIcon("://crosshair"), "Properties...");
+    actionProperties = menu.addAction(QIcon("://properties"), "Properties...");
     actionLink = menu.addAction(QIcon("://link"), "Link to Other Plots...");
 
+    // Copy menu
+    actionCopyCurveCoordinate = copyMenu.addAction("Copy Coordinate On Curve");
+    actionCopyCurveIndex = copyMenu.addAction("Copy Index On Curve");
+    actionCopyMouseCoordinate = copyMenu.addAction("Copy Coordinate At Mouse");
+    copyMenu.setTitle("Copy");
+    copyMenu.setIcon(QIcon("://copy"));
+    menu.addMenu(&copyMenu);
 }
 
 void PlotMenu::setMeasureActionStarted()
@@ -203,6 +218,11 @@ int PlotMenu::plotCrosshairIndex()
         ret = getPlotCrosshairIndexCallback();
     }
     return ret;
+}
+
+void PlotMenu::onMarkerMenuAboutToShow()
+{
+    actionPasteMarker->setEnabled(isCopiedMarkerValidCallback());
 }
 
 void PlotMenu::onDataTipMenuAboutToShow()

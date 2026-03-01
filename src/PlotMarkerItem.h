@@ -45,6 +45,7 @@ public:
     bool showHorizontalLine = false;
 
     QString text;
+    QBrush mTextLabelFillBrush {QColor(255, 255, 255, 150)};
 
     double selectTest(const QPointF& pos, bool onlySelectable,
                       QVariant* details) const override;

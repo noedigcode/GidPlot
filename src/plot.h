@@ -34,6 +34,19 @@ public:
     explicit Plot(QWidget *parentWidget = nullptr);
     virtual ~Plot() = default;
 
+    struct GenericMarkerData
+    {
+        bool valid = false;
+        QString text;
+        int dataIndex = -1;
+        double sourceX = 0;
+        double sourceY = 0;
+        QString sourceXaxis;
+        QString sourceYaxis;
+        QString sourceTitle;
+    };
+    static GenericMarkerData copiedMarkerData;
+
     struct Properties
     {
         bool plotCrosshair = false;
@@ -104,7 +117,12 @@ protected:
 protected:
     PlotMenu plotMenu;
 protected slots:
-    virtual void onActionPlaceMarkerTriggered() = 0;
+    virtual void onActionCopyCurveCoordinateTriggered() = 0;
+    virtual void onActionCopyCurveIndexTriggered() = 0;
+    virtual void onActionCopyMouseCoordinateTriggered() = 0;
+    virtual void onActionPlaceMarkerOnCurveTriggered() = 0;
+    virtual void onActionPlaceMarkerAtMouseTriggered() = 0;
+    virtual void onActionPasteMarkerTriggered() = 0;
     virtual void onActionMeasureTriggered() = 0;
     virtual void onActionEqualAxesTriggered() = 0;
 

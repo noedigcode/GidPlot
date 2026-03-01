@@ -54,6 +54,7 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     setupCrosshairs();
     setupMenus();
     setupLink();
+    setupMarkerEditDialog();
 }
 
 SubplotPtr Subplot::newAtBottomOfPlot(QCustomPlot *plot, QWidget *parentWidget)
@@ -692,7 +693,48 @@ void Subplot::setupMenus()
 
 }
 
-void Subplot::onActionPlaceMarkerTriggered()
+void Subplot::onActionCopyCurveCoordinateTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint pos = mouse.lastMovePos;
+    ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
+    if (!closest.valid) { return; }
+
+    QGuiApplication::clipboard()->setText(QString("%1, %2")
+                                          .arg(closest.coord.x())
+                                          .arg(closest.coord.y()));
+}
+
+void Subplot::onActionCopyCurveIndexTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint pos = mouse.lastMovePos;
+    ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
+    if (!closest.valid) { return; }
+
+    QGuiApplication::clipboard()->setText(QString::number(closest.dataIndex));
+}
+
+void Subplot::onActionCopyMouseCoordinateTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPointF coord = pixelPosToCoord(mouse.lastMovePos);
+
+    QGuiApplication::clipboard()->setText(QString("%1, %2")
+                                          .arg(coord.x())
+                                          .arg(coord.y()));
+}
+
+void Subplot::onActionPlaceMarkerOnCurveTriggered()
 {
     GraphPtr graph = dataTipGraph;
     if (!graph) { graph = mGraphs.value(0); }
@@ -713,11 +755,83 @@ void Subplot::onActionPlaceMarkerTriggered()
     mPlot->replot();
 }
 
+void Subplot::onActionPlaceMarkerAtMouseTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPointF coord = pixelPosToCoord(mouse.lastMovePos);
+
+    MarkerPtr marker = addMarker(coord);
+
+    marker->text = "X: $x\nY: $y";
+    updateMarkerText(marker);
+    updateMarkerArrow(marker);
+
+    mPlot->replot();
+}
+
+void Subplot::onActionPasteMarkerTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPointF coord;
+    int index = Plot::copiedMarkerData.dataIndex - dataTipGraph->range.start;
+    if ((index >= 0) && (index < dataTipGraph->dataCount())) {
+        // Valid index
+        double x = dataTipGraph->datax(index);
+        double y = dataTipGraph->datay(index);
+        coord = QPointF(x, y);
+    } else {
+        // Invalid index. See if it makes sense pasting the marker using coordinates.
+        QRectF rect = Plot::bounds;
+        double padx = bounds.width() * 0.5;
+        double pady = bounds.height() * 0.5;
+        rect.adjust(-padx, -pady, padx, pady);
+        bool doPaste = true;
+        if (!rect.contains(QPointF(Plot::copiedMarkerData.sourceX,
+                                     Plot::copiedMarkerData.sourceY))) {
+            // Copied marker coordinates are far out of our bounds.
+            // Confirm with user.
+            int button = QMessageBox::question(nullptr, "Paste Marker",
+                QString("Are you sure you want to paste the marker?\n"
+                "The copied marker has no data index and it may fall far outside "
+                "of this plot's bounds.\n"
+                "Source dataset: %1, x: %2, y: %3;\n")
+                .arg(Plot::copiedMarkerData.sourceTitle)
+                .arg(Plot::copiedMarkerData.sourceXaxis)
+                .arg(Plot::copiedMarkerData.sourceYaxis));
+            if (button != QMessageBox::Yes) {
+                doPaste = false;
+            }
+        }
+        if (doPaste) {
+            coord = QPointF(Plot::copiedMarkerData.sourceX,
+                            Plot::copiedMarkerData.sourceY);
+        } else {
+            return;
+        }
+    }
+
+    MarkerPtr marker = addMarker(coord);
+
+    marker->datasetName = graph->name();
+    marker->dataIndex = Plot::copiedMarkerData.dataIndex;
+    marker->text = Plot::copiedMarkerData.text;
+    updateMarkerText(marker);
+    updateMarkerArrow(marker);
+
+    mPlot->replot();
+}
+
 void Subplot::onActionMeasureTriggered()
 {
     if (!mCurrentMeasure) {
         // Not busy with a measure. Start a new one.
-        plotMenu.setMeasureActionStarted();
+        Plot::plotMenu.setMeasureActionStarted();
     } else {
         // Busy with a measure. End it here.
         clearCurrentMeasure();
@@ -728,7 +842,7 @@ void Subplot::onActionMeasureTriggered()
     double x = xAxis->pixelToCoord(pos.x());
     double y = yAxis->pixelToCoord(pos.y());
 
-    MeasurePtr m(new Measure());
+    MeasurePtr m = MeasurePtr::create();
     m->tag = QString("Measure %1").arg(mMeasureCounter++);
 
     QList<MarkerPtr> ab;
@@ -943,7 +1057,12 @@ void Subplot::setDataTipGraph(GraphPtr graph)
     setPlotCrosshairVisible(mPlotCrosshairVisible);
 }
 
-MarkerPtr Subplot::addMarker(QPointF coord)
+void Subplot::setupMarkerEditDialog()
+{
+    mMarkerEditDialog.setNormalPlotMode();
+}
+
+Subplot::MarkerPtr Subplot::addMarker(QPointF coord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
@@ -1034,7 +1153,7 @@ void Subplot::markerMouseUp()
     markerMouse.mouseDown = false;
 }
 
-MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
+Subplot::MarkerPtr Subplot::findMarkerUnderPos(QPoint pos)
 {
     MarkerPtr ret;
 
@@ -1066,15 +1185,50 @@ bool Subplot::markerRightClick(QPoint pos)
     QWeakPointer<Marker> mWptr(markerMouse.marker);
 
     menu->addAction(QIcon("://edit"), "Edit",
-                    this, [this, mWptr = marker.toWeakRef()]()
+                    this, [this, mWptr]()
     {
         MarkerPtr m(mWptr);
         if (!m) { return; }
         editMarkerText(m);
     });
 
+    menu->addAction(QIcon("://copy"), "Copy Text/Marker",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+
+        // Copy text, as displayed, to OS clipboard
+        QGuiApplication::clipboard()->setText(m->textItem->text());
+
+        // Store marker data for other plots to use
+        Plot::copiedMarkerData.text = m->text;
+        Plot::copiedMarkerData.dataIndex = m->dataIndex;
+        Plot::copiedMarkerData.valid = true;
+        Plot::copiedMarkerData.sourceX = m->xCoord;
+        Plot::copiedMarkerData.sourceY = m->yCoord;
+        Plot::copiedMarkerData.sourceXaxis = mXlabel;
+        Plot::copiedMarkerData.sourceYaxis = mYlabel;
+        Plot::copiedMarkerData.sourceTitle = Plot::title();
+    });
+
+    menu->addAction(QIcon("://coordinate"), "Copy Coordinate",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+
+        // Copy coordinate to OS clipboard
+        QGuiApplication::clipboard()->setText(
+                    QString("%1, %2")
+                    .arg(m->xCoord)
+                    .arg(m->yCoord));
+    });
+
+    menu->addSeparator();
+
     menu->addAction(QIcon("://delete"), "Delete Marker",
-                    this, [this, mWptr = marker.toWeakRef()]()
+                    this, [this, mWptr]()
     {
         MarkerPtr m(mWptr);
         if (!m) { return; }
@@ -1088,34 +1242,35 @@ bool Subplot::markerRightClick(QPoint pos)
 
 void Subplot::updateMarkerArrow(MarkerPtr marker)
 {
-    marker->arrow->end->setCoords(marker->plotMarker->position->coords());
-    QPointF p = marker->arrow->end->pixelPosition();
-    QRectF r(marker->textItem->topLeft->pixelPosition(),
-             marker->textItem->bottomRight->pixelPosition());
+    QCPItemText* textBox = marker->textItem;
 
-    QCPItemText* text = marker->textItem;
+    marker->arrow->end->setCoords(marker->plotMarker->position->coords());
+
+    QPointF point = marker->arrow->end->pixelPosition();
+    QRectF rect(textBox->topLeft->pixelPosition(),
+                textBox->bottomRight->pixelPosition());
 
     QCPItemAnchor* anchor = nullptr;
-    if (p.x() < r.left()) {
-        if (p.y() > r.bottom()) {
-            anchor = text->bottomLeft;
-        } else if (p.y() < r.top()) {
-            anchor = text->topLeft;
+    if (point.x() < rect.left()) {
+        if (point.y() > rect.bottom()) {
+            anchor = textBox->bottomLeft;
+        } else if (point.y() < rect.top()) {
+            anchor = textBox->topLeft;
         } else {
-            anchor = text->left;
+            anchor = textBox->left;
         }
-    } else if (p.x() > r.right()) {
-        if (p.y() > r.bottom()) {
-            anchor = text->bottomRight;
-        } else if (p.y() < r.top()) {
-            anchor = text->topRight;
+    } else if (point.x() > rect.right()) {
+        if (point.y() > rect.bottom()) {
+            anchor = textBox->bottomRight;
+        } else if (point.y() < rect.top()) {
+            anchor = textBox->topRight;
         } else {
-            anchor = text->right;
+            anchor = textBox->right;
         }
-    } else if (p.y() < r.top()) {
-        anchor = text->top;
+    } else if (point.y() < rect.top()) {
+        anchor = textBox->top;
     } else {
-        anchor = text->bottom;
+        anchor = textBox->bottom;
     }
 
     marker->arrow->start->setParentAnchor(anchor);
@@ -1182,7 +1337,7 @@ void Subplot::clearCurrentMeasure()
 {
     mCurrentMeasure.reset();
     // Restore measure action text that was set to end measure when started
-    plotMenu.setMeasureActionEnded();
+    Plot::plotMenu.setMeasureActionEnded();
 }
 
 void Subplot::setupCrosshairs()

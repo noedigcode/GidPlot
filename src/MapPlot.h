@@ -21,13 +21,15 @@
 #ifndef MAPPLOT_H
 #define MAPPLOT_H
 
+#include "MarkerEditDialog.h"
+#include "QGVAnnotationItem.h"
+#include "QGVCrosshairWidget.h"
+#include "QGVLegendWidget.h"
+#include "QGVLine.h"
+#include "QGVMarker.h"
 #include "csv.h"
 #include "graph.h"
 #include "plot.h"
-#include "QGVLine.h"
-#include "QGVMarker.h"
-#include "QGVCrosshairWidget.h"
-#include "QGVLegendWidget.h"
 
 #include "QGeoView/QGVMap.h"
 #include "QGeoView/QGVLayerTiles.h"
@@ -47,6 +49,21 @@ class MapPlot : public Plot
 {
     Q_OBJECT
 public:
+
+    // -----------------------------------------------------------------------
+
+    struct Marker
+    {
+        QString datasetName;
+        int dataIndex = -1;
+        QGV::GeoPos pos;
+        QGVAnnotationItem* mapAnnotation = nullptr;
+        QString text;
+    };
+    typedef QSharedPointer<Marker> MarkerPtr;
+
+    // -----------------------------------------------------------------------
+
     explicit MapPlot(QGVMap *mapWidget, QWidget *parentWidget);
 
     static MapPlotPtr castFromPlot(PlotPtr plot);
@@ -85,6 +102,9 @@ private:
 
     QGVMap* mMapWidget = nullptr;
     QGVLayerTiles* mTilesItem = nullptr;
+    void setMapTiles(QGVLayerTiles* tiles);
+    void removeTiles();
+
     QScopedPointer<QGVLegendWidget> mLegend;
     bool mShowLegend = true;
     bool mAutoShowLegend = true;
@@ -98,7 +118,12 @@ private:
 private:
     void setupMenus();
 private slots:
-    void onActionPlaceMarkerTriggered();
+    void onActionCopyCurveCoordinateTriggered();
+    void onActionCopyCurveIndexTriggered();
+    void onActionCopyMouseCoordinateTriggered();
+    void onActionPlaceMarkerOnCurveTriggered();
+    void onActionPlaceMarkerAtMouseTriggered();
+    void onActionPasteMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
 
@@ -116,10 +141,10 @@ private:
          * coordinates.
          * The others are convenience functions. Use the one corresponding to
          * the info you have available to avoid unnecessary calculations. */
-        void setPosition(QGV::GeoPos geoPos, QPoint pixelPos);
-        void setPosition(QPointF projPos, QPoint pixelPos);
-        void setPosition(QPointF projPos);
-        void setPosition(QGV::GeoPos geoPos);
+        void setPosition(QGV::GeoPos geoPos, QPoint pixelPos, int index = -1);
+        void setPosition(QPointF projPos, QPoint pixelPos, int index = -1);
+        void setPosition(QPointF projPos, int index = -1);
+        void setPosition(QGV::GeoPos geoPos, int index = -1);
 
         bool isVisible();
         void setVisible(bool set);
@@ -150,6 +175,9 @@ private:
     Crosshair* mPlotCrosshair = nullptr;
     Crosshair* mMouseCrosshair = nullptr;
 
+    // -----------------------------------------------------------------------
+    // Helpers
+
     QPointF pixelPosToCoord(QPoint pos);
     QPoint coordToPixelPos(QPointF coord);
 
@@ -157,11 +185,49 @@ private:
     QGV::GeoPos pointToGeo(QPointF pos);
     QPointF geoToPoint(QGV::GeoPos pos);
 
-    void setMapTiles(QGVLayerTiles* tiles);
-    void removeTiles();
+    double geoDistance(QGV::GeoPos a, QGV::GeoPos b);
+    double geoHeading(QGV::GeoPos a, QGV::GeoPos b);
 
-private slots:
+    static QString formatLatLon(double value);
+
+    // -----------------------------------------------------------------------
+    // Mouse
+
+    struct Mouse {
+        QPointF lastMoveProjPos;
+    } mouse;
+
+private slots:    
     void onMapMouseMove(QPointF projPos);
+    void onMapMouseClick(QPointF projPos);
+
+    // -----------------------------------------------------------------------
+    // Markers
+private:
+    QList<MarkerPtr> mMarkers;
+    MarkerEditDialog mMarkerEditDialog;
+    void setupMarkerEditDialog();
+    MarkerPtr addMarker(QGV::GeoPos geoPos);
+    void updateMarkerText(MarkerPtr marker);
+    void editMarkerText(MarkerPtr marker);
+    void deleteMarker(MarkerPtr marker);
+    void onMarkerRightClick(MarkerPtr marker, QPoint pixelPos);
+
+    // -----------------------------------------------------------------------
+    // Measures
+private:
+    struct Measure
+    {
+        MarkerPtr a;
+        MarkerPtr b;
+        QString tag;
+    };
+    typedef QSharedPointer<Measure> MeasurePtr;
+
+    QList<MeasurePtr> mMeasures;
+    MeasurePtr mCurrentMeasure;
+    void clearCurrentMeasure();
+    int mMeasureCounter = 1;
 };
 
 

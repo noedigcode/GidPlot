@@ -32,32 +32,6 @@
 #include <QObject>
 #include <QMultiMap>
 
-// ===========================================================================
-
-struct Marker
-{
-    QString datasetName;
-    int dataIndex = 0;
-    double xCoord = 0;
-    double yCoord = 0;
-    PlotMarkerItem* plotMarker = nullptr;
-    QCPItemText* textItem = nullptr;
-    QCPItemLine* arrow = nullptr;
-    QString text;
-};
-typedef QSharedPointer<Marker> MarkerPtr;
-
-// ===========================================================================
-
-struct Measure
-{
-    MarkerPtr a;
-    MarkerPtr b;
-    QString tag;
-};
-typedef QSharedPointer<Measure> MeasurePtr;
-
-// ===========================================================================
 
 class Subplot;
 typedef QSharedPointer<Subplot> SubplotPtr;
@@ -66,6 +40,34 @@ class Subplot : public Plot
 {
     Q_OBJECT
 public:
+
+    // -----------------------------------------------------------------------
+
+    struct Marker
+    {
+        QString datasetName;
+        int dataIndex = -1;
+        double xCoord = 0;
+        double yCoord = 0;
+        PlotMarkerItem* plotMarker = nullptr;
+        QCPItemText* textItem = nullptr;
+        QCPItemLine* arrow = nullptr;
+        QString text;
+    };
+    typedef QSharedPointer<Marker> MarkerPtr;
+
+    // -----------------------------------------------------------------------
+
+    struct Measure
+    {
+        MarkerPtr a;
+        MarkerPtr b;
+        QString tag;
+    };
+    typedef QSharedPointer<Measure> MeasurePtr;
+
+    // -----------------------------------------------------------------------
+
     explicit Subplot(QCPAxisRect* axisRect, QWidget *parentWidget);
 
     static SubplotPtr newAtBottomOfPlot(QCustomPlot* plot, QWidget* parentWidget);
@@ -130,14 +132,17 @@ private:
     bool mRangesChanged = false;
     bool mRangesSyncedFromOutside = false;
 
-    MarkerEditDialog mMarkerEditDialog;
-
     // -----------------------------------------------------------------------
     // Menus
 private:
     void setupMenus();
 private slots:
-    void onActionPlaceMarkerTriggered();
+    void onActionCopyCurveCoordinateTriggered();
+    void onActionCopyCurveIndexTriggered();
+    void onActionCopyMouseCoordinateTriggered();
+    void onActionPlaceMarkerOnCurveTriggered();
+    void onActionPlaceMarkerAtMouseTriggered();
+    void onActionPasteMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
 
@@ -179,6 +184,9 @@ private:
     // Markers
 
     QList<MarkerPtr> mMarkers; // Markers are kept top (last added) to bottom
+
+    MarkerEditDialog mMarkerEditDialog;
+    void setupMarkerEditDialog();
 
     MarkerPtr addMarker(QPointF coord);
 
