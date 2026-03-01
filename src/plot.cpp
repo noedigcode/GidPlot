@@ -20,6 +20,8 @@
 
 #include "plot.h"
 
+Plot::GenericMarkerData Plot::copiedMarkerData;
+
 
 Plot::Plot(QWidget *parentWidget)
     : QObject{parentWidget}, mParentWidget(parentWidget)
@@ -74,11 +76,14 @@ void Plot::setupPlotMenu()
     {
         return mPlotCrosshairIndex;
     };
+    plotMenu.isCopiedMarkerValidCallback = [this]() { return copiedMarkerData.valid; };
     connect(&plotMenu, &PlotMenu::dataTipGraphSelected,
             this, &Plot::onActionDataTipGraphSelected);
 
     connect(plotMenu.actionPlaceMarker, &QAction::triggered,
             this, &Plot::onActionPlaceMarkerTriggered);
+    connect(plotMenu.actionPasteMarker, &QAction::triggered,
+            this, &Plot::onActionPasteMarkerTriggered);
     connect(plotMenu.actionMeasure, &QAction::triggered,
             this, &Plot::onActionMeasureTriggered);
     connect(plotMenu.actionShowAll, &QAction::triggered,

@@ -34,6 +34,11 @@ void QGVAnnotationItem::setText(const QString& text)
     QGVDrawItem::resetBoundary();
 }
 
+QString QGVAnnotationItem::text()
+{
+    return mText;
+}
+
 void QGVAnnotationItem::setBoxOffset(const QPointF& offset)
 {
     mBoxOffset = offset;

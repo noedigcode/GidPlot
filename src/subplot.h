@@ -138,6 +138,7 @@ private:
     void setupMenus();
 private slots:
     void onActionPlaceMarkerTriggered();
+    void onActionPasteMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
 

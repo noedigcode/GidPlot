@@ -139,6 +139,7 @@ public:
     std::function<GraphPtr()> getDataTipGraphCallback;
     std::function<QList<GraphPtr>()> getGraphsCallback;
     std::function<int()> getPlotCrosshairIndexCallback;
+    std::function<bool()> isCopiedMarkerValidCallback;
     void setMeasureActionStarted();
     void setMeasureActionEnded();
 
@@ -148,9 +149,11 @@ public:
     QAction* actionLink;
     QAction* actionMeasure;
     QAction* actionPlaceMarker;
+    QAction* actionPasteMarker;
     QAction* actionProperties;
     QAction* actionShowAll;
     QMenu dataTipMenu;
+    QMenu markerMenu;
     QMenu rangeMenu;
 
     QList<QAction*> actions();
@@ -166,6 +169,7 @@ private:
     int plotCrosshairIndex();
 
 private slots:
+    void onMarkerMenuAboutToShow();
     void onDataTipMenuAboutToShow();
     void onRangeMenuAboutToShow();
 };

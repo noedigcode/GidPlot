@@ -29,9 +29,8 @@ public:
 
     void setAnchor(const QGV::GeoPos& anchor);
     void setText(const QString& text);
-
+    QString text();
     void setBoxOffset(const QPointF& offset);
-    QPointF boxOffset() const { return mBoxOffset; }
 
     // QGVDrawItem interface
     QPointF projAnchor() const override;

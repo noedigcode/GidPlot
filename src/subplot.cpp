@@ -714,6 +714,28 @@ void Subplot::onActionPlaceMarkerTriggered()
     mPlot->replot();
 }
 
+void Subplot::onActionPasteMarkerTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    int index = Plot::copiedMarkerData.dataIndex - dataTipGraph->range.start;
+    double x = dataTipGraph->datax(index);
+    double y = dataTipGraph->datay(index);
+    QPointF coord(x, y);
+
+    MarkerPtr marker = addMarker(coord);
+
+    marker->datasetName = graph->name();
+    marker->dataIndex = Plot::copiedMarkerData.dataIndex;
+    marker->text = Plot::copiedMarkerData.text;
+    updateMarkerText(marker);
+    updateMarkerArrow(marker);
+
+    mPlot->replot();
+}
+
 void Subplot::onActionMeasureTriggered()
 {
     if (!mCurrentMeasure) {
@@ -1078,6 +1100,23 @@ bool Subplot::markerRightClick(QPoint pos)
         if (!m) { return; }
         editMarkerText(m);
     });
+
+    menu->addAction(QIcon("://copy"), "Copy Text/Marker",
+                    this, [this, mWptr]()
+    {
+        MarkerPtr m(mWptr);
+        if (!m) { return; }
+
+        // Copy text, as displayed, to OS clipboard
+        QGuiApplication::clipboard()->setText(m->textItem->text());
+
+        // Store marker data for other plots to use
+        Plot::copiedMarkerData.text = m->text;
+        Plot::copiedMarkerData.dataIndex = m->dataIndex;
+        Plot::copiedMarkerData.valid = true;
+    });
+
+    menu->addSeparator();
 
     menu->addAction(QIcon("://delete"), "Delete Marker",
                     this, [this, mWptr]()

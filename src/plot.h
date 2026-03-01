@@ -34,6 +34,14 @@ public:
     explicit Plot(QWidget *parentWidget = nullptr);
     virtual ~Plot() = default;
 
+    struct GenericMarkerData
+    {
+        bool valid = false;
+        QString text;
+        int dataIndex = 0;
+    };
+    static GenericMarkerData copiedMarkerData;
+
     struct Properties
     {
         bool plotCrosshair = false;
@@ -105,6 +113,7 @@ protected:
     PlotMenu plotMenu;
 protected slots:
     virtual void onActionPlaceMarkerTriggered() = 0;
+    virtual void onActionPasteMarkerTriggered() = 0;
     virtual void onActionMeasureTriggered() = 0;
     virtual void onActionEqualAxesTriggered() = 0;
 
