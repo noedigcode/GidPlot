@@ -87,7 +87,7 @@ void MapPlot::setupMenus()
     mMapWidget->addActions(plotMenu.actions());
 }
 
-void MapPlot::onActionPlaceMarkerTriggered()
+void MapPlot::onActionPlaceMarkerOnCurveTriggered()
 {
     GraphPtr graph = dataTipGraph;
     if (!graph) { graph = mGraphs.value(0); }
@@ -103,6 +103,22 @@ void MapPlot::onActionPlaceMarkerTriggered()
     marker->datasetName = graph->name();
     marker->dataIndex = closestProjPos.dataIndex;
     marker->text = "Lat: $lat\nLon: $lon\nIndex: $i";
+    updateMarkerText(marker);
+}
+
+void MapPlot::onActionPlaceMarkerAtMouseTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
+    QPointF projPos = pixelPosToCoord(mousePixelPos);
+    QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
+
+    MarkerPtr marker = addMarker(geoPos);
+
+    marker->text = "Lat: $lat\nLon: $lon";
     updateMarkerText(marker);
 }
 

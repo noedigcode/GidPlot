@@ -118,7 +118,8 @@ private:
 private:
     void setupMenus();
 private slots:
-    void onActionPlaceMarkerTriggered();
+    void onActionPlaceMarkerOnCurveTriggered();
+    void onActionPlaceMarkerAtMouseTriggered();
     void onActionPasteMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();

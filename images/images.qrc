@@ -31,8 +31,9 @@
         <file alias="rename">PastelSVG-1.2/textfield-rename.png</file>
         <file alias="measure">ruler.png</file>
         <file alias="save">PastelSVG-1.2/disk.png</file>
-        <file alias="crosshair">PastelSVG-1.2/cursor.png</file>
+        <file alias="cursor">PastelSVG-1.2/cursor.png</file>
         <file alias="link">PastelSVG-1.2/link.png</file>
         <file alias="paste">PastelSVG-1.2/paste-plain.png</file>
+        <file alias="properties">PastelSVG-1.2/application-form.png</file>
     </qresource>
 </RCC>

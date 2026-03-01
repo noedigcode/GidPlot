@@ -693,7 +693,7 @@ void Subplot::setupMenus()
 
 }
 
-void Subplot::onActionPlaceMarkerTriggered()
+void Subplot::onActionPlaceMarkerOnCurveTriggered()
 {
     GraphPtr graph = dataTipGraph;
     if (!graph) { graph = mGraphs.value(0); }
@@ -708,6 +708,23 @@ void Subplot::onActionPlaceMarkerTriggered()
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
     marker->text = "X: $x\nY: $y\nIndex: $i";
+    updateMarkerText(marker);
+    updateMarkerArrow(marker);
+
+    mPlot->replot();
+}
+
+void Subplot::onActionPlaceMarkerAtMouseTriggered()
+{
+    GraphPtr graph = dataTipGraph;
+    if (!graph) { graph = mGraphs.value(0); }
+    if (!graph) { return; }
+
+    QPointF coord = pixelPosToCoord(mouse.lastMovePos);
+
+    MarkerPtr marker = addMarker(coord);
+
+    marker->text = "X: $x\nY: $y";
     updateMarkerText(marker);
     updateMarkerArrow(marker);
 

@@ -148,7 +148,8 @@ public:
     QAction* actionEqualAxes;
     QAction* actionLink;
     QAction* actionMeasure;
-    QAction* actionPlaceMarker;
+    QAction* actionPlaceMarkerOnCurve;
+    QAction* actionPlaceMarkerAtMouse;
     QAction* actionPasteMarker;
     QAction* actionProperties;
     QAction* actionShowAll;

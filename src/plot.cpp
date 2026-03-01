@@ -80,8 +80,10 @@ void Plot::setupPlotMenu()
     connect(&plotMenu, &PlotMenu::dataTipGraphSelected,
             this, &Plot::onActionDataTipGraphSelected);
 
-    connect(plotMenu.actionPlaceMarker, &QAction::triggered,
-            this, &Plot::onActionPlaceMarkerTriggered);
+    connect(plotMenu.actionPlaceMarkerOnCurve, &QAction::triggered,
+            this, &Plot::onActionPlaceMarkerOnCurveTriggered);
+    connect(plotMenu.actionPlaceMarkerAtMouse, &QAction::triggered,
+            this, &Plot::onActionPlaceMarkerAtMouseTriggered);
     connect(plotMenu.actionPasteMarker, &QAction::triggered,
             this, &Plot::onActionPasteMarkerTriggered);
     connect(plotMenu.actionMeasure, &QAction::triggered,

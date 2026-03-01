@@ -112,7 +112,8 @@ protected:
 protected:
     PlotMenu plotMenu;
 protected slots:
-    virtual void onActionPlaceMarkerTriggered() = 0;
+    virtual void onActionPlaceMarkerOnCurveTriggered() = 0;
+    virtual void onActionPlaceMarkerAtMouseTriggered() = 0;
     virtual void onActionPasteMarkerTriggered() = 0;
     virtual void onActionMeasureTriggered() = 0;
     virtual void onActionEqualAxesTriggered() = 0;

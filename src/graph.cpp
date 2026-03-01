@@ -135,7 +135,8 @@ QPen Graph::nextPen(int index)
 PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
 {
     // Marker menu
-    actionPlaceMarker = markerMenu.addAction(QIcon("://marker"), "Place Marker");
+    actionPlaceMarkerOnCurve = markerMenu.addAction(QIcon("://marker"), "Place Marker On Curve");
+    actionPlaceMarkerAtMouse = markerMenu.addAction(QIcon("://cursor"), "Place Marker At Mouse");
     actionPasteMarker = markerMenu.addAction(QIcon("://paste"), "Paste Marker");
     markerMenu.setTitle("Marker");
     markerMenu.setIcon(QIcon("://marker"));
@@ -157,7 +158,7 @@ PlotMenu::PlotMenu(QObject *parent) : QObject(parent)
     connect(&rangeMenu, &QMenu::aboutToShow, this, &PlotMenu::onRangeMenuAboutToShow);
     menu.addMenu(&rangeMenu);
 
-    actionProperties = menu.addAction(QIcon("://crosshair"), "Properties...");
+    actionProperties = menu.addAction(QIcon("://properties"), "Properties...");
     actionLink = menu.addAction(QIcon("://link"), "Link to Other Plots...");
 
 }

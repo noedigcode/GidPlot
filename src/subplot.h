@@ -46,7 +46,7 @@ public:
     struct Marker
     {
         QString datasetName;
-        int dataIndex = 0;
+        int dataIndex = -1;
         double xCoord = 0;
         double yCoord = 0;
         PlotMarkerItem* plotMarker = nullptr;
@@ -137,7 +137,8 @@ private:
 private:
     void setupMenus();
 private slots:
-    void onActionPlaceMarkerTriggered();
+    void onActionPlaceMarkerOnCurveTriggered();
+    void onActionPlaceMarkerAtMouseTriggered();
     void onActionPasteMarkerTriggered();
     void onActionMeasureTriggered();
     void onActionEqualAxesTriggered();
