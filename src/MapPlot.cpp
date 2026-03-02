@@ -739,7 +739,7 @@ void MapPlot::onMarkerRightClick(MarkerPtr marker, QPoint pixelPos)
 
         // Store marker data for other plots to use
         Plot::copiedMarkerData.text = m->text;
-        Plot::copiedMarkerData.dataIndex = m->dataIndex;
+        Plot::copiedMarkerData.dataIndex = m->dataIndex + dataTipGraph->range.start;
         Plot::copiedMarkerData.valid = true;
         Plot::copiedMarkerData.sourceX = m->pos.longitude();
         Plot::copiedMarkerData.sourceY = m->pos.latitude();

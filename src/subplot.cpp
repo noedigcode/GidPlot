@@ -1203,7 +1203,7 @@ bool Subplot::markerRightClick(QPoint pos)
 
         // Store marker data for other plots to use
         Plot::copiedMarkerData.text = m->text;
-        Plot::copiedMarkerData.dataIndex = m->dataIndex;
+        Plot::copiedMarkerData.dataIndex = m->dataIndex + dataTipGraph->range.start;
         Plot::copiedMarkerData.valid = true;
         Plot::copiedMarkerData.sourceX = m->xCoord;
         Plot::copiedMarkerData.sourceY = m->yCoord;
