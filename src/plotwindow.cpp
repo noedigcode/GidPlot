@@ -148,7 +148,9 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
         mAllPlots.append(mMapPlot);
     }
 
-    mMapPlot->plot(csv, ixcol, iycol, range);
+    if (csv) {
+        mMapPlot->plot(csv, ixcol, iycol, range);
+    }
 
     setupGuiForMap();
 }

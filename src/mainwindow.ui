@@ -144,7 +144,7 @@
      <x>0</x>
      <y>0</y>
      <width>930</width>
-     <height>20</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -158,6 +158,7 @@
      <string>Tools</string>
     </property>
     <addaction name="action_testPlot"/>
+    <addaction name="action_Empty_Map"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -194,6 +195,15 @@
    </property>
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="action_Empty_Map">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/showall</normaloff>:/showall</iconset>
+   </property>
+   <property name="text">
+    <string>Empty Map</string>
    </property>
   </action>
  </widget>

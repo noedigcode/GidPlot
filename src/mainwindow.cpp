@@ -550,3 +550,8 @@ void MainWindow::focusPlot(PlotWindow *p)
     }
 }
 
+void MainWindow::on_action_Empty_Map_triggered()
+{
+    PlotWindow* p = addPlot("Map");
+    p->plotMap(CsvPtr(), 0, 0, Range());
+}

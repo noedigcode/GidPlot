@@ -83,6 +83,7 @@ private slots:
     void onTabCustomContextMenuRequested(const QPoint &pos);
 
     void on_action_About_triggered();
+    void on_action_Empty_Map_triggered();
 
 private:
     bool mDestroying = false;
