@@ -220,11 +220,9 @@ void MapPlot::onActionPasteMarkerTriggered()
 
 void MapPlot::onActionMeasureTriggered()
 {
-    if (!mCurrentMeasure) {
-        // Not busy with a measure. Start a new one.
-        Plot::plotMenu.setMeasureActionStarted();
-    } else {
-        // Busy with a measure. End it here.
+    if (mCurrentMeasure) {
+        // Busy with a measure. This action toggles between starting and ending
+        // a measure. End the current one now.
         clearCurrentMeasure();
         return;
     }
@@ -232,24 +230,23 @@ void MapPlot::onActionMeasureTriggered()
     QPointF projPos = mouse.lastMoveProjPos;
     QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);
 
-    MeasurePtr m = MeasurePtr::create();
-    m->tag = QString("Measure %1").arg(mMeasureCounter++);
+    MeasurePtr meas = MeasurePtr::create();
+    meas->tag = QString("Measure %1").arg(mMeasureCounter++);
 
     QList<MarkerPtr> ab;
     for (int i = 0; i < 2; i++) {
 
         MarkerPtr a = addMarker(geoPos);
-        a->text = QString("%1 A\n$lat, $lon").arg(m->tag);
+        a->text = QString("%1 A\n$lat, $lon").arg(meas->tag);
         updateMarkerText(a);
 
         ab.append(a);
     }
 
-    m->a = ab.value(0);
-    m->b = ab.value(1);
+    meas->a = ab.value(0);
+    meas->b = ab.value(1);
 
-    mMeasures.append(m);
-    mCurrentMeasure = m;
+    startMeasure(meas);
 }
 
 void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
@@ -765,6 +762,27 @@ void MapPlot::onMarkerRightClick(MarkerPtr marker, QPoint pixelPos)
                     .arg(MapPlot::formatLatLon(m->pos.longitude())));
     });
 
+    QAction* measureAction = menu->addAction(QIcon("://measure"),
+                                             "Measure From This Marker",
+                                             this, [this, mWptr]()
+    {
+        MarkerPtr a(mWptr);
+        if (!a) { return; }
+
+        MeasurePtr meas = MeasurePtr::create();
+        meas->tag = QString("Measure %1").arg(mMeasureCounter++);
+
+        MarkerPtr b = addMarker(a->pos);
+        b->text = QString("%1 B\n$lat, $lon").arg(meas->tag);
+        updateMarkerText(b);
+
+        meas->a = a;
+        meas->b = b;
+
+        startMeasure(meas);
+    });
+    measureAction->setEnabled(!mCurrentMeasure);
+
     menu->addSeparator();
 
     menu->addAction(QIcon("://delete"), "Delete Marker",
@@ -778,8 +796,32 @@ void MapPlot::onMarkerRightClick(MarkerPtr marker, QPoint pixelPos)
     menu->popup(mMapWidget->mapToGlobal(pixelPos));
 }
 
+void MapPlot::startMeasure(MapPlot::MeasurePtr meas)
+{
+    if (mCurrentMeasure) {
+        // Busy with a measure. End it before starting with new one.
+        clearCurrentMeasure();
+    }
+
+    Plot::plotMenu.setMeasureActionStarted();
+
+    // Disable mouse click and move functionality for the measure annotation item
+    // while it is being placed, as it moves with the mouse and stays under the
+    // cursor, and may interfere with map mouse click and drag.
+    meas->b->mapAnnotation->setMovable(false);
+    meas->b->mapAnnotation->setClickable(false);
+
+    mMeasures.append(meas);
+    mCurrentMeasure = meas;
+}
+
 void MapPlot::clearCurrentMeasure()
 {
+    // Measure placement done. Restore normal measure annotation item mouse click
+    // and move functionality.
+    mCurrentMeasure->b->mapAnnotation->setMovable(true);
+    mCurrentMeasure->b->mapAnnotation->setClickable(true);
+
     mCurrentMeasure.reset();
     // Restore measure action text that was set to end measure when started
     Plot::plotMenu.setMeasureActionEnded();

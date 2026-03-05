@@ -226,6 +226,7 @@ private:
 
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
+    void startMeasure(MeasurePtr meas);
     void clearCurrentMeasure();
     int mMeasureCounter = 1;
 };

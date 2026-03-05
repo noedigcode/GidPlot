@@ -43,6 +43,8 @@ public:
     void setText(const QString& text);
     QString text();
     void setBoxOffset(const QPointF& offset);
+    void setMovable(bool movable);
+    void setClickable(bool clickable);
 
     // QGVDrawItem interface
     QPointF projAnchor() const override;

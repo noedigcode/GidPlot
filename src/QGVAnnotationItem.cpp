@@ -65,6 +65,16 @@ void QGVAnnotationItem::setBoxOffset(const QPointF& offset)
     QGVDrawItem::resetBoundary();
 }
 
+void QGVAnnotationItem::setMovable(bool movable)
+{
+    setFlag(QGV::ItemFlag::Movable, movable);
+}
+
+void QGVAnnotationItem::setClickable(bool clickable)
+{
+    setFlag(QGV::ItemFlag::Clickable, clickable);
+}
+
 QPointF QGVAnnotationItem::projAnchor() const
 {
     // This is the anchor from which the object is drawn, which is important
