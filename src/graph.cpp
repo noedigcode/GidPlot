@@ -222,6 +222,9 @@ int PlotMenu::plotCrosshairIndex()
 
 void PlotMenu::onMarkerMenuAboutToShow()
 {
+    // Disable "place marker on curve" action if data tip graph is null
+    actionPlaceMarkerOnCurve->setEnabled(!datatipGraph().isNull());
+    // Disable "paste marker" action if there is no valid copied marker
     actionPasteMarker->setEnabled(isCopiedMarkerValidCallback());
 }
 

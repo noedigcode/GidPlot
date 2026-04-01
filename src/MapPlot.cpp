@@ -152,10 +152,6 @@ void MapPlot::onActionPlaceMarkerOnCurveTriggered()
 
 void MapPlot::onActionPlaceMarkerAtMouseTriggered()
 {
-    GraphPtr graph = dataTipGraph;
-    if (!graph) { graph = mGraphs.value(0); }
-    if (!graph) { return; }
-
     QPoint mousePixelPos = mMapWidget->mapFromProj(mouse.lastMoveProjPos);
     QPointF projPos = pixelPosToCoord(mousePixelPos);
     QGV::GeoPos geoPos = mMapWidget->getProjection()->projToGeo(projPos);

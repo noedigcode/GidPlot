@@ -772,10 +772,6 @@ void Subplot::onActionPlaceMarkerOnCurveTriggered()
 
 void Subplot::onActionPlaceMarkerAtMouseTriggered()
 {
-    GraphPtr graph = dataTipGraph;
-    if (!graph) { graph = mGraphs.value(0); }
-    if (!graph) { return; }
-
     QPointF coord = pixelPosToCoord(mouse.lastMovePos);
 
     MarkerPtr marker = addMarker(coord);
