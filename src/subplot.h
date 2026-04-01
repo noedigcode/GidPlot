@@ -106,7 +106,6 @@ private:
     QCPAxisRect* axisRect = nullptr;
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
-    QCPLegend* legend = nullptr;
     void queueReplot();
 
     QString mXlabel;
@@ -161,8 +160,14 @@ private:
         bool isDragging = false;
     } mouse;
 
-
     bool plotMouseMove(QMouseEvent* event);
+
+    // -------------------------------------------------------------------------
+    // Legend
+
+    QCPLegend* legend = nullptr;
+    bool mShowLegend = true;
+    bool mAutoShowLegend = true;
 
     struct LegendMouse {
         bool mouseDown = false;

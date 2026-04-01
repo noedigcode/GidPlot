@@ -9,6 +9,10 @@ Changed
 - Improve map performance with large data sets. All track lines are now drawn
   in one single map object, saving overhead as opposed to using a separate
   drawing object for each track line segment.
+- Improve legend auto-show logic. Never show when no curves are present.
+  By default for new plots, auto-show is on, meaning legend is hidden when
+  there is only one curve, and shown when there is more than one curve. If the
+  user changes the legend visibility, auto-show is disabled.
 
 
 [0.2.0] - 2026-03-01

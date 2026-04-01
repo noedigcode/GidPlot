@@ -105,13 +105,16 @@ private:
     void setMapTiles(QGVLayerTiles* tiles);
     void removeTiles();
 
-    QScopedPointer<QGVLegendWidget> mLegend;
-    bool mShowLegend = true;
-    bool mAutoShowLegend = true;
-
     void setupLink();
 
     void setDataTipGraph(GraphPtr graph);
+
+    // -----------------------------------------------------------------------
+    // Legend
+
+    QScopedPointer<QGVLegendWidget> mLegend;
+    bool mShowLegend = true;
+    bool mAutoShowLegend = true;
 
     // -----------------------------------------------------------------------
     // Menus

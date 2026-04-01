@@ -312,7 +312,9 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     if (mGraphs.count() == 1) {
         mLegend->snapToCorner(Qt::TopRightCorner);
     }
+    // Legend visibility
     if (mAutoShowLegend) {
+        // If auto-show is on, show if there are more than one plots
         mShowLegend = (mGraphs.count() > 1);
     }
     mLegend->setVisible(mShowLegend && !mGraphs.isEmpty());
@@ -431,6 +433,7 @@ void MapPlot::setPlotProperties(Properties p)
     this->setTitle(p.title);
 
     if (p.showLegend != mShowLegend) {
+        // Disable legend auto-show if user changes setting
         mAutoShowLegend = false;
         mShowLegend = p.showLegend;
         mLegend->setVisible(mShowLegend && !mGraphs.isEmpty());

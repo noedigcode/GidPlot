@@ -255,9 +255,13 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
         setDataTipGraph(mGraphs.value(0));
     }
 
-    // Show legend if there is more than one curve
-    if (axisRect->plottables().count() > 1) {
-        legend->setVisible(true);
+    // Legend visibility
+    if (mAutoShowLegend) {
+        // If auto-show is on, show if there are more than one plots
+        mShowLegend = (axisRect->plottables().count() > 1);
+    }
+    legend->setVisible(mShowLegend && !mGraphs.isEmpty());
+    if (legend->visible()) {
         updateLegendPlacement();
     }
 
@@ -318,9 +322,15 @@ void Subplot::setPlotProperties(Properties p)
     // Other properties
 
     this->setTitle(p.title, p.showTitle);
-    legend->setVisible(p.showLegend);
     setXLabel(p.xlabel, p.showXlabel);
     setYLabel(p.ylabel, p.showYlabel);
+
+    if (p.showLegend != mShowLegend) {
+        // Disable legend auto-show if user changes setting
+        mAutoShowLegend = false;
+        mShowLegend = p.showLegend;
+        legend->setVisible(mShowLegend && !mGraphs.isEmpty());
+    }
 }
 
 void Subplot::renameGraph(GraphPtr graph, QString name)
@@ -369,6 +379,11 @@ void Subplot::removeGraph(GraphPtr graph)
     }
 
     mPlot->replot();
+
+    if (mAutoShowLegend) {
+        mShowLegend = (mGraphs.count() > 1);
+    }
+    legend->setVisible(mShowLegend && !mGraphs.isEmpty());
     updateLegendPlacement();
 }
 
@@ -391,7 +406,7 @@ Plot::Properties Subplot::getPlotProperties()
 
     p.title = this->title();
     p.showTitle = this->mTitleVisible;
-    p.showLegend = legend->visible();
+    p.showLegend = mShowLegend;
     p.xlabel = mXlabel;
     p.showXlabel = mXlabelVisible;
     p.ylabel = mYlabel;
