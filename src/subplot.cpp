@@ -844,11 +844,9 @@ void Subplot::onActionPasteMarkerTriggered()
 
 void Subplot::onActionMeasureTriggered()
 {
-    if (!mCurrentMeasure) {
-        // Not busy with a measure. Start a new one.
-        Plot::plotMenu.setMeasureActionStarted();
-    } else {
-        // Busy with a measure. End it here.
+    if (mCurrentMeasure) {
+        // Busy with a measure. This action toggles between starting and ending
+        // a measure. End the current one now.
         clearCurrentMeasure();
         return;
     }
@@ -863,13 +861,8 @@ void Subplot::onActionMeasureTriggered()
     QList<MarkerPtr> ab;
     for (int i = 0; i < 2; i++) {
 
-        MarkerPtr a = addMarker(QPointF(x, y));
-        a->text = QString("%1 A\n$x, $y").arg(m->tag);
-        updateMarkerText(a);
-        updateMarkerArrow(a);
-        a->plotMarker->showCircle = false;
-        a->plotMarker->showVerticalLine = true;
-        a->plotMarker->showHorizontalLine = true;
+        QString text = QString("%1 A\n$x, $y").arg(m->tag);
+        MarkerPtr a = newMeasureMarker(x, y, text);
 
         ab.append(a);
     }
@@ -877,9 +870,7 @@ void Subplot::onActionMeasureTriggered()
     m->a = ab.value(0);
     m->b = ab.value(1);
 
-    mMeasures.append(m);
-    mCurrentMeasure = m;
-
+    startMeasure(m);
     mPlot->replot();
 }
 
@@ -1240,6 +1231,27 @@ bool Subplot::markerRightClick(QPoint pos)
                     .arg(m->yCoord));
     });
 
+    QAction* measureAction = menu->addAction(QIcon("://measure"),
+                                             "Measure From This Marker",
+                                             this, [this, mWptr]()
+    {
+        MarkerPtr a(mWptr);
+        if (!a) { return; }
+
+        MeasurePtr meas = MeasurePtr::create();
+        meas->tag = QString("Measure %1").arg(mMeasureCounter++);
+
+        QString btext = QString("%1 B\n$lat, $lon").arg(meas->tag);
+        MarkerPtr b = newMeasureMarker(a->xCoord, a->yCoord, btext);
+
+        meas->a = a;
+        meas->b = b;
+
+        startMeasure(meas);
+        mPlot->replot();
+    });
+    measureAction->setEnabled(!mCurrentMeasure);
+
     menu->addSeparator();
 
     menu->addAction(QIcon("://delete"), "Delete Marker",
@@ -1346,6 +1358,31 @@ void Subplot::deleteMarker(MarkerPtr marker)
     }
 
     mPlot->replot();
+}
+
+Subplot::MarkerPtr Subplot::newMeasureMarker(double x, double y, QString text)
+{
+    MarkerPtr m = addMarker(QPointF(x, y));
+    m->text = text;
+    updateMarkerText(m);
+    updateMarkerArrow(m);
+    m->plotMarker->showCircle = false;
+    m->plotMarker->showVerticalLine = true;
+    m->plotMarker->showHorizontalLine = true;
+    return m;
+}
+
+void Subplot::startMeasure(MeasurePtr meas)
+{
+    if (mCurrentMeasure) {
+        // Busy with a measure. End it before starting a new one.
+        clearCurrentMeasure();
+    }
+
+    Plot::plotMenu.setMeasureActionStarted();
+
+    mMeasures.append(meas);
+    mCurrentMeasure = meas;
 }
 
 void Subplot::clearCurrentMeasure()

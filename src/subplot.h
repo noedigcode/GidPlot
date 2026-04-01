@@ -218,6 +218,8 @@ private:
 
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
+    MarkerPtr newMeasureMarker(double x, double y, QString text);
+    void startMeasure(MeasurePtr meas);
     void clearCurrentMeasure();
     int mMeasureCounter = 1;
 

@@ -4,6 +4,10 @@ Gid~Plot Changelog
 [0.2.1] - Unreleased
 --------------------
 
+Added
+
+- Measure from existing markers.
+
 Changed
 
 - Improve map performance with large data sets. All track lines are now drawn
