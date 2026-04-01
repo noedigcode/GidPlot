@@ -21,12 +21,16 @@
 #include "QGVLine.h"
 
 
-QGVLine::QGVLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2) :
-    mPos1(pos1),
-    mPos2(pos2)
+QGVLine::QGVLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2)
 {
-    mPen.setCosmetic(true); // Cosmetic: Line will be the same thickness for all zoom levels.
-    mPen.setWidth(3);
+    mPosList << pos1 << pos2;
+    setup();
+}
+
+QGVLine::QGVLine(const QList<QGV::GeoPos> &posList)
+{
+    mPosList = posList;
+    setup();
 }
 
 QColor QGVLine::color()
@@ -52,11 +56,19 @@ void QGVLine::setPen(QPen pen)
     repaint();
 }
 
+void QGVLine::setup()
+{
+    mPen.setCosmetic(true); // Cosmetic: Line will be the same thickness for all zoom levels.
+    mPen.setWidth(3);
+}
+
 void QGVLine::onProjection(QGVMap* geoMap)
 {
     QGVDrawItem::onProjection(geoMap);
-    mProjPos1 = geoMap->getProjection()->geoToProj(mPos1);
-    mProjPos2 = geoMap->getProjection()->geoToProj(mPos2);
+    mProjPosList.clear();
+    foreach (QGV::GeoPos pos, mPosList) {
+        mProjPosList.append(geoMap->getProjection()->geoToProj(pos));
+    }
 }
 
 void QGVLine::onUpdate()
@@ -66,19 +78,33 @@ void QGVLine::onUpdate()
 
 QPainterPath QGVLine::projShape() const
 {
-    QPainterPath path(mProjPos1);
-    path.lineTo(mProjPos2);
+    QPainterPath path;
+    for (int i = 0; i < mProjPosList.count(); i++) {
+        const QPointF& p = mProjPosList.at(i);
+        if (i == 0) {
+            path.moveTo(p);
+        } else {
+            path.lineTo(p);
+        }
+    }
+
     return path;
 }
 
 void QGVLine::projPaint(QPainter* painter)
 {
+    if (mProjPosList.count() < 2) { return; }
     painter->setPen(mPen);
-    painter->drawLine(mProjPos1, mProjPos2);
+    QPointF p1 = mProjPosList.at(0);
+    for (int i = 1; i < mProjPosList.count(); i++) {
+        QPointF p2 = mProjPosList.at(i);
+        painter->drawLine(p1, p2);
+        p1 = p2;
+    }
 }
 
 QPointF QGVLine::projAnchor() const
 {
-    return mProjPos1;
+    return mProjPosList.value(0);
 }
 

@@ -38,6 +38,7 @@ class QGVLine : public QGVDrawItem
 
 public:
     explicit QGVLine(const QGV::GeoPos &pos1, const QGV::GeoPos &pos2);
+    explicit QGVLine(const QList<QGV::GeoPos> &posList);
 
     QColor color();
     void setColor(QColor color);
@@ -45,6 +46,8 @@ public:
     void setPen(QPen pen);
 
 private:
+    void setup();
+
     void onProjection(QGVMap* geoMap) override;
     void onUpdate() override;
     QPainterPath projShape() const override;
@@ -52,11 +55,9 @@ private:
     QPointF projAnchor() const override;
 
     // Start and end coordinates of line
-    QGV::GeoPos mPos1;
-    QGV::GeoPos mPos2;
+    QList<QGV::GeoPos> mPosList;
     // Projected points of line on to painting area
-    QPointF mProjPos1;
-    QPointF mProjPos2;
+    QList<QPointF> mProjPosList;
 
     QPen mPen {Qt::red};
 };

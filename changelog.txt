@@ -1,6 +1,16 @@
 Gid~Plot Changelog
 ==================
 
+[0.2.1] - Unreleased
+--------------------
+
+Changed
+
+- Improve map performance with large data sets. All track lines are now drawn
+  in one single map object, saving overhead as opposed to using a separate
+  drawing object for each track line segment.
+
+
 [0.2.0] - 2026-03-01
 --------------------
 

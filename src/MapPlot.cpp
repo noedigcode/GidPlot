@@ -288,18 +288,19 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
 
     // Create track on map
     track->pen = Graph::nextPen(mPenIndex++);
-    int lineCount = 0;
-    for (int i = 0; i < track->lats.count() - 1; i++) {
-        QGV::GeoPos pos1(track->lats[i], track->lons[i]);
-        QGV::GeoPos pos2(track->lats[i+1], track->lons[i+1]);
-        if (pos1 == pos2) { continue; }
-        lineCount++;
-        QGVLine* line = new QGVLine(pos1, pos2);
-        line->setColor(track->pen.color());
-        track->mapLines.append(line);
-        mMapWidget->addItem(line);
+
+    QList<QGV::GeoPos> posList;
+    QGV::GeoPos lastPos;
+    for (int i = 0; i < track->lats.count(); i++) {
+        QGV::GeoPos pos = QGV::GeoPos(track->lats[i], track->lons[i]);
+        if ((i > 0) && (pos == lastPos)) { continue; }
+        posList.append(pos);
+        lastPos = pos;
     }
-    qDebug() << "Map plot: Data length: " << track->lats.count() << "Lines drawn: " << lineCount;
+    QGVLine* line = new QGVLine(posList);
+    line->setColor(track->pen.color());
+    track->mapLines.append(line);
+    mMapWidget->addItem(line);
 
     mGraphs.append(graph);
     if (!dataTipGraph) {
