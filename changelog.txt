@@ -1,22 +1,35 @@
 Gid~Plot Changelog
 ==================
 
-[0.2.1] - Unreleased
+[0.2.1] - 2026-04-01
 --------------------
 
 Added
 
 - Measure from existing markers.
+- Option to open an empty map.
 
 Changed
 
 - Improve map performance with large data sets. All track lines are now drawn
   in one single map object, saving overhead as opposed to using a separate
   drawing object for each track line segment.
+- Improve map performance when data set contains repeated coordinates, by not
+  plotting track segments with zero length.
 - Improve legend auto-show logic. Never show when no curves are present.
   By default for new plots, auto-show is on, meaning legend is hidden when
   there is only one curve, and shown when there is more than one curve. If the
   user changes the legend visibility, auto-show is disabled.
+
+Fixed
+
+- When copying marker, take range start into account so index is correctly
+  transferred to other plots when pasting.
+- Fix issue on Windows where annotation marker blocked the mouse from clicking
+  on the map while creating a measure, preventing map panning or ending the
+  measure with a click.
+- Properly hide mouse crosshairs by default on a new map plot.
+- Allow placing marker at mouse if there are no graphs on the plot or map.
 
 
 [0.2.0] - 2026-03-01
