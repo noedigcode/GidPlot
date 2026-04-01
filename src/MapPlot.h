@@ -69,6 +69,7 @@ public:
     static MapPlotPtr castFromPlot(PlotPtr plot);
 
     void plot(CsvPtr csv, int iloncol, int ilatcol, Range range);
+    void showEmpty();
 
     void setMapOSM();
     void zoomTo(double lat1, double lon1, double lat2, double lon2);

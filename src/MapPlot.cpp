@@ -326,6 +326,13 @@ void MapPlot::plot(CsvPtr csv, int iloncol, int ilatcol, Range range)
     QMetaObject::invokeMethod(this, [=]() { resized(); }, Qt::QueuedConnection);
 }
 
+void MapPlot::showEmpty()
+{
+    // Call resized() to update crosshairs widget size. Queue it to give MapPlot
+    // a chance to be set up and displayed.
+    QMetaObject::invokeMethod(this, [=]() { resized(); }, Qt::QueuedConnection);
+}
+
 void MapPlot::syncAxisRanges(QRectF /*xyrange*/)
 {
     // Not applicable for map
@@ -527,7 +534,9 @@ void MapPlot::showEvent()
 void MapPlot::setupCrosshairs()
 {
     mPlotCrosshair = new Crosshair(mMapWidget);
+    mPlotCrosshair->setVisible(false);
     mMouseCrosshair = new Crosshair(mMapWidget);
+    mMouseCrosshair->setVisible(false);
 }
 
 QPointF MapPlot::pixelPosToCoord(QPoint pos)

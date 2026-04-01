@@ -150,6 +150,8 @@ void PlotWindow::plotMap(CsvPtr csv, int ixcol, int iycol, Range range)
 
     if (csv) {
         mMapPlot->plot(csv, ixcol, iycol, range);
+    } else {
+        mMapPlot->showEmpty();
     }
 
     setupGuiForMap();
