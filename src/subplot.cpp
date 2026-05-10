@@ -196,13 +196,16 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
 
 void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
 {
+    if (ixcol >= csv->matrix->colCount()) { return; }
+    if (iycol >= csv->matrix->colCount()) { return; }
+
     bool firstPlot = (axisRect->plottables().size() == 0);
 
-    QVector<double> x = csv->matrix->data[ixcol].mid(range.start, range.size());
-    QVector<double> y = csv->matrix->data[iycol].mid(range.start, range.size());
+    QVector<double> x = csv->matrix->dataColumn(ixcol, range.start, range.size());
+    QVector<double> y = csv->matrix->dataColumn(iycol, range.start, range.size());
 
-    Matrix::VStats xstats = Matrix::vstats(x);
-    Matrix::VStats ystats = Matrix::vstats(y);
+    Matrix::VectorStats xstats = Matrix::vectorStats(x);
+    Matrix::VectorStats ystats = Matrix::vectorStats(y);
 
     QPen pen = Graph::nextPen(mPenIndex++);
 

@@ -35,52 +35,59 @@ public:
         bool excessColsError = false;
         bool insufficientColsError = false;
         bool hasError();
+        QStringList errorStrings;
         QString errorString();
-        QString originalValue;
     };
-    typedef QSharedPointer<MetaData> MetaDataPtr;
 
     Matrix(int numCols);
 
-    // Data and meta data matrices: [col][row]. First column is index
-    QVector<QVector<double>> data;
-    QVector<QVector<MetaDataPtr>> metaData;
+    QVector<double> dataColumn(int columnIndex, int startIndex = 0, int length = -1);
+    QVector<MetaData> metadataColumn(int columnIndex);
 
-    int errorCount = 0;
-    int valueConversionErrorCount = 0;
-    int excessColsErrorCount = 0;
-    int insufficientColsErrorCount = 0;
+    int errorCount();
+    int valueConversionErrorCount();
+    int excessColsErrorCount();
+    int insufficientColsErrorCount();
 
-    void setHeadings(QStringList headings);
-    QStringList headings();
+    void setHeadingsExcludingIndexColumn(QStringList headings);
+    QStringList getHeadingsForExistingColumns();
+    QStringList getAllHeadings();
     QString heading(int column);
-    int headingCount();
 
     int rowCount();
     int colCount();
 
-    bool addCsvLine(const QByteArray &line);
-    bool addRow(QVector<double> values);
-    struct Value {
-        double value = 0;
-        bool error;
-        QByteArray originalValue;
-    };
-    bool addRow(QVector<Value> values);
+    void addCsvLine(const QByteArray &line);
+    void addRow(QVector<double> values);
 
     bool colValid(int column);
 
     bool convertToBool(const QByteArray &data, bool defaultValue, bool* ok = nullptr);
 
-    struct VStats {
+    struct VectorStats {
         double min = 0;
         double max = 0;
         bool monotonicallyIncreasing = false;
     };
-    static VStats vstats(const QVector<double> &vector);
+    static VectorStats vectorStats(const QVector<double> &vector);
 
 private:
     QStringList mHeadings;
+    int mErrorCount = 0;
+    int mValueConversionErrorCount = 0;
+    int mExcessColsErrorCount = 0;
+    int mInsufficientColsErrorCount = 0;
+
+    struct Value {
+        double value = 0;
+        bool error = true;
+        QByteArray originalValue;
+    };
+    void addRow(QVector<Value> values);
+
+    // Data and meta mDataCols matrices: [col][row]. First column is index
+    QVector<QVector<double>> mDataCols;
+    QVector<QVector<MetaData>> mMetaDataCols;
 };
 typedef QSharedPointer<Matrix> MatrixPtr;
 

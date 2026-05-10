@@ -25,48 +25,92 @@
 
 Matrix::Matrix(int numCols)
     // Add one as first column is used for index
-    : data(numCols + 1), metaData(numCols + 1)
+    : mDataCols(numCols + 1), mMetaDataCols(numCols + 1)
 {
 
 }
 
-void Matrix::setHeadings(QStringList headings)
+QVector<Matrix::MetaData> Matrix::metadataColumn(int columnIndex)
+{
+    return mMetaDataCols.value(columnIndex);
+}
+
+QVector<double> Matrix::dataColumn(int columnIndex, int startIndex, int length)
+{
+    const QVector<double> col = mDataCols.value(columnIndex);
+
+    if ((startIndex < 0) || (startIndex >= col.length())) {
+        return QVector<double>();
+    }
+
+    if ((startIndex == 0) && (length == col.length())) {
+        return col;
+    } else {
+        return col.mid(startIndex, length);
+    }
+}
+
+int Matrix::errorCount()
+{
+    return mErrorCount;
+}
+
+int Matrix::valueConversionErrorCount()
+{
+    return mValueConversionErrorCount;
+}
+
+int Matrix::excessColsErrorCount()
+{
+    return mExcessColsErrorCount;
+}
+
+int Matrix::insufficientColsErrorCount()
+{
+    return mInsufficientColsErrorCount;
+}
+
+void Matrix::setHeadingsExcludingIndexColumn(QStringList headings)
 {
     mHeadings.clear();
     mHeadings.append("(index)");
     mHeadings.append(headings);
 }
 
-QStringList Matrix::headings()
+QStringList Matrix::getHeadingsForExistingColumns()
+{
+    QStringList ret = mHeadings.mid(0, colCount());
+    while (ret.count() < colCount()) {
+        ret.append(QString("Column %1").arg(ret.count()));
+    }
+    return ret;
+}
+
+QStringList Matrix::getAllHeadings()
 {
     return mHeadings;
 }
 
 QString Matrix::heading(int column)
 {
-    return mHeadings.value(column, "");
-}
-
-int Matrix::headingCount()
-{
-    return mHeadings.count();
+    return getHeadingsForExistingColumns().value(column, "");
 }
 
 int Matrix::rowCount()
 {
     int ret = 0;
-    if (data.count()) {
-        ret = data[0].count();
+    if (mDataCols.count()) {
+        ret = mDataCols[0].count();
     }
     return ret;
 }
 
 int Matrix::colCount()
 {
-    return data.count();
+    return mDataCols.count();
 }
 
-bool Matrix::addCsvLine(const QByteArray &line)
+void Matrix::addCsvLine(const QByteArray &line)
 {
     QList<QByteArray> split = line.split(',');
     QVector<Value> values(split.size());
@@ -82,10 +126,10 @@ bool Matrix::addCsvLine(const QByteArray &line)
         v.error = !ok;
     }
 
-    return addRow(values);
+    addRow(values);
 }
 
-bool Matrix::addRow(QVector<double> values)
+void Matrix::addRow(QVector<double> values)
 {
     QVector<Value> values2(values.size());
     for (int i = 0; i < values.size(); ++i) {
@@ -94,88 +138,110 @@ bool Matrix::addRow(QVector<double> values)
         v.error = false;
     }
 
-    return addRow(values2);
+    addRow(values2);
 }
 
-bool Matrix::addRow(QVector<Value> values)
+void Matrix::addRow(QVector<Value> values)
 {
-    bool retError = false;
-
     // +1 as first column is index
-    int n = qMin(values.count() + 1, colCount());
+    int max = qMax(values.count() + 1, colCount());
 
-    for (int icol = 0; icol < colCount(); ++icol) {
-        bool errorOccurred = false;
-        bool valueConversionError = false;
-        bool excessColsError = false;
-        bool insufficientColsError = false;
-        int ivalue = icol - 1;
+    int rowCountBeforeAdd = rowCount();
+
+    for (int icol = 0; icol < max; ++icol) {
+
+        MetaData metaData;
+        int iValueCol = icol - 1;
+        bool backfill = false;
+        double backfillValue = 0;
+
+        // Add missing column if necessary
+        if (icol == colCount()) {
+            mDataCols.append(QVector<double>(rowCountBeforeAdd));
+            mMetaDataCols.append(QVector<MetaData>(rowCountBeforeAdd));
+            backfill = true;
+
+            metaData.excessColsError = true;
+            mExcessColsErrorCount++;
+            mErrorCount++;
+            metaData.errorStrings.append(
+                        QString("Additional column %1 added, not present in previous rows.")
+                        .arg(icol));
+        }
 
         if (icol == 0) {
-            // First column is index
-            data[icol].append(data[0].count());
-        } else if (icol < n) {
 
-            Value& value = values[ivalue];
+            // First column is index
+            mDataCols[icol].append(mDataCols[0].count());
+
+        } else if (iValueCol < values.count()) {
+
+            Value& value = values[iValueCol];
             if (value.error) {
-                // On error, use previous value if any
-                int len = data[icol].length();
+                // Value conversion error
+                metaData.valueConversionError = true;
+                mValueConversionErrorCount++;
+                mErrorCount++;
+                // Use previous value if any
+                int len = mDataCols[icol].length();
                 if (len) {
-                    value.value = data[icol][len-1];
+                    value.value = mDataCols[icol][len-1];
+                    metaData.errorStrings.append(
+                                QString("Value conversion error. Previous row value used. Original text: %1")
+                                .arg(QString::fromUtf8(value.originalValue)));
+                } else {
+                    metaData.errorStrings.append(
+                                QString("Value conversion error. Defaulted to zero. Original text: %1")
+                                .arg(QString::fromUtf8(value.originalValue)));
                 }
             }
-            data[icol].append(value.value);
+            mDataCols[icol].append(value.value);
+            backfillValue = value.value;
 
-            // Check if value converted properly from string to double
-            if (value.error) {
-                errorOccurred = true;
-                valueConversionError = true;
-                valueConversionErrorCount++;
-            }
-            // Check if there are too many columns and indicate it with error for
-            // last data value in row.
-            if ( (icol == data.count()-1) && (icol < values.count()-1) ) {
-                errorOccurred = true;
-                excessColsError = true;
-                excessColsErrorCount++;
-            }
         } else {
-            // icol >= n, meaning insufficient columns present in data.
-            // Use previous value if any
+
+            // Insufficient columns present in data.
+            metaData.insufficientColsError = true;
+            mInsufficientColsErrorCount++;
+            mErrorCount++;
+            // Use value of previous row if any
             double value = 0;
-            int len = data[icol].length();
+            int len = mDataCols[icol].length();
             if (len) {
-                value = data[icol][len-1];
-            }
-            data[icol].append(value);
-            errorOccurred = true;
-            insufficientColsError = true;
-            insufficientColsErrorCount++;
-        }
-
-        Matrix::MetaDataPtr md;
-        if (errorOccurred) {
-            retError |= errorOccurred;
-            errorCount++;
-            md.reset(new Matrix::MetaData());
-            md->valueConversionError = valueConversionError;
-            md->excessColsError = excessColsError;
-            md->insufficientColsError = insufficientColsError;
-            if (insufficientColsError) {
-                md->originalValue = "?";
+                value = mDataCols[icol][len-1];
+                metaData.errorStrings.append("No value (insufficient columns in row). Previous row value used.");
             } else {
-                md->originalValue = values[ivalue].originalValue;
+                metaData.errorStrings.append("No value (insufficient columns in row). Defaulted to zero.");
+            }
+            mDataCols[icol].append(value);
+            backfillValue = value;
+        }
+
+        mMetaDataCols[icol].append(metaData);
+
+        if (backfill) {
+            for (int irow = 0; irow < rowCountBeforeAdd; irow++) {
+
+                mDataCols[icol][irow] = backfillValue;
+
+                mInsufficientColsErrorCount++;
+                mErrorCount++;
+
+                MetaData backfillMetaData;
+                backfillMetaData.insufficientColsError = true;
+                backfillMetaData.errorStrings.append(
+                            QString("No value (insufficient columns in row). Backfilled from row %1.")
+                            .arg(rowCount()));
+
+                mMetaDataCols[icol][irow] = backfillMetaData;
             }
         }
-        metaData[icol].append(md);
     }
-
-    return !retError;
 }
 
 bool Matrix::colValid(int column)
 {
-    return ( (column < data.count()) && (column >= 0) );
+    return ( (column < mDataCols.count()) && (column >= 0) );
 }
 
 bool Matrix::convertToBool(const QByteArray& data, bool defaultValue, bool* ok)
@@ -209,9 +275,9 @@ bool Matrix::convertToBool(const QByteArray& data, bool defaultValue, bool* ok)
     return ret;
 }
 
-Matrix::VStats Matrix::vstats(const QVector<double> &vector)
+Matrix::VectorStats Matrix::vectorStats(const QVector<double> &vector)
 {
-    VStats s;
+    VectorStats s;
     if (vector.isEmpty()) { return s; }
     s.max = vector[0];
     s.min = vector[0];
@@ -237,15 +303,5 @@ bool Matrix::MetaData::hasError()
 
 QString Matrix::MetaData::errorString()
 {
-    QStringList errors;
-    if (valueConversionError) {
-        errors.append("Value conversion error");
-    }
-    if (excessColsError) {
-        errors.append("Excess columns");
-    }
-    if (insufficientColsError) {
-        errors.append("No data, insufficient columns");
-    }
-    return errors.join("; ");
+    return errorStrings.join('\n');
 }

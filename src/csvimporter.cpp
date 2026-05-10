@@ -65,7 +65,7 @@ void CsvImporter::doImport(CsvPtr csv)
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         // Error opening file
         csv->importInfo.success = false;
-        csv->importInfo.info = "Error opening file.";
+        csv->importInfo.info = "Error opening file: " + file.errorString();
         emitImportFinishedAndRemoveCsv(csv);
         return;
     }
@@ -87,7 +87,7 @@ void CsvImporter::doImport(CsvPtr csv)
         if (lineNum < csv->fileInfo.dataStartRow) { continue; }
         if (lineNum == csv->fileInfo.dataStartRow) {
             csv->matrix.reset(new Matrix(line.split(',').count()));
-            csv->matrix->setHeadings(csv->fileInfo.headings);
+            csv->matrix->setHeadingsExcludingIndexColumn(csv->fileInfo.headings);
         }
         csv->matrix->addCsvLine(line);
 
@@ -96,7 +96,7 @@ void CsvImporter::doImport(CsvPtr csv)
                                 QString("%1 lines (%2 %) (%3 errors) (%4 seconds elapsed)")
                                 .arg(lineNum + 1)
                                 .arg((bytesread * 100) / filesize)
-                                .arg(csv->matrix->errorCount)
+                                .arg(csv->matrix->errorCount())
                                 .arg(timer.elapsed() / 1000));
         }
     }

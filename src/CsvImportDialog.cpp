@@ -117,7 +117,7 @@ void CsvImportDialog::on_pushButton_import_clicked()
             msgBox("Invalid headings row number.");
             return;
         } else {
-            fileInfo.headings = lines[headingsRow].split(",");
+            fileInfo.headings = lines.value(headingsRow).split(",");
         }
     } else {
         // Use specified comma-separated headings

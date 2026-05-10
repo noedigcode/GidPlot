@@ -107,8 +107,8 @@ public:
     int ixcol = 0;
     int iycol = 0;
 
-    Matrix::VStats xstats;
-    Matrix::VStats ystats;
+    Matrix::VectorStats xstats;
+    Matrix::VectorStats ystats;
     QRectF dataBounds();
 
     GridHash grid;

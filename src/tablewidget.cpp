@@ -49,7 +49,7 @@ void TableWidget::setData(CsvPtr csv)
     MatrixPtr mat = csv->matrix;
 
     // Fill column tree widgets
-    foreach (QString heading, mat->headings()) {
+    foreach (QString heading, mat->getHeadingsForExistingColumns()) {
         ui->treeWidget_cols_x->addTopLevelItem(new QTreeWidgetItem({heading}));
         ui->treeWidget_cols_y->addTopLevelItem(new QTreeWidgetItem({heading}));
     }
@@ -67,7 +67,7 @@ void TableWidget::setData(CsvPtr csv)
     w->setColumnCount(mat->colCount());
 
     // Set headings
-    w->setHorizontalHeaderLabels(mat->headings());
+    w->setHorizontalHeaderLabels(mat->getHeadingsForExistingColumns());
 
     loadVisibleRows();
 
@@ -82,13 +82,13 @@ void TableWidget::setData(CsvPtr csv)
                                     .arg(mat->colCount())
                                     .arg(mat->rowCount()));
 
-    ui->label_errors_total->setText(QString("%1 errors").arg(mat->errorCount));
+    ui->label_errors_total->setText(QString("%1 errors").arg(mat->errorCount()));
     ui->label_errors_value->setText(QString("%1 value errors")
-                                    .arg(mat->valueConversionErrorCount));
+                                    .arg(mat->valueConversionErrorCount()));
     ui->label_errors_excessCols->setText(QString("%1 excess column errors")
-                                         .arg(mat->excessColsErrorCount));
+                                         .arg(mat->excessColsErrorCount()));
     ui->label_errors_insufCols->setText(QString("%1 insufficient column errors")
-                                        .arg(mat->insufficientColsErrorCount));
+                                        .arg(mat->insufficientColsErrorCount()));
 
     setupRangeComboBox();
 }
@@ -126,8 +126,8 @@ void TableWidget::loadRows(int from, int to)
 
     for (int icol = 0; icol < mat->colCount(); icol++) {
 
-        QVector<double> &col = mat->data[icol];
-        QVector<Matrix::MetaDataPtr> &metaCol = mat->metaData[icol];
+        QVector<double> col = mat->dataColumn(icol);
+        QVector<Matrix::MetaData> metaCol = mat->metadataColumn(icol);
 
         for (int irow = from; irow <= to; irow++) {
 
@@ -135,11 +135,10 @@ void TableWidget::loadRows(int from, int to)
 
             QTableWidgetItem* cell = new QTableWidgetItem(QString::number(col[irow]));
             cell->setFlags(cell->flags() & ~Qt::ItemIsEditable);
-            Matrix::MetaDataPtr md = metaCol[irow];
-            if (md) {
+            Matrix::MetaData md = metaCol[irow];
+            if (md.hasError()) {
                 cell->setBackgroundColor(Qt::red);
-                cell->setToolTip(md->errorString());
-                cell->setText(md->originalValue);
+                cell->setToolTip(md.errorString());
             }
             w->setItem(irow, icol, cell);
         }
@@ -152,16 +151,18 @@ void TableWidget::selectDefaultColumns()
     MatrixPtr mat = mCsv->matrix;
 
     // X-axis selection
-    // If there is <= 2 columns (including index), select index column (0) for x-axis,
+    // If there are <= 2 columns (including index), select index column (0) for x-axis,
     // Otherwise try to select a column that looks like time for x-axis,
     // otherwise first column (index 1) if there are more than 1 columns
 
-    int iSelect = (mat->headingCount() <= 2) ? 0 : 1;
+    QStringList headings = mat->getHeadingsForExistingColumns();
 
-    if (mat->headingCount() > 2) {
+    int iSelect = (headings.count() <= 2) ? 0 : 1;
+
+    if (headings.count() > 2) {
         int iExact = -1;
         int iContain = -1;
-        for (int i = 0; i < mat->headingCount(); i++) {
+        for (int i = 0; i < headings.count(); i++) {
             Utils::Match match = Utils::looksLikeTimeTitle(mat->heading(i));
             if (match == Utils::ExactMatch) {
                 iExact = i;
@@ -229,24 +230,22 @@ void TableWidget::showNextError(ErrorType errorType, bool nextNotPrev)
         if (irow > istartrow) { istartcol = 0; }
         if (irow < istartrow) { istartcol = colCount - 1; }
         for (icol = istartcol; (icol >= 0) && (icol < colCount); icol += incr) {
-            Matrix::MetaDataPtr md = mCsv->matrix->metaData[icol][irow];
-            if (md) {
-                switch (errorType) {
-                case All:
-                    found = md->hasError();
-                    break;
-                case ValueError:
-                    found = md->valueConversionError;
-                    break;
-                case ExcessCols:
-                    found = md->excessColsError;
-                    break;
-                case InsufCols:
-                    found = md->insufficientColsError;
-                    break;
-                }
-                if (found) { break; }
+            Matrix::MetaData md = mCsv->matrix->metadataColumn(icol)[irow];
+            switch (errorType) {
+            case All:
+                found = md.hasError();
+                break;
+            case ValueError:
+                found = md.valueConversionError;
+                break;
+            case ExcessCols:
+                found = md.excessColsError;
+                break;
+            case InsufCols:
+                found = md.insufficientColsError;
+                break;
             }
+            if (found) { break; }
         }
         if (found) { break; }
     }

@@ -439,7 +439,7 @@ void MainWindow::csvImportFinished(CsvPtr csv)
     // Add table window
     addTable(csv);
 
-    if (csv->matrix->errorCount) {
+    if (csv->matrix->errorCount()) {
         msgBox("Some errors were encountered during import. See the Info tab.");
     }
 }
@@ -474,7 +474,7 @@ void MainWindow::on_action_testPlot_triggered()
     int n = 100000;
     csv->matrix.reset(new Matrix(4));
     MatrixPtr mat = csv->matrix;
-    mat->setHeadings({"time", "sin", "cos", "sincos2"});
+    mat->setHeadingsExcludingIndexColumn({"time", "sin", "cos", "sincos2"});
 
     // Generate dummy data
     for (int i = 0; i < n; i++) {
