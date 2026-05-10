@@ -64,9 +64,11 @@ void QGVCrosshairWidget::paintEvent(QPaintEvent* /*event*/)
     QPainter painter(this);
 
     if (mHorizontalLineVisible) {
+        painter.setPen(mLinePen);
         painter.drawLine(0, mPos.y(), width(), mPos.y());
     }
     if (mVerticalLineVisible) {
+        painter.setPen(mLinePen);
         painter.drawLine(mPos.x(), 0, mPos.x(), height());
     }
 }

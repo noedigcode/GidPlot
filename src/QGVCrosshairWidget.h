@@ -23,6 +23,8 @@
 
 #include "QGVWidget.h"
 
+#include <QPen>
+
 class QGVCrosshairWidget : public QGVWidget
 {
     Q_OBJECT
@@ -43,6 +45,7 @@ private:
     QPoint mPos;
     bool mHorizontalLineVisible = true;
     bool mVerticalLineVisible = true;
+    QPen mLinePen {Qt::black};
 };
 
 #endif // QGVCROSSHAIRWIDGET_H

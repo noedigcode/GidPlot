@@ -884,6 +884,7 @@ MapPlot::Crosshair::Crosshair(QGVMap *mapWidget)
 
     label = new QGVWidgetText();
     label->setStyleSheet(
+                "color: black;"
                 "padding: 3px;"
                 "background-color: rgba(255,255,255,150);");
     label->setVisible(mVisible);
