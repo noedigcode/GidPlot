@@ -456,8 +456,17 @@ void MainWindow::msgBox(QString msg)
     mb.exec();
 }
 
-void MainWindow::closeEvent(QCloseEvent* /*event*/)
+void MainWindow::closeEvent(QCloseEvent* event)
 {
+    if (ui->tabWidget->tabAndWindowCount()) {
+        int choice = QMessageBox::question(this, QString("Quit %1").arg(APP_NAME),
+                                           "Are you sure you want to quit?");
+        if (choice != QMessageBox::Yes) {
+            event->ignore();
+            return;
+        }
+    }
+
     ui->tabWidget->closeAllWindows();
 }
 
