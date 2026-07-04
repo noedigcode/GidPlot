@@ -109,19 +109,24 @@ void CsvImportDialog::on_pushButton_import_clicked()
     }
     fileInfo.dataStartRow = dataRow;
 
-    int headingsRow = ui->lineEdit_headings->text().toInt();
-    if (headingsRow > 0) {
-        // > 0 means proper conversion from string
-        headingsRow--; // Program counts from zero.
-        if (headingsRow >= lines.count()) {
-            msgBox("Invalid headings row number.");
-            return;
+    QString headingText = ui->lineEdit_headings->text().trimmed();
+    if (!headingText.isEmpty()) {
+        int headingsRow = ui->lineEdit_headings->text().toInt();
+        if (headingsRow > 0) {
+            // > 0 means proper conversion from string
+            headingsRow--; // Program counts from zero.
+            if (headingsRow >= lines.count()) {
+                msgBox("Invalid headings row number.");
+                return;
+            } else {
+                fileInfo.headings = lines.value(headingsRow).split(",");
+            }
         } else {
-            fileInfo.headings = lines.value(headingsRow).split(",");
+            // Use specified comma-separated headings
+            foreach (QString heading, ui->lineEdit_headings->text().split(",")) {
+                fileInfo.headings.append(heading.trimmed());
+            }
         }
-    } else {
-        // Use specified comma-separated headings
-        fileInfo.headings = ui->lineEdit_headings->text().split(",");
     }
 
     emit import(fileInfo);
