@@ -40,6 +40,8 @@ CsvImportDialog::~CsvImportDialog()
 
 void CsvImportDialog::setFile(QString filename)
 {
+    fileInfo = Csv::FileInfo();
+
     fileInfo.filename = filename;
     ui->lineEdit_filename->setText(filename);
     ui->label_fileSize->setText(QString("File size: %1")
@@ -62,29 +64,48 @@ void CsvImportDialog::setFile(QString filename)
         int limit = 10;
         while (!file.atEnd()) {
             lineNum++;
-            QString line = file.readLine();
+            QByteArray line = file.readLine();
             line.replace("\n", "");
             lines.append(line);
 
             ui->textBrowser->append(QString("%1: %2")
                                     .arg(lineNum)
-                                    .arg(line));
+                                    .arg(QString(line)));
 
-            // Detect if first line is text
+            // Try to guess some properties from the first line
             if (lineNum == 1) {
-                bool letters = false;
+
+                // Determine whether line is text or data
+                bool isText = false;
                 foreach (QChar c, line) {
                     if (c.isLetter()) {
-                        letters = true;
+                        isText = true;
                         break;
                     }
                 }
-                if (letters) {
+                if (isText) {
+                    // Set headings text box to first row number
                     ui->lineEdit_headings->setText("1");
+                    // Assume data starts at row 2
                     ui->spinBox_dataStartRow->setValue(2);
                 } else {
+                    // Clear headings text box
                     ui->lineEdit_headings->setText("");
+                    // Assume data starts at row 1
                     ui->spinBox_dataStartRow->setValue(1);
+                }
+
+                // Try to guess separator
+                if (line.contains('\t')) {
+                    ui->radioButton_separatorTab->setChecked(true);
+                } else if (line.contains(',')) {
+                    ui->radioButton_separatorComma->setChecked(true);
+                } else if (line.contains(' ')) {
+                    ui->radioButton_separatorSpace->setChecked(true);
+                    ui->checkBox_combineSeparators->setChecked(true);
+                } else {
+                    // Fall back on comma
+                    ui->radioButton_separatorComma->setChecked(true);
                 }
             }
 
@@ -109,20 +130,35 @@ void CsvImportDialog::on_pushButton_import_clicked()
     }
     fileInfo.dataStartRow = dataRow;
 
+    if (ui->radioButton_separatorComma->isChecked()) {
+        fileInfo.separator = ',';
+    } else if (ui->radioButton_separatorTab->isChecked()) {
+        fileInfo.separator = '\t';
+    } else if (ui->radioButton_separatorSpace->isChecked()) {
+        fileInfo.separator = ' ';
+    }
+    fileInfo.combineSeparators = ui->checkBox_combineSeparators->isChecked();
+
+    // Determine headings based on headings text box content
     QString headingText = ui->lineEdit_headings->text().trimmed();
     if (!headingText.isEmpty()) {
         int headingsRow = ui->lineEdit_headings->text().toInt();
         if (headingsRow > 0) {
-            // > 0 means proper conversion from string
+            // > 0 means proper conversion from string, i.e. a heading row has
+            // been specified.
             headingsRow--; // Program counts from zero.
             if (headingsRow >= lines.count()) {
                 msgBox("Invalid headings row number.");
                 return;
             } else {
-                fileInfo.headings = lines.value(headingsRow).split(",");
+                QByteArrayList headings = Csv::separateLine(
+                            lines.value(headingsRow), fileInfo);
+                foreach (QByteArray heading, headings) {
+                    fileInfo.headings.append(QString(heading).trimmed());
+                }
             }
         } else {
-            // Use specified comma-separated headings
+            // Use comma-separated headings specified in text box
             foreach (QString heading, ui->lineEdit_headings->text().split(",")) {
                 fileInfo.headings.append(heading.trimmed());
             }

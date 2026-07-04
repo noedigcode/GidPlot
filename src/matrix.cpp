@@ -110,14 +110,13 @@ int Matrix::colCount()
     return mDataCols.count();
 }
 
-void Matrix::addCsvLine(const QByteArray &line)
+void Matrix::addCsvLine(const QByteArrayList &textValues)
 {
-    QList<QByteArray> split = line.split(',');
-    QVector<Value> values(split.size());
-    for (int i = 0; i < split.size(); ++i) {
+    QVector<Value> values(textValues.size());
+    for (int i = 0; i < textValues.size(); ++i) {
         Value& v = values[i];
         bool ok;
-        v.originalValue = split[i];
+        v.originalValue = textValues[i];
         v.value = v.originalValue.toDouble(&ok);
         if (!ok) {
             // Try bool

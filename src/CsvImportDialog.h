@@ -51,7 +51,7 @@ private slots:
 private:
     Ui::CsvImportDialog *ui;
     Csv::FileInfo fileInfo;
-    QStringList lines;
+    QByteArrayList lines;
 
     void msgBox(QString msg);
 };

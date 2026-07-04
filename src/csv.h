@@ -34,6 +34,9 @@ public:
         QString filename;
         QStringList headings;
         int dataStartRow = 0;
+        char separator = ',';
+        bool combineSeparators = false;
+
     } fileInfo;
 
     struct ImportInfo
@@ -45,10 +48,11 @@ public:
 
     QList<RangePtr> ranges();
     void addRange(RangePtr range);
-
     Range allRange();
 
     MatrixPtr matrix;
+
+    static QByteArrayList separateLine(const QByteArray& line, FileInfo fileInfo);
 
 signals:
     void rangeAdded(RangePtr range);

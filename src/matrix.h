@@ -57,7 +57,7 @@ public:
     int rowCount();
     int colCount();
 
-    void addCsvLine(const QByteArray &line);
+    void addCsvLine(const QByteArrayList &textValues);
     void addRow(QVector<double> values);
 
     bool colValid(int column);

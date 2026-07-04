@@ -85,11 +85,17 @@ void CsvImporter::doImport(CsvPtr csv)
         QByteArray line = file.readLine();
         bytesread += line.count();
         if (lineNum < csv->fileInfo.dataStartRow) { continue; }
+
+        QByteArrayList values = Csv::separateLine(line, csv->fileInfo);
+
         if (lineNum == csv->fileInfo.dataStartRow) {
-            csv->matrix.reset(new Matrix(line.split(',').count()));
+            // First data row. Initialise matrix.
+            int colNumGuess = qMax(values.count(), csv->fileInfo.headings.count());
+            csv->matrix.reset(new Matrix(colNumGuess));
             csv->matrix->setHeadingsExcludingIndexColumn(csv->fileInfo.headings);
         }
-        csv->matrix->addCsvLine(line);
+
+        csv->matrix->addCsvLine(values);
 
         if (progressFeedbackTimer.elapsed() > 100) {
             emit importProgress(csv,

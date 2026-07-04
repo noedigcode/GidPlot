@@ -36,3 +36,35 @@ Range Csv::allRange()
 {
     return Range("All", 0, matrix->rowCount());
 }
+
+QByteArrayList Csv::separateLine(const QByteArray &line, FileInfo fileInfo)
+{
+    if (fileInfo.combineSeparators) {
+        QByteArray line2;
+        bool lastWasSep = false;
+        for (int i = 0; i < line.count(); i++) {
+            char c = line.at(i);
+            if (c == '\n') { break; } // Do not add newlines to output
+            bool isSep = (c == fileInfo.separator);
+            if (i == 0) {
+                // Skip leading separator
+                if (!isSep) {
+                    line2.append(c);
+                }
+            } else {
+                bool repeatedSep = isSep && lastWasSep;
+                if (!repeatedSep) {
+                    line2.append(c);
+                }
+            }
+            lastWasSep = isSep;
+        }
+        // Remove trailing separator
+        if (line2.endsWith(fileInfo.separator)) {
+            line2.remove(line2.count() - 1, 1);
+        }
+        return line2.split(fileInfo.separator);
+    } else {
+        return line.split(fileInfo.separator);
+    }
+}
