@@ -1,6 +1,39 @@
 Gid~Plot Changelog
 ==================
 
+[0.2.2] - 2026-07-05
+--------------------
+
+Added
+
+- Add prompt when exiting app, if there are plot/CSV tabs/windows open.
+- Add additional separator options: tab, space and semicolon.
+- Add option to combine contiguous separators.
+- Auto-detect separators.
+
+Changed
+
+- Improve handling of missing/unexpected columns.
+- When a row has more columns than previous rows, add a new column and back
+  fill data in previous rows, and indicate errors.
+- When data conversion or no data errors are detected (i.e. insufficient columns),
+  show the used value in the table and not a question mark. Show the original
+  value (if applicable) in the error message (table cell tooltip).
+- Improve error messages in table cell tooltips.
+- CSV import: Trim spaces off headings text, as well as individual headings.
+- Increase number of lines in CSV import dialog preview from 10 to 100 and
+  indicate at the bottom when the file is only partially shown.
+
+Fixed
+
+- Fix crash when trying to plot a column for which there is no data.
+- Guard against crashes when data does not exist when plotting.
+- Force map plot crosshair lines and text to black so it doesn't turn out
+  white in system dark themes.
+- CSV import: when headings text box is empty, do not use a blank string
+  for first heading.
+
+
 [0.2.1] - 2026-04-01
 --------------------
 
