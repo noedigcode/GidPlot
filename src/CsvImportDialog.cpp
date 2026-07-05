@@ -61,7 +61,7 @@ void CsvImportDialog::setFile(QString filename)
         ui->textBrowser->clear();
 
         int lineNum = 0;
-        int limit = 10;
+        int limit = 100;
         while (!file.atEnd()) {
             lineNum++;
             QByteArray line = file.readLine();
@@ -96,8 +96,12 @@ void CsvImportDialog::setFile(QString filename)
                 }
 
                 // Try to guess separator
+                // Order of checking is somewhat important. Tabs and semicolons
+                // could be used when there are commas in the data.
                 if (line.contains('\t')) {
                     ui->radioButton_separatorTab->setChecked(true);
+                } else if (line.contains(';')) {
+                    ui->radioButton_separatorSemicolon->setChecked(true);
                 } else if (line.contains(',')) {
                     ui->radioButton_separatorComma->setChecked(true);
                 } else if (line.contains(' ')) {
@@ -111,6 +115,9 @@ void CsvImportDialog::setFile(QString filename)
 
             if (lineNum >= limit) { break; }
         }
+    }
+    if (!file.atEnd()) {
+        ui->textBrowser->append("(Rest of file not shown)");
     }
     file.close();
 
@@ -136,6 +143,8 @@ void CsvImportDialog::on_pushButton_import_clicked()
         fileInfo.separator = '\t';
     } else if (ui->radioButton_separatorSpace->isChecked()) {
         fileInfo.separator = ' ';
+    } else if (ui->radioButton_separatorSemicolon->isChecked()) {
+        fileInfo.separator = ';';
     }
     fileInfo.combineSeparators = ui->checkBox_combineSeparators->isChecked();
 
