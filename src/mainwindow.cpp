@@ -148,9 +148,9 @@ void MainWindow::addTable(CsvPtr csv)
 
     connect(t, &TableWidget::plot,
             this, [this, csvWkPtr = csv.toWeakRef()]
-            (bool newPlot, int ixcol, QList<int> iycols, Range range)
+            (bool newPlot, int ixcol, QList<int> iycols, Range range, bool stacked)
     {
-        onTablePlot(csvWkPtr, newPlot, ixcol, iycols, range);
+        onTablePlot(csvWkPtr, newPlot, ixcol, iycols, range, stacked);
     });
     connect(t, &TableWidget::mapPlot,
             this, [this, csvWkPtr = csv.toWeakRef()]
@@ -169,14 +169,14 @@ void MainWindow::addTable(CsvPtr csv)
 }
 
 void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
-                             QList<int> iycols, Range range)
+                             QList<int> iycols, Range range, bool stacked)
 {
     if (newPlot) {
 
         CsvPtr csv2(csvWkPtr);
         if (!csv2) { return; }
 
-        plot(csv2, ixcol, iycols, range);
+        plot(csv2, ixcol, iycols, range, stacked);
 
     } else {
         // Show a menu to select an existing plot.
@@ -218,7 +218,8 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                         name += QString(" Subplot %1").arg(iSubplot);
                     }
                     submenu->addAction(name, this,
-                                    [this, csvWkPtr, ixcol, iycols, range, p,
+                                    [this, csvWkPtr, ixcol, iycols, range,
+                                     stacked, p,
                                      subplotWkPtr = s.toWeakRef()]()
                     {
                         CsvPtr csv(csvWkPtr);
@@ -228,13 +229,13 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                         if (!subplot) { return; }
 
                         foreach (int iycol, iycols) {
-                            p->plotData(subplot, csv, ixcol, iycol, range);
+                            p->plotData(subplot, csv, ixcol, iycol, range, stacked);
                             focusPlot(p);
                         }
                     });
                 }
                 submenu->addAction("New Subplot", this,
-                                   [this, csvWkPtr, ixcol, iycols, range, p]()
+                                   [this, csvWkPtr, ixcol, iycols, range, stacked, p]()
                 {
                     CsvPtr csv(csvWkPtr);
                     if (!csv) { return; }
@@ -242,7 +243,7 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                     SubplotPtr subplot = p->addSubplot();
 
                     foreach (int iycol, iycols) {
-                        p->plotData(subplot, csv, ixcol, iycol, range);
+                        p->plotData(subplot, csv, ixcol, iycol, range, stacked);
                         focusPlot(p);
                     }
 
@@ -389,7 +390,7 @@ void MainWindow::onPlotLinkSettingsTrigerred(LinkPtr link)
     mLinkDialog.show(mPlots, link);
 }
 
-void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
+void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range, bool stacked)
 {
     MatrixPtr mat = csv->matrix;
 
@@ -410,7 +411,7 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range)
     PlotWindow* p = addPlot(title);
 
     foreach (int iycol, iycols) {
-        p->plotData(csv, ixcol, iycol, range);
+        p->plotData(csv, ixcol, iycol, range, stacked);
     }
 
     p->setTitle(title);

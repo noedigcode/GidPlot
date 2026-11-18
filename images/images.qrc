@@ -5,7 +5,7 @@
         <file>mouse_middleclick.png</file>
         <file>mouse_rightclick.png</file>
         <file>mouse_scroll.png</file>
-        <file alias="plot">PastelSVG-1.2/chart-curve.png</file>
+        <file>PastelSVG-1.2/chart-curve.png</file>
         <file alias="plotexample">PastelSVG-1.2/chart-curve-add.png</file>
         <file alias="loadcsv">PastelSVG-1.2/table-add.png</file>
         <file alias="table">PastelSVG-1.2/table.png</file>
@@ -36,5 +36,7 @@
         <file alias="paste">PastelSVG-1.2/paste-plain.png</file>
         <file alias="properties">PastelSVG-1.2/application-form.png</file>
         <file alias="coordinate">PastelSVG-1.2/bbcode.png</file>
+        <file alias="logicplot">PastelSVG-1.2/chart-logic_whitebg_gvdk.png</file>
+        <file alias="plot">PastelSVG-1.2/chart-curve_whitebg_gvdk.png</file>
     </qresource>
 </RCC>

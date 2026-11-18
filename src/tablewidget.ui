@@ -72,9 +72,9 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout">
          <item>
-          <widget class="QPushButton" name="pushButton_newPlot">
+          <widget class="QToolButton" name="toolButton_newPlot">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -86,16 +86,14 @@
             <iconset resource="../images/images.qrc">
              <normaloff>:/plot</normaloff>:/plot</iconset>
            </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="pushButton_newMapPlot">
-           <property name="text">
-            <string>Map Plot</string>
+           <property name="popupMode">
+            <enum>QToolButton::MenuButtonPopup</enum>
            </property>
-           <property name="icon">
-            <iconset resource="../images/images.qrc">
-             <normaloff>:/showall</normaloff>:/showall</iconset>
+           <property name="toolButtonStyle">
+            <enum>Qt::ToolButtonTextBesideIcon</enum>
+           </property>
+           <property name="arrowType">
+            <enum>Qt::NoArrow</enum>
            </property>
           </widget>
          </item>
@@ -346,6 +344,42 @@
     </widget>
    </item>
   </layout>
+  <action name="action_New_Plot">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/plot</normaloff>:/plot</iconset>
+   </property>
+   <property name="text">
+    <string>New Plot</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_Logic_Stacked_Plot">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/logicplot</normaloff>:/logicplot</iconset>
+   </property>
+   <property name="text">
+    <string>Logic/Stacked Plot</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="action_Map_Plot">
+   <property name="icon">
+    <iconset resource="../images/images.qrc">
+     <normaloff>:/showall</normaloff>:/showall</iconset>
+   </property>
+   <property name="text">
+    <string>Map Plot</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
  </widget>
  <resources>
   <include location="../images/images.qrc"/>

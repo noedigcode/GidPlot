@@ -194,7 +194,7 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
     qDebug() << "Legend right-clicked";
 }
 
-void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
+void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
 {
     if (ixcol >= csv->matrix->colCount()) { return; }
     if (iycol >= csv->matrix->colCount()) { return; }
@@ -207,12 +207,42 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range)
     Matrix::VectorStats xstats = Matrix::vectorStats(x);
     Matrix::VectorStats ystats = Matrix::vectorStats(y);
 
+    if (stack) {
+
+        // For a constant value graph, increase its bounds to zero or one
+        if (ystats.max == ystats.min) {
+            if (ystats.min == 0) {
+                ystats.max = 1.0;
+            } else {
+                ystats.min = 0;
+            }
+        }
+
+        // Normalize to 0-1 and offset
+        double offset = Plot::bounds.top() - 1.3;
+        for (int i = 0; i < y.length(); i++) {
+            y[i] = (y[i] - ystats.min) / (ystats.max - ystats.min) + offset;
+        }
+        ystats.max = 1.0 + offset;
+        ystats.min = 0.0 + offset;
+    }
+
     QPen pen = Graph::nextPen(mPenIndex++);
 
     QString name = csv->matrix->heading(iycol);
     // If range is not all, show range name
     if (!range.sameAs(csv->allRange())) {
         name = QString("%1 (%2)").arg(name).arg(range.name);
+    }
+
+    if (stack) {
+        if (!mYaxisTicker) {
+            mYaxisTicker.reset(new QCPAxisTickerText);
+            yAxis->setTicker(mYaxisTicker);
+            yAxis->setSubTicks(false);
+        }
+        mYaxisTicker->addTick((ystats.max - ystats.min) / 2 + ystats.min,
+                              name);
     }
 
     GraphPtr graph;
@@ -339,6 +369,16 @@ void Subplot::setPlotProperties(Properties p)
 void Subplot::renameGraph(GraphPtr graph, QString name)
 {
     graph->plottable()->setName(name);
+
+    // Update y-axis tickers if applicable
+    if (mYaxisTicker) {
+        int index = mGraphs.indexOf(graph);
+        if (index >= 0) {
+            double tickpos = (graph->ystats.max - graph->ystats.min) / 2 + graph->ystats.min;
+            mYaxisTicker->ticks()[tickpos] = name;
+        }
+    }
+
     mPlot->replot();
     updateLegendPlacement();
 }

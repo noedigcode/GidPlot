@@ -45,7 +45,7 @@ public:
     void setAddToPlotButtonEnabled(bool enabled);
 
 signals:
-    void plot(bool newPlot, int ixcol, QList<int> iycols, Range range);
+    void plot(bool newPlot, int ixcol, QList<int> iycols, Range range, bool stacked);
     void mapPlot(bool newPlot, int ixcol, int iycol, Range range);
 
 private slots:
@@ -62,13 +62,18 @@ private slots:
     void on_pushButton_addToPlot_clicked();
     void on_treeWidget_cols_x_itemSelectionChanged();
     void on_treeWidget_cols_y_itemSelectionChanged();
-    void on_pushButton_newPlot_clicked();
 
     void on_pushButton_newMapPlot_clicked();
 
     void on_comboBox_range_currentIndexChanged(int index);
 
     void on_lineEdit_range_textEdited(const QString &arg1);
+
+    void on_action_New_Plot_triggered();
+
+    void on_action_Logic_Stacked_Plot_triggered();
+
+    void on_action_Map_Plot_triggered();
 
 private:
     Ui::TableWidget *ui;
@@ -96,7 +101,7 @@ private:
 
     void setRange(RangePtr range);
 
-    void emitPlot(bool newPlot);
+    void emitPlot(bool newPlot, bool stacked);
     void emitMapPlot(bool newPlot);
 
     void resizeEvent(QResizeEvent* event);

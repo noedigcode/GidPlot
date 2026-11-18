@@ -59,8 +59,8 @@ public:
     QList<SubplotPtr> subplots();
     MapPlotPtr mapPlot();
     QSize plotWidgetSize();
-    void plotData(CsvPtr csv, int ixcol, int iycol, Range range);
-    void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range);
+    void plotData(CsvPtr csv, int ixcol, int iycol, Range range, bool stacked);
+    void plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range, bool stacked);
     void plotMap(CsvPtr csv, int ixcol, int iycol, Range range);
     SubplotPtr addSubplot();
     void setTitle(QString title, bool visible = true);

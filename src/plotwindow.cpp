@@ -109,7 +109,7 @@ QSize PlotWindow::plotWidgetSize()
     }
 }
 
-void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
+void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range, bool stacked)
 {
     SubplotPtr subplot = mSubplots.value(0);
     if (!subplot) {
@@ -117,14 +117,14 @@ void PlotWindow::plotData(CsvPtr csv, int ixcol, int iycol, Range range)
         initSubplot(subplot);
     }
 
-    plotData(subplot, csv, ixcol, iycol, range);
+    plotData(subplot, csv, ixcol, iycol, range, stacked);
 }
 
-void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range)
+void PlotWindow::plotData(SubplotPtr subplot, CsvPtr csv, int ixcol, int iycol, Range range, bool stacked)
 {
     if (!subplot) { return; }
 
-    subplot->plot(csv, ixcol, iycol, range);
+    subplot->plot(csv, ixcol, iycol, range, stacked);
 
     setupGuiForNormalPlot();
 }

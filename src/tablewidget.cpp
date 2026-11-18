@@ -35,6 +35,14 @@ TableWidget::TableWidget(QWidget *parent) :
 
     ui->tabWidget->setCurrentWidget(ui->tab_plot);
     updateButtonsEnabled();
+
+    // New plot button menu
+    QMenu* menu = new QMenu(this);
+    menu->addAction(ui->action_New_Plot);
+    menu->addAction(ui->action_Logic_Stacked_Plot);
+    menu->addAction(ui->action_Map_Plot);
+    ui->toolButton_newPlot->setMenu(menu);
+    ui->toolButton_newPlot->setDefaultAction(ui->action_New_Plot);
 }
 
 TableWidget::~TableWidget()
@@ -287,7 +295,7 @@ void TableWidget::updateButtonsEnabled()
     bool xsel = ui->treeWidget_cols_x->selectedItems().count() > 0;
     bool ysel = ui->treeWidget_cols_y->selectedItems().count() > 0;
 
-    ui->pushButton_newPlot->setEnabled(xsel && ysel);
+    ui->toolButton_newPlot->setEnabled(xsel && ysel);
     ui->pushButton_addToPlot->setEnabled(xsel && ysel && mAddToPlotButtonEnabled);
 }
 
@@ -296,7 +304,7 @@ void TableWidget::setRange(RangePtr range)
     ui->lineEdit_range->setText(range->toRangeString());
 }
 
-void TableWidget::emitPlot(bool newPlot)
+void TableWidget::emitPlot(bool newPlot, bool stacked)
 {
     ColSelection selection = getColumnsSelection();
 
@@ -306,7 +314,7 @@ void TableWidget::emitPlot(bool newPlot)
     Range range = getRange();
     if (range.size() == 0) { return; }
 
-    emit plot(newPlot, selection.xcols.value(0), selection.ycols, range);
+    emit plot(newPlot, selection.xcols.value(0), selection.ycols, range, stacked);
 }
 
 void TableWidget::emitMapPlot(bool newPlot)
@@ -407,7 +415,7 @@ void TableWidget::on_toolButton_errors_total_next_clicked()
 
 void TableWidget::on_pushButton_addToPlot_clicked()
 {
-    emitPlot(false);
+    emitPlot(false, false);
 }
 
 void TableWidget::on_treeWidget_cols_x_itemSelectionChanged()
@@ -418,11 +426,6 @@ void TableWidget::on_treeWidget_cols_x_itemSelectionChanged()
 void TableWidget::on_treeWidget_cols_y_itemSelectionChanged()
 {
     updateWidgetsOnColumnSelectionChange();
-}
-
-void TableWidget::on_pushButton_newPlot_clicked()
-{
-    emitPlot(true);
 }
 
 void TableWidget::on_pushButton_newMapPlot_clicked()
@@ -464,5 +467,20 @@ void TableWidget::on_lineEdit_range_textEdited(const QString& /*arg1*/)
     if (ui->comboBox_range->currentIndex() != comboBoxCustomIndex) {
         ui->comboBox_range->setCurrentIndex(comboBoxCustomIndex);
     }
+}
+
+void TableWidget::on_action_New_Plot_triggered()
+{
+    emitPlot(true, false);
+}
+
+void TableWidget::on_action_Logic_Stacked_Plot_triggered()
+{
+    emitPlot(true, true);
+}
+
+void TableWidget::on_action_Map_Plot_triggered()
+{
+    emitMapPlot(true);
 }
 

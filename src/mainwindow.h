@@ -61,7 +61,7 @@ private slots:
     void onPlotRemoved(PlotWindow* plot);
     void addTable(CsvPtr csv);
     void onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
-                     QList<int> iycols, Range range);
+                     QList<int> iycols, Range range, bool stacked);
     void onTableMapPlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                      int iycol, Range range);
     void onPlotWindowDestroyed(PlotWindow* p);
@@ -72,7 +72,7 @@ private slots:
     void onPlotTitleSet(PlotWindow* p, QString title);
     void onPlotLinkSettingsTrigerred(LinkPtr link);
 
-    void plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range);
+    void plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range, bool stacked);
 
     void csvImportFinished(CsvPtr csv);
     void csvImportProgress(CsvPtr csv, QString info);

@@ -76,7 +76,7 @@ public:
     static QCPLegend* findLegend(QCPAxisRect* axisRect);
     bool inAxisRect(QPoint pos);
 
-    void plot(CsvPtr csv, int ixcol, int iycol, Range range);
+    void plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack = false);
     void setXLabel(QString xlabel, bool visible = true);
     void setXLabelVisible(bool visible);
     void setYLabel(QString ylabel, bool visible = true);
@@ -106,6 +106,7 @@ private:
     QCPAxisRect* axisRect = nullptr;
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
+    QSharedPointer<QCPAxisTickerText> mYaxisTicker;
     void queueReplot();
 
     QString mXlabel;
