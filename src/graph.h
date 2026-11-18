@@ -111,6 +111,20 @@ public:
     Matrix::VectorStats ystats;
     QRectF dataBounds();
 
+    bool normalized = false;
+    double yoffset = 0;
+    double originalYmax = 0;
+    double originalYmin = 0;
+    double yUnmap(double normalizedOffsetValue)
+    {
+        if (normalized) {
+            return (normalizedOffsetValue - yoffset) * (originalYmax - originalYmin)
+                    + originalYmin;
+        } else {
+            return normalizedOffsetValue;
+        }
+    }
+
     GridHash grid;
 
     bool isCurve();

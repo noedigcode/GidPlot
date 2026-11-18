@@ -200,12 +200,19 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     if (iycol >= csv->matrix->colCount()) { return; }
 
     bool firstPlot = (axisRect->plottables().size() == 0);
+    // Set this subplot to stacked if this plot is stacked. Don't unset it if
+    // it was already set to stacked.
+    if (stack) { mStacked = true; }
 
     QVector<double> x = csv->matrix->dataColumn(ixcol, range.start, range.size());
     QVector<double> y = csv->matrix->dataColumn(iycol, range.start, range.size());
 
     Matrix::VectorStats xstats = Matrix::vectorStats(x);
     Matrix::VectorStats ystats = Matrix::vectorStats(y);
+
+    double offset = 0;
+    double originalYmax = ystats.max;
+    double originalYmin = ystats.min;
 
     if (stack) {
 
@@ -217,9 +224,11 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
                 ystats.min = 0;
             }
         }
+        originalYmax = ystats.max;
+        originalYmin = ystats.min;
 
         // Normalize to 0-1 and offset
-        double offset = Plot::bounds.top() - 1.3;
+        offset = Plot::bounds.top() - 1.3;
         for (int i = 0; i < y.length(); i++) {
             y[i] = (y[i] - ystats.min) / (ystats.max - ystats.min) + offset;
         }
@@ -230,8 +239,9 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     QPen pen = Graph::nextPen(mPenIndex++);
 
     QString name = csv->matrix->heading(iycol);
-    // If range is not all, show range name
-    if (!range.sameAs(csv->allRange())) {
+    // If range is not all, show range name. Except if stacked, as it takes up
+    // too much space.
+    if (!range.sameAs(csv->allRange()) && !stack) {
         name = QString("%1 (%2)").arg(name).arg(range.name);
     }
 
@@ -273,6 +283,10 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     graph->ystats = ystats;
     mGraphs.append(graph);
     plottableGraphMap.insert(graph->plottable(), graph);
+    graph->normalized = stack;
+    graph->yoffset = offset;
+    graph->originalYmax = originalYmax;
+    graph->originalYmin = originalYmin;
 
     // Record min/max for all graphs
     expandBounds(graph->dataBounds());
@@ -289,9 +303,17 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     }
 
     // Legend visibility
+    // mAutoShowLegend will be on initially before the user has toggled the
+    // legend visibility.
     if (mAutoShowLegend) {
-        // If auto-show is on, show if there are more than one plots
-        mShowLegend = (axisRect->plottables().count() > 1);
+        if (stack) {
+            // Don't automatically show if stacked, as signal names are given in
+            // the y-axis.
+            mShowLegend = false;
+        } else {
+            // If auto-show is on, show if there are more than one plots
+            mShowLegend = (axisRect->plottables().count() > 1);
+        }
     }
     legend->setVisible(mShowLegend && !mGraphs.isEmpty());
     if (legend->visible()) {
@@ -969,7 +991,7 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                     mPlotCrosshair->position->setCoords(closest.coord);
                     mPlotCrosshair->text = QString("%1, %2 [%3]")
                             .arg(closest.coord.x())
-                            .arg(closest.coord.y())
+                            .arg(dataTipGraph->yUnmap(closest.coord.y()))
                             .arg(closest.dataIndex);
                     emit dataTipChanged(link->group,
                                 closest.dataIndex + dataTipGraph->range.start);
@@ -982,7 +1004,13 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
             // Update mouse crosshair
             if (mMouseCrosshair->visible()) {
                 mMouseCrosshair->position->setCoords(mouseX, mouseY);
-                mMouseCrosshair->text = QString("%1, %2").arg(mouseX).arg(mouseY);
+                if (mStacked) {
+                    // If stacked, don't show Y position in mouse crosshair as
+                    // it will be wrong due to the offsets of the plots.
+                    mMouseCrosshair->text = QString("X: %1").arg(mouseX);
+                } else {
+                    mMouseCrosshair->text = QString("%1, %2").arg(mouseX).arg(mouseY);
+                }
                 replot = true;
             }
         }

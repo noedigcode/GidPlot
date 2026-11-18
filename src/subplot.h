@@ -107,6 +107,7 @@ private:
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QSharedPointer<QCPAxisTickerText> mYaxisTicker;
+    bool mStacked = false; // Plot contains stacked logic graphs
     void queueReplot();
 
     QString mXlabel;
