@@ -34,19 +34,14 @@
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
-        <widget class="QTreeWidget" name="treeWidget_cols_x">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>X-axis (or Longitude)</string>
          </property>
-         <column>
-          <property name="text">
-           <string>X-axis (or Longitude)</string>
-          </property>
-         </column>
         </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="comboBox_cols_x"/>
        </item>
        <item>
         <widget class="QGroupBox" name="groupBox_2">

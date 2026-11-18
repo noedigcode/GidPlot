@@ -56,9 +56,9 @@ void TableWidget::setData(CsvPtr csv)
     if (!mCsv) { return; }
     MatrixPtr mat = csv->matrix;
 
-    // Fill column tree widgets
+    // Fill column picker widgets
     foreach (QString heading, mat->getHeadingsForExistingColumns()) {
-        ui->treeWidget_cols_x->addTopLevelItem(new QTreeWidgetItem({heading}));
+        ui->comboBox_cols_x->addItem(heading);
         ui->treeWidget_cols_y->addTopLevelItem(new QTreeWidgetItem({heading}));
     }
     selectDefaultColumns();
@@ -189,8 +189,7 @@ void TableWidget::selectDefaultColumns()
             iSelect = iContain;
         }
     }
-    ui->treeWidget_cols_x->setCurrentItem(
-                ui->treeWidget_cols_x->topLevelItem(iSelect));
+    ui->comboBox_cols_x->setCurrentIndex(iSelect);
 
     // Select something else for y-axis
 
@@ -268,7 +267,7 @@ TableWidget::ColSelection TableWidget::getColumnsSelection()
 {
     ColSelection selection;
 
-    selection.xcols = getTreeWidgetTopLevelItemSelection(ui->treeWidget_cols_x);
+    selection.xcols = {ui->comboBox_cols_x->currentIndex()};
     selection.ycols = getTreeWidgetTopLevelItemSelection(ui->treeWidget_cols_y);
 
     return selection;
@@ -292,7 +291,7 @@ void TableWidget::updateWidgetsOnColumnSelectionChange()
 
 void TableWidget::updateButtonsEnabled()
 {
-    bool xsel = ui->treeWidget_cols_x->selectedItems().count() > 0;
+    bool xsel = ui->comboBox_cols_x->currentIndex() >= 0;
     bool ysel = ui->treeWidget_cols_y->selectedItems().count() > 0;
 
     ui->toolButton_newPlot->setEnabled(xsel && ysel);
