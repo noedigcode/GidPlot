@@ -1,6 +1,19 @@
 Gid~Plot Changelog
 ==================
 
+[0.2.3] - 2026-11-18
+--------------------
+
+Added
+
+- Stacked logic plots.
+
+Changed
+
+- The New Plot button now has a dropdown menu with Map Plot and the new Stacked
+  Logic plot moved there.
+
+
 [0.2.2] - 2026-07-05
 --------------------
 
