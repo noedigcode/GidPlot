@@ -47,8 +47,8 @@ public:
     {
         QString datasetName;
         int dataIndex = -1;
-        double xCoord = 0;
-        double yCoord = 0;
+        QPointF screenCoord;
+        QPointF dataCoord;
         PlotMarkerItem* plotMarker = nullptr;
         QCPItemText* textItem = nullptr;
         QCPItemLine* arrow = nullptr;
@@ -107,7 +107,13 @@ private:
     QCPAxis* xAxis = nullptr;
     QCPAxis* yAxis = nullptr;
     QSharedPointer<QCPAxisTickerText> mYaxisTicker;
+    QMap<GraphPtr, double> mGraphYaxisTickerPosMap;
     bool mStacked = false; // Plot contains stacked logic graphs
+    double graphStackOffset(int index);
+    void restackGraphs();
+    void updateGraphYaxisTickerPos(GraphPtr graph);
+    void addGraphYaxisTicker(GraphPtr graph, QString name);
+    void renameGraphYaxisTicker(GraphPtr graph, QString name);
     void queueReplot();
 
     QString mXlabel;
@@ -170,6 +176,7 @@ private:
     QCPLegend* legend = nullptr;
     bool mShowLegend = true;
     bool mAutoShowLegend = true;
+    void updateLegendVisibilityBasedOnAutoEtc();
 
     struct LegendMouse {
         bool mouseDown = false;
@@ -195,7 +202,7 @@ private:
     MarkerEditDialog mMarkerEditDialog;
     void setupMarkerEditDialog();
 
-    MarkerPtr addMarker(QPointF coord);
+    MarkerPtr addMarker(QPointF screenCoord, QPointF dataCoord);
 
     struct MarkerMouse {
         bool mouseDown = false;
@@ -220,7 +227,7 @@ private:
 
     QList<MeasurePtr> mMeasures;
     MeasurePtr mCurrentMeasure;
-    MarkerPtr newMeasureMarker(double x, double y, QString text);
+    MarkerPtr newMeasureMarker(QPointF screenCoord, QString text);
     void startMeasure(MeasurePtr meas);
     void clearCurrentMeasure();
     int mMeasureCounter = 1;

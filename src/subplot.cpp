@@ -200,9 +200,13 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     if (iycol >= csv->matrix->colCount()) { return; }
 
     bool firstPlot = (axisRect->plottables().size() == 0);
-    // Set this subplot to stacked if this plot is stacked. Don't unset it if
-    // it was already set to stacked.
-    if (stack) { mStacked = true; }
+
+    // Stack setting is only changed for first plot.
+    if (firstPlot) {
+        mStacked = stack;
+    }
+    stack = mStacked; // Adhere to stacked setting, whether it was set just now
+                      // or by a previous (first) plot.
 
     QVector<double> x = csv->matrix->dataColumn(ixcol, range.start, range.size());
     QVector<double> y = csv->matrix->dataColumn(iycol, range.start, range.size());
@@ -216,7 +220,8 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
 
     if (stack) {
 
-        // For a constant value graph, increase its bounds to zero or one
+        // If the data only has one constant value, artificially extend the
+        // bounds to 1 or 0 so the curve will be more clear visually once plotted.
         if (ystats.max == ystats.min) {
             if (ystats.min == 0) {
                 ystats.max = 1.0;
@@ -228,9 +233,9 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
         originalYmin = ystats.min;
 
         // Normalize to 0-1 and offset
-        offset = Plot::bounds.top() - 1.3;
-        for (int i = 0; i < y.length(); i++) {
-            y[i] = (y[i] - ystats.min) / (ystats.max - ystats.min) + offset;
+        offset = graphStackOffset(mGraphs.length());
+        for (double& value : y) {
+            value = (value - ystats.min) / (ystats.max - ystats.min) + offset;
         }
         ystats.max = 1.0 + offset;
         ystats.min = 0.0 + offset;
@@ -243,16 +248,6 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     // too much space.
     if (!range.sameAs(csv->allRange()) && !stack) {
         name = QString("%1 (%2)").arg(name).arg(range.name);
-    }
-
-    if (stack) {
-        if (!mYaxisTicker) {
-            mYaxisTicker.reset(new QCPAxisTickerText);
-            yAxis->setTicker(mYaxisTicker);
-            yAxis->setSubTicks(false);
-        }
-        mYaxisTicker->addTick((ystats.max - ystats.min) / 2 + ystats.min,
-                              name);
     }
 
     GraphPtr graph;
@@ -296,6 +291,21 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
         graph->grid.insert(QPointF(x[i], y[i]), i);
     }
 
+    // Y-axis ticks: per-signal ticks for stacked, range otherwise.
+    if (stack) {
+        if (!mYaxisTicker) {
+            mYaxisTicker.reset(new QCPAxisTickerText);
+            yAxis->setTicker(mYaxisTicker);
+            yAxis->setSubTicks(false);
+        }
+        addGraphYaxisTicker(graph, name);
+    } else {
+        if (mYaxisTicker) {
+            yAxis->setTicker(QSharedPointer<QCPAxisTicker>(new QCPAxisTicker));
+            mYaxisTicker.reset();
+        }
+    }
+
     legend->addItem(new QCPPlottableLegendItem(legend, graph->plottable()));
 
     if (mGraphs.count() == 1) {
@@ -303,22 +313,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
     }
 
     // Legend visibility
-    // mAutoShowLegend will be on initially before the user has toggled the
-    // legend visibility.
-    if (mAutoShowLegend) {
-        if (stack) {
-            // Don't automatically show if stacked, as signal names are given in
-            // the y-axis.
-            mShowLegend = false;
-        } else {
-            // If auto-show is on, show if there are more than one plots
-            mShowLegend = (axisRect->plottables().count() > 1);
-        }
-    }
-    legend->setVisible(mShowLegend && !mGraphs.isEmpty());
-    if (legend->visible()) {
-        updateLegendPlacement();
-    }
+    updateLegendVisibilityBasedOnAutoEtc();
 
     if (firstPlot) {
         // Only show all on first plot as to not mess up view when adding more
@@ -393,13 +388,7 @@ void Subplot::renameGraph(GraphPtr graph, QString name)
     graph->plottable()->setName(name);
 
     // Update y-axis tickers if applicable
-    if (mYaxisTicker) {
-        int index = mGraphs.indexOf(graph);
-        if (index >= 0) {
-            double tickpos = (graph->ystats.max - graph->ystats.min) / 2 + graph->ystats.min;
-            mYaxisTicker->ticks()[tickpos] = name;
-        }
-    }
+    renameGraphYaxisTicker(graph, name);
 
     mPlot->replot();
     updateLegendPlacement();
@@ -437,6 +426,21 @@ void Subplot::removeGraph(GraphPtr graph)
         setDataTipGraph(mGraphs.value(0));
     }
 
+    // Remove y-axis ticker if stacked
+    if (mStacked) {
+        if (mGraphYaxisTickerPosMap.contains(graph)) {
+            if (mYaxisTicker) {
+                mYaxisTicker->ticks().remove(mGraphYaxisTickerPosMap.value(graph));
+            }
+            mGraphYaxisTickerPosMap.remove(graph);
+        }
+    }
+
+    // Relocate other graphs if stacked
+    if (mStacked) {
+        restackGraphs();
+    }
+
     // Recalculate overall min/max for remaining graphs
     bounds = QRectF();
     foreach (GraphPtr graph, mGraphs) {
@@ -445,11 +449,7 @@ void Subplot::removeGraph(GraphPtr graph)
 
     mPlot->replot();
 
-    if (mAutoShowLegend) {
-        mShowLegend = (mGraphs.count() > 1);
-    }
-    legend->setVisible(mShowLegend && !mGraphs.isEmpty());
-    updateLegendPlacement();
+    updateLegendVisibilityBasedOnAutoEtc();
 }
 
 Plot::Properties Subplot::getPlotProperties()
@@ -574,6 +574,72 @@ void Subplot::keyEvent(QEvent *event)
 
         }
     }
+}
+
+double Subplot::graphStackOffset(int index)
+{
+    // Stacked graphs are normalized to 0-1.0 and then offset.
+    // Return index * (1 + offset fraction)
+    return -(index * 1.3);
+}
+
+void Subplot::restackGraphs()
+{
+    for (int igraph = 0; igraph < mGraphs.length(); igraph++) {
+        GraphPtr graph = mGraphs.at(igraph);
+        double newYoffset = graphStackOffset(igraph);
+        double oldYoffset = graph->yoffset;
+        if (oldYoffset != newYoffset) {
+            graph->yoffset = newYoffset;
+            if (graph->graph) {
+                QSharedPointer<QCPGraphDataContainer> d = graph->graph->data();
+                for (auto it = d->begin(); it != d->end(); ++it) {
+                    it->value = it->value - oldYoffset + newYoffset;
+                }
+            } else if (graph->curve) {
+                QSharedPointer<QCPCurveDataContainer> d = graph->curve->data();
+                for (auto it = d->begin(); it != d->end(); ++it) {
+                    it->value = it->value - oldYoffset + newYoffset;
+                }
+            }
+            graph->ystats.max += newYoffset - oldYoffset;
+            graph->ystats.min += newYoffset - oldYoffset;
+            updateGraphYaxisTickerPos(graph);
+        }
+    }
+    queueReplot();
+}
+
+void Subplot::updateGraphYaxisTickerPos(GraphPtr graph)
+{
+    // Remove existing and get name
+    if (!mGraphYaxisTickerPosMap.contains(graph)) { return; }
+    if (!mYaxisTicker) { return; }
+
+    double tickerPos = mGraphYaxisTickerPosMap.value(graph);
+    QString name;
+    if (mYaxisTicker->ticks().contains(tickerPos)) {
+        name = mYaxisTicker->ticks().take(tickerPos);
+    }
+
+    addGraphYaxisTicker(graph, name);
+}
+
+void Subplot::addGraphYaxisTicker(GraphPtr graph, QString name)
+{
+    double tickerPos = (graph->ystats.max - graph->ystats.min) / 2
+            + graph->ystats.min;
+
+    mYaxisTicker->addTick(tickerPos, name);
+    mGraphYaxisTickerPosMap.insert(graph, tickerPos);
+}
+
+void Subplot::renameGraphYaxisTicker(GraphPtr graph, QString name)
+{
+    if (!mYaxisTicker) { return; }
+    if (!mGraphYaxisTickerPosMap.contains(graph)) { return; }
+
+    mYaxisTicker->ticks()[mGraphYaxisTickerPosMap.value(graph)] = name;
 }
 
 bool Subplot::plotCrosshairVisible()
@@ -824,7 +890,8 @@ void Subplot::onActionPlaceMarkerOnCurveTriggered()
     ClosestCoord closest = findClosestCoord(pos, graph, mPlotCrosshairSnap);
     if (!closest.valid) { return; }
 
-    MarkerPtr marker = addMarker(closest.coord);
+    QPointF dataCoord = graph->dataCoordFromScreen(closest.coord);
+    MarkerPtr marker = addMarker(closest.coord, dataCoord);
 
     marker->datasetName = graph->name();
     marker->dataIndex = closest.dataIndex;
@@ -839,7 +906,7 @@ void Subplot::onActionPlaceMarkerAtMouseTriggered()
 {
     QPointF coord = pixelPosToCoord(mouse.lastMovePos);
 
-    MarkerPtr marker = addMarker(coord);
+    MarkerPtr marker = addMarker(coord, coord);
 
     marker->text = "X: $x\nY: $y";
     updateMarkerText(marker);
@@ -854,13 +921,13 @@ void Subplot::onActionPasteMarkerTriggered()
     if (!graph) { graph = mGraphs.value(0); }
     if (!graph) { return; }
 
-    QPointF coord;
+    QPointF screenCoord;
+    QPointF dataCoord;
     int index = Plot::copiedMarkerData.dataIndex - dataTipGraph->range.start;
     if ((index >= 0) && (index < dataTipGraph->dataCount())) {
         // Valid index
-        double x = dataTipGraph->datax(index);
-        double y = dataTipGraph->datay(index);
-        coord = QPointF(x, y);
+        screenCoord = dataTipGraph->coord(index);
+        dataCoord = dataTipGraph->dataCoordFromScreen(screenCoord);
     } else {
         // Invalid index. See if it makes sense pasting the marker using coordinates.
         QRectF rect = Plot::bounds;
@@ -869,7 +936,7 @@ void Subplot::onActionPasteMarkerTriggered()
         rect.adjust(-padx, -pady, padx, pady);
         bool doPaste = true;
         if (!rect.contains(QPointF(Plot::copiedMarkerData.sourceX,
-                                     Plot::copiedMarkerData.sourceY))) {
+                                   Plot::copiedMarkerData.sourceY))) {
             // Copied marker coordinates are far out of our bounds.
             // Confirm with user.
             int button = QMessageBox::question(nullptr, "Paste Marker",
@@ -885,14 +952,15 @@ void Subplot::onActionPasteMarkerTriggered()
             }
         }
         if (doPaste) {
-            coord = QPointF(Plot::copiedMarkerData.sourceX,
-                            Plot::copiedMarkerData.sourceY);
+            screenCoord = QPointF(Plot::copiedMarkerData.sourceX,
+                                  Plot::copiedMarkerData.sourceY);
+            dataCoord = screenCoord;
         } else {
             return;
         }
     }
 
-    MarkerPtr marker = addMarker(coord);
+    MarkerPtr marker = addMarker(screenCoord, dataCoord);
 
     marker->datasetName = graph->name();
     marker->dataIndex = Plot::copiedMarkerData.dataIndex;
@@ -913,8 +981,8 @@ void Subplot::onActionMeasureTriggered()
     }
 
     QPoint pos = mouse.lastMovePos;
-    double x = xAxis->pixelToCoord(pos.x());
-    double y = yAxis->pixelToCoord(pos.y());
+    QPointF mouseCoord(xAxis->pixelToCoord(pos.x()),
+                       yAxis->pixelToCoord(pos.y()));
 
     MeasurePtr m = MeasurePtr::create();
     m->tag = QString("Measure %1").arg(mMeasureCounter++);
@@ -923,7 +991,7 @@ void Subplot::onActionMeasureTriggered()
     for (int i = 0; i < 2; i++) {
 
         QString text = QString("%1 A\n$x, $y").arg(m->tag);
-        MarkerPtr a = newMeasureMarker(x, y, text);
+        MarkerPtr a = newMeasureMarker(mouseCoord, text);
 
         ab.append(a);
     }
@@ -946,15 +1014,20 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
     if (inAxisRect(event->pos()) && xAxis && yAxis) {
 
-        double mouseX = xAxis->pixelToCoord(event->x());
-        double mouseY = yAxis->pixelToCoord(event->y());
+        QPointF mouseCoord(xAxis->pixelToCoord(event->x()),
+                           yAxis->pixelToCoord(event->y()));
 
         if (mCurrentMeasure) {
-            QPointF delta = QPointF(mouseX, mouseY) -
-                    mCurrentMeasure->a->plotMarker->position->coords();
-            mCurrentMeasure->b->plotMarker->position->setCoords(mouseX, mouseY);
-            mCurrentMeasure->b->xCoord = mouseX;
-            mCurrentMeasure->b->yCoord = mouseY;
+            mCurrentMeasure->b->plotMarker->position->setCoords(mouseCoord);
+            mCurrentMeasure->b->screenCoord = mouseCoord;
+            if (dataTipGraph) {
+                mCurrentMeasure->b->dataCoord = dataTipGraph->dataCoordFromScreen(
+                            mouseCoord);
+            } else {
+                mCurrentMeasure->b->dataCoord = mouseCoord;
+            }
+            QPointF delta = mCurrentMeasure->b->dataCoord
+                    - mCurrentMeasure->a->dataCoord;
             mCurrentMeasure->b->text = QString("%1 B\n$x, $y\ndx: %2, dy: %3")
                     .arg(mCurrentMeasure->tag)
                     .arg(delta.x())
@@ -991,7 +1064,7 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
                     mPlotCrosshair->position->setCoords(closest.coord);
                     mPlotCrosshair->text = QString("%1, %2 [%3]")
                             .arg(closest.coord.x())
-                            .arg(dataTipGraph->yUnmap(closest.coord.y()))
+                            .arg(dataTipGraph->dataYFromScreen(closest.coord.y()))
                             .arg(closest.dataIndex);
                     emit dataTipChanged(link->group,
                                 closest.dataIndex + dataTipGraph->range.start);
@@ -1003,13 +1076,14 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
             // Update mouse crosshair
             if (mMouseCrosshair->visible()) {
-                mMouseCrosshair->position->setCoords(mouseX, mouseY);
+                mMouseCrosshair->position->setCoords(mouseCoord);
                 if (mStacked) {
                     // If stacked, don't show Y position in mouse crosshair as
                     // it will be wrong due to the offsets of the plots.
-                    mMouseCrosshair->text = QString("X: %1").arg(mouseX);
+                    mMouseCrosshair->text = QString("X: %1").arg(mouseCoord.x());
                 } else {
-                    mMouseCrosshair->text = QString("%1, %2").arg(mouseX).arg(mouseY);
+                    mMouseCrosshair->text = QString("%1, %2")
+                            .arg(mouseCoord.x()).arg(mouseCoord.y());
                 }
                 replot = true;
             }
@@ -1017,6 +1091,26 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
     }
 
     return replot;
+}
+
+void Subplot::updateLegendVisibilityBasedOnAutoEtc()
+{
+    // mAutoShowLegend will be on initially before the user has toggled the
+    // legend visibility.
+    if (mAutoShowLegend) {
+        if (mStacked) {
+            // Don't automatically show if stacked, as signal names are given in
+            // the y-axis.
+            mShowLegend = false;
+        } else {
+            // If auto-show is on, show if there are more than one plots
+            mShowLegend = (mGraphs.count() > 1);
+        }
+    }
+    legend->setVisible(mShowLegend && !mGraphs.isEmpty());
+    if (legend->visible()) {
+        updateLegendPlacement();
+    }
 }
 
 bool Subplot::legendMouseMove(QMouseEvent *event)
@@ -1135,11 +1229,11 @@ void Subplot::setupMarkerEditDialog()
     mMarkerEditDialog.setNormalPlotMode();
 }
 
-Subplot::MarkerPtr Subplot::addMarker(QPointF coord)
+Subplot::MarkerPtr Subplot::addMarker(QPointF screenCoord, QPointF dataCoord)
 {
     PlotMarkerItem* dot = new PlotMarkerItem(mPlot, axisRect, xAxis, yAxis);
     dot->setLayer("markers");
-    dot->position->setCoords(coord);
+    dot->position->setCoords(screenCoord);
     dot->circleSize = 10;
     dot->circleFillBrush = QBrush(QColor(255, 0, 0, 100));
     dot->linePen.setStyle(Qt::DashLine);
@@ -1163,12 +1257,12 @@ Subplot::MarkerPtr Subplot::addMarker(QPointF coord)
         position->setAxes(xAxis, yAxis);
     }
     arrow->setLayer("markers");
-    arrow->end->setCoords(coord);
+    arrow->end->setCoords(screenCoord);
     arrow->setHead(QCPLineEnding::esSpikeArrow);
 
     MarkerPtr marker(new Marker());
-    marker->xCoord = coord.x();
-    marker->yCoord = coord.y();
+    marker->screenCoord = screenCoord;
+    marker->dataCoord = dataCoord;
     marker->plotMarker = dot;
     marker->textItem = label;
     marker->arrow = arrow;
@@ -1278,8 +1372,8 @@ bool Subplot::markerRightClick(QPoint pos)
         Plot::copiedMarkerData.text = m->text;
         Plot::copiedMarkerData.dataIndex = m->dataIndex + dataTipGraph->range.start;
         Plot::copiedMarkerData.valid = true;
-        Plot::copiedMarkerData.sourceX = m->xCoord;
-        Plot::copiedMarkerData.sourceY = m->yCoord;
+        Plot::copiedMarkerData.sourceX = m->dataCoord.x();
+        Plot::copiedMarkerData.sourceY = m->dataCoord.y();
         Plot::copiedMarkerData.sourceXaxis = mXlabel;
         Plot::copiedMarkerData.sourceYaxis = mYlabel;
         Plot::copiedMarkerData.sourceTitle = Plot::title();
@@ -1294,8 +1388,8 @@ bool Subplot::markerRightClick(QPoint pos)
         // Copy coordinate to OS clipboard
         QGuiApplication::clipboard()->setText(
                     QString("%1, %2")
-                    .arg(m->xCoord)
-                    .arg(m->yCoord));
+                    .arg(m->dataCoord.x())
+                    .arg(m->dataCoord.y()));
     });
 
     QAction* measureAction = menu->addAction(QIcon("://measure"),
@@ -1309,7 +1403,7 @@ bool Subplot::markerRightClick(QPoint pos)
         meas->tag = QString("Measure %1").arg(mMeasureCounter++);
 
         QString btext = QString("%1 B\n$lat, $lon").arg(meas->tag);
-        MarkerPtr b = newMeasureMarker(a->xCoord, a->yCoord, btext);
+        MarkerPtr b = newMeasureMarker(a->screenCoord, btext);
 
         meas->a = a;
         meas->b = b;
@@ -1374,8 +1468,8 @@ void Subplot::updateMarkerText(MarkerPtr marker)
 {
     QString text = marker->text;
     text.replace("$i", QString::number(marker->dataIndex));
-    text.replace("$x", QString::number(marker->xCoord));
-    text.replace("$y", QString::number(marker->yCoord));
+    text.replace("$x", QString::number(marker->dataCoord.x()));
+    text.replace("$y", QString::number(marker->dataCoord.y()));
     text.replace("$name", marker->datasetName);
     text.replace("$$", "$");
     marker->textItem->setText(text);
@@ -1427,9 +1521,15 @@ void Subplot::deleteMarker(MarkerPtr marker)
     mPlot->replot();
 }
 
-Subplot::MarkerPtr Subplot::newMeasureMarker(double x, double y, QString text)
+Subplot::MarkerPtr Subplot::newMeasureMarker(QPointF screenCoord, QString text)
 {
-    MarkerPtr m = addMarker(QPointF(x, y));
+    QPointF dataCoord;
+    if (dataTipGraph) {
+        dataCoord = dataTipGraph->dataCoordFromScreen(screenCoord);
+    } else {
+        dataCoord = screenCoord;
+    }
+    MarkerPtr m = addMarker(screenCoord, dataCoord);
     m->text = text;
     updateMarkerText(m);
     updateMarkerArrow(m);

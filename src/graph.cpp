@@ -38,6 +38,22 @@ QRectF Graph::dataBounds()
                   QPointF(xstats.max, ystats.max));
 }
 
+double Graph::dataYFromScreen(double screenY)
+{
+    if (normalized) {
+        return (screenY - yoffset) * (originalYmax - originalYmin)
+                + originalYmin;
+    } else {
+        return screenY;
+    }
+}
+
+QPointF Graph::dataCoordFromScreen(QPointF screenCoord)
+{
+    return QPointF(screenCoord.x(),
+                   dataYFromScreen(screenCoord.y()));
+}
+
 bool Graph::isCurve()
 {
     return (curve != nullptr);
@@ -103,6 +119,11 @@ double Graph::datay(int index)
     } else {
         return 0;
     }
+}
+
+QPointF Graph::coord(int index)
+{
+    return QPointF(datax(index), datay(index));
 }
 
 QColor Graph::color()

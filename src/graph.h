@@ -115,15 +115,8 @@ public:
     double yoffset = 0;
     double originalYmax = 0;
     double originalYmin = 0;
-    double yUnmap(double normalizedOffsetValue)
-    {
-        if (normalized) {
-            return (normalizedOffsetValue - yoffset) * (originalYmax - originalYmin)
-                    + originalYmin;
-        } else {
-            return normalizedOffsetValue;
-        }
-    }
+    double dataYFromScreen(double screenY);
+    QPointF dataCoordFromScreen(QPointF screenCoord);
 
     GridHash grid;
 
@@ -134,6 +127,7 @@ public:
     int dataCount();
     double datax(int index);
     double datay(int index);
+    QPointF coord(int index);
     QColor color();
 
     static QPen nextPen(int index);
