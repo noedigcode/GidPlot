@@ -191,6 +191,7 @@ private:
 
     QMap<QCPAbstractPlottable*, GraphPtr> plottableGraphMap;
     void setDataTipGraph(GraphPtr graph);
+    void setGraphColorNoUpdate(GraphPtr graph, QColor color);
 
     // -------------------------------------------------------------------------
     // Markers
@@ -238,6 +239,7 @@ private:
     bool mPlotCrosshairVisible = true;
     PlotMarkerItem* mPlotCrosshair = nullptr;
     bool mPlotCrosshairVisibilityChangedByUser = false;
+    bool updatePlotCrosshair(QPoint mousePos);
 
     PlotMarkerItem* mMouseCrosshair = nullptr;
 
@@ -257,6 +259,7 @@ private slots:
     void onLegendItemRightClicked(QCPPlottableLegendItem* legendItem,
                                   const QPoint &pos);
     void onLegendRightClicked(QCPLegend* legend, const QPoint& pos);
+    void onPlotSelectionChangedByUser();
 };
 
 #endif // SUBPLOT_H

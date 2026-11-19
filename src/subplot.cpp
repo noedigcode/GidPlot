@@ -30,6 +30,9 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     xAxis = axisRect->axis(QCPAxis::atBottom);
     yAxis = axisRect->axis(QCPAxis::atLeft);
 
+    // Make legend items selectable
+    mPlot->setInteraction(QCP::iSelectLegend, true);
+
     // We will manually add plottables to legends per subplot
     mPlot->setAutoAddPlottableToLegend(false);
 
@@ -50,6 +53,8 @@ Subplot::Subplot(QCPAxisRect *axisRect, QWidget *parentWidget)
     connect(mPlot, &QCustomPlot::mouseRelease, this, &Subplot::onPlotMouseRelease);
     connect(mPlot, &QCustomPlot::axisDoubleClick, this, &Subplot::onAxisDoubleClick);
     connect(mPlot, &QCustomPlot::itemDoubleClick, this, &Subplot::onPlotItemDoubleClick);
+    connect(mPlot, &QCustomPlot::selectionChangedByUser,
+            this, &Subplot::onPlotSelectionChangedByUser);
 
     setupCrosshairs();
     setupMenus();
@@ -194,6 +199,26 @@ void Subplot::onLegendRightClicked(QCPLegend* /*legend*/, const QPoint& /*pos*/)
     qDebug() << "Legend right-clicked";
 }
 
+void Subplot::onPlotSelectionChangedByUser()
+{
+    for (GraphPtr graph : mGraphs) {
+        QCPPlottableLegendItem *item = legend->itemWithPlottable(graph->plottable());
+        if (!item) { continue; }
+        if (item->selected() || graph->plottable()->selected()) {
+
+            // Select both
+            item->setSelected(true);
+            if (graph->graph) {
+                graph->graph->setSelection(QCPDataSelection(graph->graph->data()->dataRange()));
+            } else if (graph->curve) {
+                graph->curve->setSelection(QCPDataSelection(graph->curve->data()->dataRange()));
+            }
+
+            setDataTipGraph(graph);
+        }
+    }
+}
+
 void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
 {
     if (ixcol >= csv->matrix->colCount()) { return; }
@@ -272,6 +297,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
         mPlotCrosshairSnap = ClosestXY;
         setEqualAxesButDontReplot(true);
     }
+    setGraphColorNoUpdate(graph, pen.color());
     graph->csv = csv;
     graph->range = range;
     graph->xstats = xstats;
@@ -291,9 +317,10 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
         graph->grid.insert(QPointF(x[i], y[i]), i);
     }
 
-    // Y-axis ticks: per-signal ticks for stacked, range otherwise.
+    // Y axis ticks: per-signal ticks for stacked, range otherwise.
     if (stack) {
         if (!mYaxisTicker) {
+            // Y axis ticker has not been created yet. Create it now.
             mYaxisTicker.reset(new QCPAxisTickerText);
             yAxis->setTicker(mYaxisTicker);
             yAxis->setSubTicks(false);
@@ -301,6 +328,7 @@ void Subplot::plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack)
         addGraphYaxisTicker(graph, name);
     } else {
         if (mYaxisTicker) {
+            // Not stacking. Remove previous y axis ticker.
             yAxis->setTicker(QSharedPointer<QCPAxisTicker>(new QCPAxisTicker));
             mYaxisTicker.reset();
         }
@@ -396,10 +424,7 @@ void Subplot::renameGraph(GraphPtr graph, QString name)
 
 void Subplot::setGraphColor(GraphPtr graph, QColor color)
 {
-    QCPAbstractPlottable* plottable = graph->plottable();
-    QPen pen = plottable->pen();
-    pen.setColor(color);
-    plottable->setPen(pen);
+    setGraphColorNoUpdate(graph, color);
     mPlot->replot();
     updateLegendPlacement();
 }
@@ -590,20 +615,34 @@ void Subplot::restackGraphs()
         double newYoffset = graphStackOffset(igraph);
         double oldYoffset = graph->yoffset;
         if (oldYoffset != newYoffset) {
+
             graph->yoffset = newYoffset;
+            graph->ystats.max += newYoffset - oldYoffset;
+            graph->ystats.min += newYoffset - oldYoffset;
+            // Reset search grid
+            graph->grid.map.clear();
+            graph->grid.bounds = graph->dataBounds();
+
             if (graph->graph) {
                 QSharedPointer<QCPGraphDataContainer> d = graph->graph->data();
                 for (auto it = d->begin(); it != d->end(); ++it) {
+                    // Update y value
                     it->value = it->value - oldYoffset + newYoffset;
+                    // Add modified values to graph search grid
+                    const int index = int(it - d->begin());
+                    graph->grid.insert(QPointF(it->key, it->value), index);
                 }
             } else if (graph->curve) {
                 QSharedPointer<QCPCurveDataContainer> d = graph->curve->data();
                 for (auto it = d->begin(); it != d->end(); ++it) {
+                    // Update y value
                     it->value = it->value - oldYoffset + newYoffset;
+                    // Add modified values to graph search grid
+                    const int index = int(it - d->begin());
+                    graph->grid.insert(QPointF(it->key, it->value), index);
                 }
             }
-            graph->ystats.max += newYoffset - oldYoffset;
-            graph->ystats.min += newYoffset - oldYoffset;
+
             updateGraphYaxisTickerPos(graph);
         }
     }
@@ -1045,34 +1084,7 @@ bool Subplot::plotMouseMove(QMouseEvent *event)
 
         if (event->buttons() == Qt::NoButton) {
 
-            if (mPlotCrosshairVisible && dataTipGraph) {
-
-                QElapsedTimer timer;
-                timer.start();
-
-                ClosestCoord closest = findClosestCoord(event->pos(),
-                                                        dataTipGraph,
-                                                        mPlotCrosshairSnap);
-
-                // Update the plot crosshair
-                // If it takes too long to update, disable the plot crosshair
-                // automatically. However, if the user has enabled it, leave
-                // it alone.
-                if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
-                    setPlotCrosshairVisible(false);
-                } else if (closest.valid) {
-                    mPlotCrosshair->position->setCoords(closest.coord);
-                    mPlotCrosshair->text = QString("%1, %2 [%3]")
-                            .arg(closest.coord.x())
-                            .arg(dataTipGraph->dataYFromScreen(closest.coord.y()))
-                            .arg(closest.dataIndex);
-                    emit dataTipChanged(link->group,
-                                closest.dataIndex + dataTipGraph->range.start);
-                    replot = true;
-
-                    mPlotCrosshairIndex = closest.dataIndex;
-                }
-            }
+            replot |= updatePlotCrosshair(event->pos());
 
             // Update mouse crosshair
             if (mMouseCrosshair->visible()) {
@@ -1222,6 +1234,18 @@ void Subplot::setDataTipGraph(GraphPtr graph)
     dataTipGraph = graph;
     // Refresh plot crosshair visibility (in case graph is null)
     setPlotCrosshairVisible(mPlotCrosshairVisible);
+
+    updatePlotCrosshair(mouse.lastMovePos);
+    queueReplot();
+}
+
+void Subplot::setGraphColorNoUpdate(GraphPtr graph, QColor color)
+{
+    QCPAbstractPlottable* plottable = graph->plottable();
+    QPen pen = plottable->pen();
+    pen.setColor(color);
+    plottable->setPen(pen);
+    plottable->selectionDecorator()->setPen(QPen(color, 2));
 }
 
 void Subplot::setupMarkerEditDialog()
@@ -1576,6 +1600,42 @@ void Subplot::setupCrosshairs()
     mMouseCrosshair->setVisible(false);
 
     queueReplot();
+}
+
+bool Subplot::updatePlotCrosshair(QPoint mousePos)
+{
+    bool replot = false;
+
+    if (mPlotCrosshairVisible && dataTipGraph) {
+
+        QElapsedTimer timer;
+        timer.start();
+
+        ClosestCoord closest = findClosestCoord(mousePos,
+                                                dataTipGraph,
+                                                mPlotCrosshairSnap);
+
+        // Update the plot crosshair
+        // If it takes too long to update, disable the plot crosshair
+        // automatically. However, if the user has enabled it, leave
+        // it alone.
+        if ((timer.elapsed() > 100) && !mPlotCrosshairVisibilityChangedByUser) {
+            setPlotCrosshairVisible(false);
+        } else if (closest.valid) {
+            mPlotCrosshair->position->setCoords(closest.coord);
+            mPlotCrosshair->text = QString("%1, %2 [%3]")
+                    .arg(closest.coord.x())
+                    .arg(dataTipGraph->dataYFromScreen(closest.coord.y()))
+                    .arg(closest.dataIndex);
+            emit dataTipChanged(link->group,
+                        closest.dataIndex + dataTipGraph->range.start);
+            replot = true;
+
+            mPlotCrosshairIndex = closest.dataIndex;
+        }
+    }
+
+    return replot;
 }
 
 QPointF Subplot::pixelPosToCoord(QPoint pos)
