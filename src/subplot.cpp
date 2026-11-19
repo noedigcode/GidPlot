@@ -1235,8 +1235,13 @@ void Subplot::setDataTipGraph(GraphPtr graph)
     // Refresh plot crosshair visibility (in case graph is null)
     setPlotCrosshairVisible(mPlotCrosshairVisible);
 
-    updatePlotCrosshair(mouse.lastMovePos);
-    queueReplot();
+    // Ensure last mouse position is valid to protect against zero position
+    // and very large plot coordinates causing the closest coord calculation
+    // to break.
+    if (mouse.lastMovePosIsValid) {
+        updatePlotCrosshair(mouse.lastMovePos);
+        queueReplot();
+    }
 }
 
 void Subplot::setGraphColorNoUpdate(GraphPtr graph, QColor color)
@@ -1656,6 +1661,7 @@ void Subplot::onPlotMouseMove(QMouseEvent *event)
     // busy dragging.
 
     mouse.lastMovePos = event->pos();
+    mouse.lastMovePosIsValid = true;
 
     // Start dragging if we have moved further than threshold
     if (mouse.mouseDown && !mouse.isDragging) {

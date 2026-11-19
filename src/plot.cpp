@@ -169,6 +169,10 @@ Plot::ClosestCoord Plot::findClosestCoord(QPoint mousePos, GraphPtr graph,
 
         // Next iteration, if no coord found, try again with larger area
         px *= 2;
+        // Protect from wrap-around
+        if (px == 0) {
+            break;
+        }
     }
 
     return closest;

@@ -156,6 +156,7 @@ private slots:
 private:
 
     struct Mouse {
+        bool lastMovePosIsValid = false;
         QPoint lastMovePos;
         Qt::MouseButton button;
         QPoint start;
