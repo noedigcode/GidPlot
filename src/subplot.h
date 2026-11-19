@@ -78,9 +78,7 @@ public:
 
     void plot(CsvPtr csv, int ixcol, int iycol, Range range, bool stack = false);
     void setXLabel(QString xlabel, bool visible = true);
-    void setXLabelVisible(bool visible);
     void setYLabel(QString ylabel, bool visible = true);
-    void setYLabelVisible(bool visible);
 
     Properties getPlotProperties();
     void setPlotProperties(Properties p);
