@@ -256,7 +256,7 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
                     QString ytext = Utils::elidedText(ylabels.join(","), 20);
                     QString xtext = Utils::elidedText(mat->heading(ixcol), 20);
                     subplot->setXLabel(xtext);
-                    subplot->setYLabel(ytext);
+                    if (!stacked) { subplot->setYLabel(ytext); }
                 });
 
             }
@@ -416,7 +416,7 @@ void MainWindow::plot(CsvPtr csv, int ixcol, QList<int> iycols, Range range, boo
 
     p->setTitle(title);
     p->setXLabel(xtext);
-    p->setYLabel(ytext);
+    if (!stacked) { p->setYLabel(ytext); }
 }
 
 void MainWindow::csvImportFinished(CsvPtr csv)
