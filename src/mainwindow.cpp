@@ -230,8 +230,8 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
 
                         foreach (int iycol, iycols) {
                             p->plotData(subplot, csv, ixcol, iycol, range, stacked);
-                            focusPlot(p);
                         }
+                        focusPlot(p);
                     });
                 }
                 submenu->addAction("New Subplot", this,
@@ -244,8 +244,8 @@ void MainWindow::onTablePlot(CsvWeakPtr csvWkPtr, bool newPlot, int ixcol,
 
                     foreach (int iycol, iycols) {
                         p->plotData(subplot, csv, ixcol, iycol, range, stacked);
-                        focusPlot(p);
                     }
+                    focusPlot(p);
 
                     // Prepare and set x and y axis labels
                     MatrixPtr mat = csv->matrix;
