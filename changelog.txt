@@ -1,6 +1,37 @@
 Gid~Plot Changelog
 ==================
 
+[0.2.4] - 2026-11-19
+--------------------
+
+Added
+
+- When a plot curve is selected, select it on the legend and vice versa.
+- Automatically set the plot datatip to the selected curve.
+- When a curve in a stacked plot is removed, shift the rest up to fill the space.
+
+Changed
+
+- Hide the y-axis label by default when plotting a stacked/logic plot. (Signal
+  names are already shown on the y-axis.)
+- A plot's stacked behaviour is now determined by the first plot. Thereafter
+  subsequent plots to the subplot are either stacked or overplotted normally.
+  This also means that adding more plots to an existing stacked plot will also
+  stack the new plots.
+- Do not automatically show the legend in stacked mode by default.
+- Change the x-axis column selector from a list to a combo box to add additional
+  space for the y-axis list selector.
+- Don't include range name in signal name for stacked/logic plots.
+- Hide mouse crosshair Y position for stacked/logic plots, as it would be
+  misleading due to stacked graph offsets and normalizing.
+
+Fixed
+
+- Fix coordinate in plot crosshair for stacked/logic plots.
+- Fix marker displayed coordinates for stacked/logic plots.
+- Fix measurement markers displayed coordinates for stacked/logic plots.
+
+
 [0.2.3] - 2026-11-18
 --------------------
 
