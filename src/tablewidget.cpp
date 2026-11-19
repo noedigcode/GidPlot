@@ -417,19 +417,9 @@ void TableWidget::on_pushButton_addToPlot_clicked()
     emitPlot(false, false);
 }
 
-void TableWidget::on_treeWidget_cols_x_itemSelectionChanged()
-{
-    updateWidgetsOnColumnSelectionChange();
-}
-
 void TableWidget::on_treeWidget_cols_y_itemSelectionChanged()
 {
     updateWidgetsOnColumnSelectionChange();
-}
-
-void TableWidget::on_pushButton_newMapPlot_clicked()
-{
-    emitMapPlot(true);
 }
 
 void TableWidget::on_comboBox_range_currentIndexChanged(int index)

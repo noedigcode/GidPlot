@@ -60,10 +60,7 @@ private slots:
     void on_toolButton_errors_total_prev_clicked();
     void on_toolButton_errors_total_next_clicked();
     void on_pushButton_addToPlot_clicked();
-    void on_treeWidget_cols_x_itemSelectionChanged();
     void on_treeWidget_cols_y_itemSelectionChanged();
-
-    void on_pushButton_newMapPlot_clicked();
 
     void on_comboBox_range_currentIndexChanged(int index);
 
