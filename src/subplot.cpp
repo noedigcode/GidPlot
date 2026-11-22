@@ -119,7 +119,7 @@ void Subplot::onPlotMousePress(QMouseEvent *event)
     bool markerPressed = markerMouseDown(event);
 
     if (event->button() == Qt::LeftButton) {
-        if (legend && legend->selectTest(event->pos(), false) >= 0) {
+        if (legend && legend->visible() && posIsOnLegend(event->pos())) {
             legendMouse.mouseDown = true;
             mPlot->setInteraction(QCP::iRangeDrag, false); // Disable plot panning
             legendMouse.startRect = axisRect->insetLayout()->insetRect(0);
@@ -1125,10 +1125,18 @@ void Subplot::updateLegendVisibilityBasedOnAutoEtc()
     }
 }
 
+bool Subplot::posIsOnLegend(QPoint pos)
+{
+    if (!legend) { return false; }
+
+    return (legend->selectTest(pos, false) >= 0);
+}
+
 bool Subplot::legendMouseMove(QMouseEvent *event)
 {
     if (!axisRect) { return false; }
     if (!legend) { return false; }
+    if (!legend->visible()) { return false; }
 
     bool replot = false;
 
@@ -1717,7 +1725,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
 
     bool used = false;
 
-    if (legend) {
+    if (legend && legend->visible()) {
 
         // Check if plottable item in legend has been right clicked
         for (int i = 0; i < legend->itemCount(); i++) {
@@ -1733,7 +1741,7 @@ void Subplot::plotRightClicked(const QPoint &pos)
 
         if (!used) {
             // Plottable item was not clicked. // Check if legend has been right clicked
-            if (legend->selectTest(pos, false) >= 0) {
+            if (posIsOnLegend(pos)) {
                 onLegendRightClicked(legend, pos);
                 used = true;
             }

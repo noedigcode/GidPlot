@@ -182,6 +182,7 @@ private:
         QRectF startRect;
     } legendMouse;
 
+    bool posIsOnLegend(QPoint pos);
     bool legendMouseMove(QMouseEvent* event);
 
     bool mFirstLegendPlacement = true;
